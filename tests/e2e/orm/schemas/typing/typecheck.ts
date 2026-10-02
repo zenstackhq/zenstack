@@ -2,6 +2,7 @@ import { ZenStackClient, type Subset } from '@zenstackhq/orm';
 import SQLite from 'better-sqlite3';
 import { SqliteDialect } from 'kysely';
 import { Role, Status, type Identity, type IdentityProvider } from './models';
+import type { UserSelect, UserWhereInput } from './input';
 import { schema } from './schema';
 
 const client = new ZenStackClient(schema, {
@@ -13,6 +14,8 @@ const client = new ZenStackClient(schema, {
                     .selectFrom('Post')
                     .whereRef('Post.authorId', '=', 'id')
                     .select(({ fn }) => fn.countAll<number>().as('postCount')),
+            // typing-only stub: the query-time `status` arg is typed as the `Status` enum
+            hasStatus: (eb, _ctx, args) => eb.lit(args.status === Status.ACTIVE),
         },
     },
 });
@@ -26,6 +29,8 @@ const strictClient = new ZenStackClient(schema, {
                     .selectFrom('Post')
                     .whereRef('Post.authorId', '=', 'id')
                     .select(({ fn }) => fn.countAll<number>().as('postCount')),
+            // typing-only stub: the query-time `status` arg is typed as the `Status` enum
+            hasStatus: (eb, _ctx, args) => eb.lit(args.status === Status.ACTIVE),
         },
     },
     typing: { exactQueryArgs: true },
@@ -45,6 +50,39 @@ async function main() {
 }
 
 async function find() {
+    // a parameterized computed field's `args` are typed from its declared params: an enum param
+    // accepts only the enum's values, and `args` is required wherever the field is used
+    const withArgs = await client.user.findFirst({
+        select: { id: true, hasStatus: { args: { status: Status.ACTIVE } } },
+        where: { hasStatus: { args: { status: 'INACTIVE' }, equals: true } },
+        orderBy: { hasStatus: { args: { status: Status.BANNED }, sort: 'desc' } },
+    });
+    const hasStatus: boolean | undefined = withArgs?.hasStatus;
+    void hasStatus;
+    await client.user.findMany({
+        // @ts-expect-error not a Status value
+        select: { hasStatus: { args: { status: 'WRONG' } } },
+    });
+    await client.user.findMany({
+        // @ts-expect-error not a Status value
+        where: { hasStatus: { args: { status: 'WRONG' }, equals: true } },
+    });
+    await client.user.findMany({
+        // @ts-expect-error not a Status value
+        orderBy: { hasStatus: { args: { status: 'WRONG' }, sort: 'asc' } },
+    });
+    await client.user.findMany({
+        // @ts-expect-error args are required for a parameterized computed field
+        select: { hasStatus: true },
+    });
+    // the generated input types carry the same typing
+    // @ts-expect-error not a Status value
+    const selectWithWrongArgs: UserSelect = { hasStatus: { args: { status: 'WRONG' } } };
+    // @ts-expect-error not a Status value
+    const whereWithWrongArgs: UserWhereInput = { hasStatus: { args: { status: 'WRONG' }, equals: true } };
+    void selectWithWrongArgs;
+    void whereWithWrongArgs;
+
     await client.user.findMany({
         where: {
             posts: {

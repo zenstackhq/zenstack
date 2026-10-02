@@ -99,7 +99,7 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
                           ? new Date(value).toISOString()
                           : value;
                 case 'Decimal':
-                    return (value as Decimal).toString();
+                    return value !== null ? value.toString() : value;
                 case 'Bytes':
                     return Buffer.from(value as Uint8Array);
                 default:

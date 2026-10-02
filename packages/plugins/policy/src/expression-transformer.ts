@@ -41,6 +41,7 @@ import {
     SelectionNode,
     SelectQueryNode,
     TableNode,
+    UnaryOperationNode,
     ValueListNode,
     ValueNode,
     WhereNode,
@@ -92,6 +93,18 @@ export type ExpressionTransformerContext = {
     memberSelect?: SelectionNode;
 
     /**
+     * In case of transforming a collection predicate's LHS, wraps the innermost relation subquery with
+     * `exists` or `not exists` so the predicate is evaluated as a semi-join instead of an aggregate
+     */
+    memberExists?: 'exists' | 'not exists';
+
+    /**
+     * In case of transforming a collection predicate's LHS, the table alias to use for the innermost
+     * relation (the one the predicate filter is compiled against)
+     */
+    memberAlias?: string;
+
+    /**
      * The value object that fields should be evaluated against
      */
     contextValue?: Record<string, any>;
@@ -129,6 +142,9 @@ function expr(kind: Expression['kind']) {
  * Utility for transforming a ZModel expression into a Kysely OperationNode.
  */
 export class ExpressionTransformer<Schema extends SchemaDef> {
+    // counter for allocating unique relation table aliases
+    private aliasCounter = 0;
+
     private readonly dialect: BaseCrudDialect<Schema>;
     private readonly eb = expressionBuilder<any, any>();
 
@@ -197,14 +213,28 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         if (!fieldDef.relation) {
             return this.createColumnRef(expr.field, context);
         } else {
-            const { memberFilter, memberSelect, ...restContext } = context;
-            const relation = this.transformRelationAccess(expr.field, fieldDef.type, restContext);
-            return {
-                ...relation,
-                where: this.mergeWhere(relation.where, memberFilter),
-                selections: memberSelect ? [memberSelect] : relation.selections,
-            };
+            const { memberFilter, memberSelect, memberExists, memberAlias, ...restContext } = context;
+            const relation = this.transformRelationAccess(expr.field, fieldDef.type, restContext, memberAlias);
+            return this.finalizeMemberSubquery(
+                {
+                    ...relation,
+                    where: this.mergeWhere(relation.where, memberFilter),
+                    selections: memberSelect ? [memberSelect] : relation.selections,
+                },
+                memberExists,
+            );
         }
+    }
+
+    // wraps the innermost collection-predicate subquery with `exists`/`not exists` if requested
+    private finalizeMemberSubquery(
+        node: SelectQueryNode,
+        memberExists: 'exists' | 'not exists' | undefined,
+    ): OperationNode {
+        if (!memberExists) {
+            return node;
+        }
+        return UnaryOperationNode.create(OperatorNode.create(memberExists), node);
     }
 
     private mergeWhere(where: WhereNode | undefined, memberFilter: OperationNode | undefined) {
@@ -338,14 +368,14 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             const leftRelDef = this.getFieldDefFromFieldRef(expr.left, context);
             invariant(leftRelDef, 'failed to get relation field definition');
             const idFields = QueryUtils.requireIdFields(this.schema, leftRelDef.type);
-            normalizedLeft = this.makeOrAppendMember(normalizedLeft, idFields[0]!);
+            normalizedLeft = this.appendIdOrForeignKey(normalizedLeft, idFields[0]!, context);
         }
         let normalizedRight: Expression = expr.right;
         if (this.isRelationField(expr.right, context)) {
             const rightRelDef = this.getFieldDefFromFieldRef(expr.right, context);
             invariant(rightRelDef, 'failed to get relation field definition');
             const idFields = QueryUtils.requireIdFields(this.schema, rightRelDef.type);
-            normalizedRight = this.makeOrAppendMember(normalizedRight, idFields[0]!);
+            normalizedRight = this.appendIdOrForeignKey(normalizedRight, idFields[0]!, context);
         }
         return { normalizedLeft, normalizedRight };
     }
@@ -414,17 +444,22 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             }
         }
 
+        // alias of the innermost relation table that the predicate filter is compiled against; relation
+        // tables are always given a unique alias so that they never shadow an enclosing table (which
+        // matters for self-relations and for nested predicates traversing the same relation)
+        const memberAlias = this.newRelationAlias(this.getLastMemberName(expr.left));
+
         const bindingScope = expr.binding
             ? {
                   ...(context.bindingScope ?? {}),
-                  [expr.binding]: { type: newContextModel, alias: newContextModel },
+                  [expr.binding]: { type: newContextModel, alias: memberAlias },
               }
             : context.bindingScope;
 
         let predicateFilter = this.transform(expr.right, {
             ...context,
             modelOrType: newContextModel,
-            alias: undefined,
+            alias: memberAlias,
             // binding values (if any) remain available through `bindingScope`
             contextValue: undefined,
             bindingScope: bindingScope,
@@ -434,19 +469,48 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             predicateFilter = logicalNot(this.dialect, predicateFilter);
         }
 
-        const count = FunctionNode.create('count', [ValueNode.createImmediate(1)]);
-
-        const predicateResult = match(expr.op)
-            .with('?', () => BinaryOperationNode.create(count, OperatorNode.create('>'), ValueNode.createImmediate(0)))
-            .with('!', () => BinaryOperationNode.create(count, OperatorNode.create('='), ValueNode.createImmediate(0)))
-            .with('^', () => BinaryOperationNode.create(count, OperatorNode.create('='), ValueNode.createImmediate(0)))
+        // `?` (some) => exists(select 1 ... where filter)
+        // `!` (all)  => not exists(select 1 ... where not filter)
+        // `^` (none) => not exists(select 1 ... where filter)
+        // `exists` lets the database plan the predicate as a semi-join that can use indexes and
+        // stop at the first match, unlike a correlated `count(1) > 0` aggregate
+        const memberExists = match(expr.op)
+            .with('?', () => 'exists' as const)
+            .with('!', () => 'not exists' as const)
+            .with('^', () => 'not exists' as const)
             .exhaustive();
 
         return this.transform(expr.left, {
             ...context,
-            memberSelect: SelectionNode.create(AliasNode.create(predicateResult, IdentifierNode.create('_'))),
+            memberSelect: SelectionNode.create(
+                AliasNode.create(ValueNode.createImmediate(1), IdentifierNode.create('_')),
+            ),
+            memberExists,
             memberFilter: predicateFilter,
+            memberAlias,
         });
+    }
+
+    private getLastMemberName(expr: Expression) {
+        if (ExpressionUtils.isField(expr)) {
+            return expr.field;
+        }
+        invariant(ExpressionUtils.isMember(expr) && expr.members.length > 0, 'expected field or member expression');
+        return expr.members[expr.members.length - 1]!;
+    }
+
+    /**
+     * Allocates a table alias for a relation subquery, unique within this transformer. Aliasing every
+     * relation subquery avoids the related table shadowing an enclosing one when the relation points
+     * back to the same model (self-relation), including across nested collection predicates.
+     * The counter is per transformer instance so the same policy always compiles to the same SQL.
+     *
+     * The alias is marked as a temp alias so the query executor compacts it (or at least shortens
+     * it when it exceeds the database's identifier length limit), preventing PostgreSQL's 63-byte
+     * truncation from collapsing two aliases derived from a long field name into the same name.
+     */
+    private newRelationAlias(field: string) {
+        return QueryUtils.tmpAlias(`${field}$${++this.aliasCounter}`);
     }
 
     private ensureCollectionPredicateOperator(op: BinaryOperator): asserts op is CollectionPredicateOperator {
@@ -566,12 +630,13 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 .map((f) => f.name);
             invariant(idFields.length > 0, 'auth type model must have at least one id field');
 
-            // convert `auth() == other` into `auth().id == other.id`
+            // convert `auth() == other` into `auth().id == other.id`, or `auth().id == other's fk`
+            // when `other` is a to-one relation owning the foreign key
             const conditions = idFields.map((fieldName) =>
                 ExpressionUtils.binary(
                     ExpressionUtils.member(authExpr, [fieldName]),
                     '==',
-                    this.makeOrAppendMember(other, fieldName),
+                    this.appendIdOrForeignKey(other, fieldName, context),
                 ),
             );
             let result = this.buildAnd(conditions);
@@ -588,6 +653,61 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         } else {
             return ExpressionUtils.member(other, [fieldName]);
         }
+    }
+
+    /**
+     * Appends `idField` to a relation expression, i.e. `relation` -> `relation.id`. When the relation
+     * is SQL-backed, to-one, and owns the foreign key referencing `idField`, the terminal hop is
+     * replaced with the foreign key column instead (`relation.id` -> `relationId`), which avoids a
+     * correlated subquery into the related table that would only read back the same value.
+     */
+    private appendIdOrForeignKey(
+        relationExpr: Expression,
+        idField: string,
+        context: ExpressionTransformerContext,
+    ): Expression {
+        if (this.isSqlBackedRef(relationExpr, context)) {
+            const resolved = this.resolveFieldRef(relationExpr, context);
+            const relation = resolved?.fieldDef.relation;
+            if (relation && !resolved.fieldDef.array && relation.fields && relation.references) {
+                const idx = relation.references.indexOf(idField);
+                const fk = idx >= 0 ? relation.fields[idx] : undefined;
+                if (fk) {
+                    return this.replaceLastMember(relationExpr, fk);
+                }
+            }
+        }
+        return this.makeOrAppendMember(relationExpr, idField);
+    }
+
+    // replaces the terminal segment of a field/member expression with `fieldName`
+    private replaceLastMember(expr: Expression, fieldName: string): Expression {
+        if (ExpressionUtils.isMember(expr)) {
+            return ExpressionUtils.member(expr.receiver, [...expr.members.slice(0, -1), fieldName]);
+        } else {
+            invariant(ExpressionUtils.isField(expr), 'expected field or member expression');
+            return ExpressionUtils.field(fieldName);
+        }
+    }
+
+    // whether a field/member expression is compiled to SQL column references (as opposed to
+    // being evaluated against an in-memory value tree, e.g. `auth()` members or value bindings)
+    private isSqlBackedRef(expr: Expression, context: ExpressionTransformerContext): boolean {
+        if (ExpressionUtils.isField(expr)) {
+            return !context.contextValue;
+        }
+        if (ExpressionUtils.isMember(expr)) {
+            if (ExpressionUtils.isThis(expr.receiver)) {
+                return true;
+            }
+            if (ExpressionUtils.isField(expr.receiver)) {
+                return !context.contextValue;
+            }
+            if (ExpressionUtils.isBinding(expr.receiver)) {
+                return context.bindingScope?.[expr.receiver.name]?.value === undefined;
+            }
+        }
+        return false;
     }
 
     private transformValue(value: unknown, type: BuiltinType): OperationNode {
@@ -704,8 +824,9 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
 
         let members = expr.members;
         let receiver: OperationNode;
+        let receiverAlias: string;
         let startType: string | undefined;
-        const { memberFilter, memberSelect, ...restContext } = context;
+        const { memberFilter, memberSelect, memberExists, memberAlias, ...restContext } = context;
 
         if (ExpressionUtils.isThis(expr.receiver)) {
             if (expr.members.length === 1) {
@@ -722,12 +843,18 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 // transform the first segment into a relation access, then continue with the rest of
                 // the members; root the chain at the correct context model (thisType/thisAlias)
                 const firstMemberFieldDef = QueryUtils.requireField(this.schema, context.thisType, expr.members[0]!);
-                receiver = this.transformRelationAccess(expr.members[0]!, firstMemberFieldDef.type, {
-                    ...restContext,
-                    alias: context.thisAlias,
-                    modelOrType: context.thisType,
-                    contextValue: undefined,
-                });
+                receiverAlias = this.newRelationAlias(expr.members[0]!);
+                receiver = this.transformRelationAccess(
+                    expr.members[0]!,
+                    firstMemberFieldDef.type,
+                    {
+                        ...restContext,
+                        alias: context.thisAlias,
+                        modelOrType: context.thisType,
+                        contextValue: undefined,
+                    },
+                    receiverAlias,
+                );
                 members = expr.members.slice(1);
                 // startType should be the type of the relation access
                 startType = firstMemberFieldDef.type;
@@ -747,17 +874,26 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 // transform the first segment into a relation access, then continue with the rest of the members
                 const bindingScope = this.requireBindingScope(expr.receiver, context);
                 const firstMemberFieldDef = QueryUtils.requireField(this.schema, bindingScope.type, expr.members[0]!);
-                receiver = this.transformRelationAccess(expr.members[0]!, firstMemberFieldDef.type, {
-                    ...restContext,
-                    modelOrType: bindingScope.type,
-                    alias: bindingScope.alias,
-                });
+                receiverAlias = this.newRelationAlias(expr.members[0]!);
+                receiver = this.transformRelationAccess(
+                    expr.members[0]!,
+                    firstMemberFieldDef.type,
+                    {
+                        ...restContext,
+                        modelOrType: bindingScope.type,
+                        alias: bindingScope.alias,
+                    },
+                    receiverAlias,
+                );
                 members = expr.members.slice(1);
                 // startType should be the type of the relation access
                 startType = firstMemberFieldDef.type;
             }
         } else {
-            receiver = this.transform(expr.receiver, restContext);
+            // field receiver, pass the alias to use for the relation table via `memberAlias`
+            invariant(ExpressionUtils.isField(expr.receiver), 'expected receiver to be a field expression');
+            receiverAlias = this.newRelationAlias(expr.receiver.field);
+            receiver = this.transform(expr.receiver, { ...restContext, memberAlias: receiverAlias });
         }
 
         invariant(SelectQueryNode.is(receiver), 'expected receiver to be select query');
@@ -772,48 +908,67 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             }
         }
 
-        // traverse forward to collect member types
-        const memberFields: { fromModel: string; fieldDef: FieldDef }[] = [];
+        // traverse forward to collect member types and assign table aliases for each hop
+        const memberFields: { fromModel: string; fromAlias: string; fieldDef: FieldDef; alias: string }[] = [];
         let currType = startType;
+        let currAlias = receiverAlias;
         for (const member of members) {
             const fieldDef = QueryUtils.requireField(this.schema, currType, member);
-            memberFields.push({ fieldDef, fromModel: currType });
+            const alias = fieldDef.relation ? this.newRelationAlias(member) : currAlias;
+            memberFields.push({ fieldDef, fromModel: currType, fromAlias: currAlias, alias });
             currType = fieldDef.type;
+            currAlias = alias;
         }
 
-        let currNode: SelectQueryNode | ColumnNode | ReferenceNode | undefined = undefined;
+        let currNode: OperationNode | undefined = undefined;
 
         for (let i = members.length - 1; i >= 0; i--) {
             const member = members[i]!;
-            const { fieldDef, fromModel } = memberFields[i]!;
+            const { fieldDef, fromModel, fromAlias, alias } = memberFields[i]!;
 
             if (fieldDef.relation) {
-                const relation = this.transformRelationAccess(member, fieldDef.type, {
-                    ...restContext,
-                    modelOrType: fromModel,
-                    alias: undefined,
-                });
+                const relation = this.transformRelationAccess(
+                    member,
+                    fieldDef.type,
+                    {
+                        ...restContext,
+                        modelOrType: fromModel,
+                        alias: fromAlias,
+                    },
+                    // the innermost relation uses the alias the collection predicate filter (if any)
+                    // was compiled against
+                    i === members.length - 1 ? (memberAlias ?? alias) : alias,
+                );
 
                 if (currNode) {
-                    currNode = {
+                    const outer: SelectQueryNode = {
                         ...relation,
                         selections: [
                             SelectionNode.create(AliasNode.create(currNode, IdentifierNode.create(members[i + 1]!))),
                         ],
                     };
+                    currNode = outer;
                 } else {
                     // inner most member, merge with member filter from the context
-                    currNode = {
-                        ...relation,
-                        where: this.mergeWhere(relation.where, memberFilter),
-                        selections: memberSelect ? [memberSelect] : relation.selections,
-                    };
+                    currNode = this.finalizeMemberSubquery(
+                        {
+                            ...relation,
+                            where: this.mergeWhere(relation.where, memberFilter),
+                            selections: memberSelect ? [memberSelect] : relation.selections,
+                        },
+                        memberExists,
+                    );
                 }
             } else {
                 invariant(i === members.length - 1, 'plain field access must be the last segment');
                 invariant(!currNode, 'plain field access must be the last segment');
 
-                currNode = ColumnNode.create(member);
+                if (fieldDef.originModel && fieldDef.originModel !== fromModel) {
+                    // field inherited from a delegate base model, look it up from the base table
+                    currNode = this.buildDelegateBaseFieldSelect(fromModel, fromAlias, member, fieldDef.originModel);
+                } else {
+                    currNode = ReferenceNode.create(ColumnNode.create(member), TableNode.create(fromAlias));
+                }
             }
         }
 
@@ -854,14 +1009,20 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         return curr;
     }
 
+    /**
+     * Builds a `SELECT ... FROM <relationModel> AS <relationAlias> WHERE <join condition>` subquery
+     * for accessing relation `field` from the current context model. The related table is always
+     * aliased so that it never shadows the outer table (which matters for self-relations).
+     */
     private transformRelationAccess(
         field: string,
         relationModel: string,
         context: ExpressionTransformerContext,
+        relationAlias = this.newRelationAlias(field),
     ): SelectQueryNode {
         const m2m = QueryUtils.getManyToManyRelation(this.schema, context.modelOrType, field);
         if (m2m) {
-            return this.transformManyToManyRelationAccess(m2m, context);
+            return this.transformManyToManyRelationAccess(m2m, context, relationAlias);
         }
 
         const fromModel = context.modelOrType;
@@ -890,7 +1051,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                     return BinaryOperationNode.create(
                         fkRef,
                         OperatorNode.create('='),
-                        ReferenceNode.create(ColumnNode.create(pk), TableNode.create(relationModel)),
+                        ReferenceNode.create(ColumnNode.create(pk), TableNode.create(relationAlias)),
                     );
                 }),
             );
@@ -902,7 +1063,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                     BinaryOperationNode.create(
                         ReferenceNode.create(ColumnNode.create(pk), TableNode.create(context.alias ?? fromModel)),
                         OperatorNode.create('='),
-                        ReferenceNode.create(ColumnNode.create(fk), TableNode.create(relationModel)),
+                        ReferenceNode.create(ColumnNode.create(fk), TableNode.create(relationAlias)),
                     ),
                 ),
             );
@@ -910,7 +1071,9 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
 
         return {
             kind: 'SelectQueryNode',
-            from: FromNode.create([TableNode.create(relationModel)]),
+            from: FromNode.create([
+                AliasNode.create(TableNode.create(relationModel), IdentifierNode.create(relationAlias)),
+            ]),
             where: WhereNode.create(condition),
         };
     }
@@ -918,18 +1081,21 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     private transformManyToManyRelationAccess(
         m2m: NonNullable<ReturnType<typeof QueryUtils.getManyToManyRelation>>,
         context: ExpressionTransformerContext,
+        relationAlias: string,
     ) {
         const eb = expressionBuilder<any, any>();
+        // alias the join table too so that nested traversals through the same relation don't shadow
+        const joinTableAlias = `${relationAlias}$join`;
         const relationQuery = eb
-            .selectFrom(m2m.otherModel)
+            .selectFrom(`${m2m.otherModel} as ${relationAlias}`)
             // inner join with join table and additionally filter by the parent model
-            .innerJoin(m2m.joinTable, (join) =>
+            .innerJoin(`${m2m.joinTable} as ${joinTableAlias}`, (join) =>
                 join
                     // relation model pk to join table fk
-                    .onRef(`${m2m.otherModel}.${m2m.otherPKName}`, '=', `${m2m.joinTable}.${m2m.otherFkName}`)
+                    .onRef(`${relationAlias}.${m2m.otherPKName}`, '=', `${joinTableAlias}.${m2m.otherFkName}`)
                     // parent model pk to join table fk
                     .onRef(
-                        `${m2m.joinTable}.${m2m.parentFkName}`,
+                        `${joinTableAlias}.${m2m.parentFkName}`,
                         '=',
                         `${context.alias ?? context.modelOrType}.${m2m.parentPKName}`,
                     ),
@@ -1030,6 +1196,15 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     }
 
     private getFieldDefFromFieldRef(expr: Expression, context: ExpressionTransformerContext): FieldDef | undefined {
+        return this.resolveFieldRef(expr, context)?.fieldDef;
+    }
+
+    // resolves a field/member expression to the terminal field's definition together with the
+    // model that declares it
+    private resolveFieldRef(
+        expr: Expression,
+        context: ExpressionTransformerContext,
+    ): { model: string; fieldDef: FieldDef } | undefined {
         // `this.foo` references belong to `thisType` (the outer model in collection-predicate
         // contexts); everything else uses `modelOrType`.
         const model =
@@ -1037,21 +1212,26 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 ? context.thisType
                 : context.modelOrType;
 
+        const resolveField = (currModel: string, field: string) => {
+            const fieldDef = QueryUtils.getField(this.schema, currModel, field);
+            return fieldDef ? { model: currModel, fieldDef } : undefined;
+        };
+
         // walks a chain of member names from `startModel`, treating all but the last segment as
         // relation hops, and returns the terminal field's FieldDef; returns undefined if any
         // segment is missing or an intermediate hop is not a relation.
-        const walkRelationChain = (startModel: string, members: string[]): FieldDef | undefined => {
+        const walkRelationChain = (startModel: string, members: string[]) => {
             let currModel = startModel;
             for (let i = 0; i < members.length - 1; i++) {
                 const hopDef = QueryUtils.getField(this.schema, currModel, members[i]!);
                 if (!hopDef?.relation) return undefined;
                 currModel = hopDef.type;
             }
-            return QueryUtils.getField(this.schema, currModel, members[members.length - 1]!);
+            return resolveField(currModel, members[members.length - 1]!);
         };
 
         if (ExpressionUtils.isField(expr)) {
-            return QueryUtils.getField(this.schema, model, expr.field);
+            return resolveField(model, expr.field);
         } else if (ExpressionUtils.isMember(expr)) {
             if (ExpressionUtils.isThis(expr.receiver)) {
                 // `this.<...>.field` chain rooted at the `this` model.
@@ -1065,6 +1245,12 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 // receiver is the first hop, so native-type info (@db.*) on the terminal field is
                 // available for casting in buildComparison.
                 return walkRelationChain(model, [expr.receiver.field, ...expr.members]);
+            } else if (this.isAuthCall(expr.receiver)) {
+                // `auth().<...>.field` chain rooted at the auth model. Resolving the terminal
+                // field lets buildComparison see matching native types on both sides (e.g.
+                // `userId == auth().id` with both `@db.Uuid`) and skip casting the column,
+                // which would otherwise defeat index usage.
+                return walkRelationChain(this.authType, expr.members);
             }
         }
         return undefined;

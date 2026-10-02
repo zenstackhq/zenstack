@@ -11,7 +11,6 @@ import {
     DataModelAttribute,
     Enum,
     Expression,
-    FunctionParamType,
     InvocationExpr,
     isArrayExpr,
     isBinaryExpr,
@@ -469,14 +468,6 @@ export class TsSchemaGenerator {
             ...(dm.isView ? [ts.factory.createPropertyAssignment('isView', ts.factory.createTrue())] : []),
         ];
 
-        const computedFields = allFields.filter((f) => hasAttribute(f, '@computed') && !getDelegateOriginModel(f, dm));
-
-        if (computedFields.length > 0) {
-            fields.push(
-                ts.factory.createPropertyAssignment('computedFields', this.createComputedFieldsObject(computedFields)),
-            );
-        }
-
         return ts.factory.createObjectLiteralExpression(fields, true);
     }
 
@@ -553,85 +544,10 @@ export class TsSchemaGenerator {
         return ts.factory.createObjectLiteralExpression(fields, true);
     }
 
-    private createComputedFieldsObject(fields: DataField[]) {
-        return ts.factory.createObjectLiteralExpression(
-            fields.map((field) => {
-                const params: ts.ParameterDeclaration[] = [
-                    // parameter: `_context: { modelAlias: string }`
-                    ts.factory.createParameterDeclaration(
-                        undefined,
-                        undefined,
-                        '_context',
-                        undefined,
-                        ts.factory.createTypeLiteralNode([
-                            ts.factory.createPropertySignature(
-                                undefined,
-                                'modelAlias',
-                                undefined,
-                                ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
-                            ),
-                        ]),
-                        undefined,
-                    ),
-                ];
-
-                // For a parameterized computed field, add `args: { <param>: <type> }`.
-                // The field's params flow into this stub's signature so that
-                // `Parameters<typeof stub>` carries the args type for both the
-                // implementation (ComputedFieldsOptions) and the query input types.
-                if (field.params.length > 0) {
-                    params.push(
-                        ts.factory.createParameterDeclaration(
-                            undefined,
-                            undefined,
-                            'args',
-                            undefined,
-                            ts.factory.createTypeLiteralNode(
-                                field.params.map((param) =>
-                                    ts.factory.createPropertySignature(
-                                        undefined,
-                                        param.name,
-                                        param.optional
-                                            ? ts.factory.createToken(ts.SyntaxKind.QuestionToken)
-                                            : undefined,
-                                        ts.factory.createTypeReferenceNode(
-                                            this.mapFunctionParamTypeToTSType(param.type),
-                                        ),
-                                    ),
-                                ),
-                            ),
-                            undefined,
-                        ),
-                    );
-                }
-
-                return ts.factory.createMethodDeclaration(
-                    undefined,
-                    undefined,
-                    field.name,
-                    undefined,
-                    undefined,
-                    params,
-                    ts.factory.createTypeReferenceNode(this.mapFieldTypeToTSType(field.type)),
-                    ts.factory.createBlock(
-                        [
-                            ts.factory.createThrowStatement(
-                                ts.factory.createNewExpression(ts.factory.createIdentifier('Error'), undefined, [
-                                    ts.factory.createStringLiteral('This is a stub for computed field'),
-                                ]),
-                            ),
-                        ],
-                        true,
-                    ),
-                );
-            }),
-            true,
-        );
-    }
-
     // Emits the `params` metadata for a parameterized computed field. Shape mirrors
-    // `ProcedureParam` (`Record<string, { name; type; array?; optional? }>`) and is
-    // read at runtime (to forward args) and by the zod input-validation factory.
+    // `ProcedureParam` (`Record<string, { name; type; array?; optional? }>`). It is read at
+    // runtime (to forward args), by the zod input-validation factory, and by the ORM types that
+    // derive the query-time `args` and the implementation signature from it.
     private createFieldParamsObject(params: DataFieldParam[]) {
         return ts.factory.createObjectLiteralExpression(
             params.map((param) =>
@@ -656,25 +572,6 @@ export class TsSchemaGenerator {
         );
     }
 
-    private mapFunctionParamTypeToTSType(type: FunctionParamType): string {
-        let result = match(type.type)
-            .with('String', () => 'string')
-            .with('Boolean', () => 'boolean')
-            .with('Int', () => 'number')
-            .with('Float', () => 'number')
-            .with('BigInt', () => 'bigint')
-            .with('Decimal', () => 'number')
-            .with('DateTime', () => 'Date')
-            // non-scalar references (enums/type defs/models) aren't in scope in the generated
-            // schema file, so fall back to `unknown` — same convention as computed-field return
-            // types (`mapFieldTypeToTSType`). Runtime zod still validates these precisely.
-            .otherwise(() => 'unknown');
-        if (type.array) {
-            result = `${result}[]`;
-        }
-        return result;
-    }
-
     private createUpdatedAtObject(ignoreArg: AttributeArg) {
         return ts.factory.createObjectLiteralExpression([
             ts.factory.createPropertyAssignment(
@@ -686,24 +583,6 @@ export class TsSchemaGenerator {
                 ),
             ),
         ]);
-    }
-
-    private mapFieldTypeToTSType(type: DataFieldType) {
-        let result = match(type.type)
-            .with('String', () => 'string')
-            .with('Boolean', () => 'boolean')
-            .with('Int', () => 'number')
-            .with('Float', () => 'number')
-            .with('BigInt', () => 'bigint')
-            .with('Decimal', () => 'number')
-            .otherwise(() => 'unknown');
-        if (type.array) {
-            result = `${result}[]`;
-        }
-        if (type.optional) {
-            result = `${result} | null`;
-        }
-        return result;
     }
 
     private createDataFieldObject(field: DataField, contextModel: DataModel | undefined, lite: boolean) {

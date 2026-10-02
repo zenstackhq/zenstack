@@ -83,6 +83,12 @@ export class SchemaType implements SchemaDef {
                     optional: true,
                     attributes: [{ name: "@time" }] as readonly AttributeApplication[]
                 },
+                extId: {
+                    name: "extId",
+                    type: "String",
+                    optional: true,
+                    attributes: [{ name: "@uuid" }] as readonly AttributeApplication[]
+                },
                 createdAt: {
                     name: "createdAt",
                     type: "DateTime",
@@ -199,13 +205,6 @@ export class SchemaType implements SchemaDef {
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "String" }
-            },
-            computedFields: {
-                finalPrice(_context: {
-                    modelAlias: string;
-                }): number {
-                    throw new Error("This is a stub for computed field");
-                }
             }
         },
         Asset: {

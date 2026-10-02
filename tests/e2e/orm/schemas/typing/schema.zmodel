@@ -34,6 +34,7 @@ model User {
     posts     Post[]
     profile   Profile?
     postCount Int       @computed
+    hasStatus(status: Status) Boolean @computed
     identity  Identity? @json
 }
 
