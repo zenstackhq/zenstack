@@ -54,7 +54,7 @@ describe('Enum tests', () => {
         await expect(
             client.post.create({
                 data: {
-                    id: '3',
+                    id: '4',
                     status: 'UNKNOWN',
                 },
             }),

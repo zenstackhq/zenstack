@@ -283,7 +283,9 @@ export class QueryNameMapper extends OperationNodeTransformer {
         if (
             ReferenceNode.is(node.leftOperand) &&
             ColumnNode.is(node.leftOperand.column) &&
-            (ValueNode.is(node.rightOperand) || PrimitiveValueListNode.is(node.rightOperand))
+            (ValueNode.is(node.rightOperand) ||
+                PrimitiveValueListNode.is(node.rightOperand) ||
+                ValueListNode.is(node.rightOperand))
         ) {
             const columnNode = node.leftOperand.column;
 
@@ -309,6 +311,19 @@ export class QueryNameMapper extends OperationNodeTransformer {
                             resolvedScope.model,
                             valueNode.values.map(() => columnNode),
                             valueNode.values,
+                        ),
+                    );
+                } else if (ValueListNode.is(valueNode)) {
+                    // list value: column IN (EnumValue, EnumValue2)
+                    resultValue = ValueListNode.create(
+                        valueNode.values.map((v) =>
+                            ValueNode.is(v)
+                                ? (this.processEnumMappingForValue(
+                                      resolvedScope.model!,
+                                      columnNode,
+                                      v,
+                                  ) as OperationNode)
+                                : v,
                         ),
                     );
                 }

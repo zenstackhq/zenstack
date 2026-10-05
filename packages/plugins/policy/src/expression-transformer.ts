@@ -274,14 +274,29 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
 
         const { normalizedLeft, normalizedRight } = this.normalizeBinaryOperationOperands(expr, context);
         const left = this.transform(normalizedLeft, context);
-        const right = this.transform(normalizedRight, context);
 
         if (op === 'in') {
             if (this.isNullNode(left)) {
                 return this.transformValue(false, 'Boolean');
             } else {
+                if (this.isLiteralArray(normalizedRight)) {
+                    // `in` with a list of literal values, e.g. `field in [1, 2, 3]` or
+                    // `field in [ENUM_A, ENUM_B]`: emit a plain SQL `IN (...)` list on every
+                    // dialect (instead of a dialect-specific array value) so that it stays
+                    // index-friendly and the name mapper can translate `@map`-ed enum values
+                    if (normalizedRight.items.length === 0) {
+                        return this.transformValue(false, 'Boolean');
+                    }
+                    return BinaryOperationNode.create(
+                        left,
+                        OperatorNode.create('in'),
+                        ValueListNode.create(normalizedRight.items.map((item) => this.transform(item, context))),
+                    );
+                }
+
+                const right = this.transform(normalizedRight, context);
                 if (ValueListNode.is(right)) {
-                    // simple `in` operator with a list of values, e.g. `field in [1, 2, 3]`
+                    // simple `in` operator with a list of values, e.g. `field in [auth().x, 2]`
                     return BinaryOperationNode.create(left, OperatorNode.create('in'), right);
                 } else {
                     // array contains
@@ -317,6 +332,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             }
         }
 
+        const right = this.transform(normalizedRight, context);
         if (this.isNullNode(right)) {
             return this.transformNullCheck(left, expr.op);
         } else if (this.isNullNode(left)) {
@@ -356,6 +372,10 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             // otherwise any comparison with null is null
             return ValueNode.createImmediate(null);
         }
+    }
+
+    private isLiteralArray(expr: Expression): expr is ArrayExpression {
+        return expr.kind === 'array' && expr.items.every((item) => item.kind === 'literal');
     }
 
     private normalizeBinaryOperationOperands(expr: BinaryExpression, context: ExpressionTransformerContext) {

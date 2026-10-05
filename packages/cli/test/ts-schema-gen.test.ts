@@ -911,7 +911,9 @@ model Post {
         ]);
     });
 
-    it('supports implicit conversions from enums to arrays with mapped values', async () => {
+    it('emits enum names (not @map values) when converting enums to arrays', async () => {
+        // enum values are represented by their names at runtime (TS values, auth(), Zod);
+        // the ORM's name mapper translates them to `@map`-ed values at SQL execution time
         const { schema } = await generateTsSchema(`
 enum PostStatus {
     DRAFT @map('draft')
@@ -950,15 +952,15 @@ model Post {
                                 items: [
                                     {
                                         kind: 'literal',
-                                        value: 'draft',
+                                        value: 'DRAFT',
                                     },
                                     {
                                         kind: 'literal',
-                                        value: 'active',
+                                        value: 'ACTIVE',
                                     },
                                     {
                                         kind: 'literal',
-                                        value: 'cancelled',
+                                        value: 'CANCELLED',
                                     },
                                 ],
                             },
