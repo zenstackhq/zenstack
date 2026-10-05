@@ -295,7 +295,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
         // call expression builder and combine the results
         if ('$expr' in _where && typeof _where['$expr'] === 'function') {
-            result = this.and(result, _where['$expr'](this.eb));
+            result = this.and(result, _where['$expr'](this.eb, { modelAlias }));
         }
 
         return result;

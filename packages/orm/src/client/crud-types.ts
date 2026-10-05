@@ -353,6 +353,20 @@ export type BatchResult = { count: number };
 
 //#region Common structures
 
+/**
+ * Context object passed to `$expr` filters.
+ */
+export type ExprFilterContext<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    /**
+     * The alias that can be used to refer to the filtered model. It's the model name for top-level
+     * filters, but relation filters select the model under a generated alias.
+     *
+     * Typed as the model name to match the expression builder's scope, so qualified references
+     * like `` eb.ref(`${modelAlias}.field`) `` type-check.
+     */
+    modelAlias: Model;
+};
+
 export type WhereInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
@@ -370,7 +384,10 @@ export type WhereInput<
           { args: ComputedFieldArgs<Schema, Model, Key> } & FieldFilter<Schema, Model, Key, Options, WithAggregations>
         : FieldFilter<Schema, Model, Key, Options, WithAggregations>;
 } & {
-    $expr?: (eb: ExpressionBuilder<ToKyselySchema<Schema>, Model>) => OperandExpression<SqlBool>;
+    $expr?: (
+        eb: ExpressionBuilder<ToKyselySchema<Schema>, Model>,
+        context: ExprFilterContext<Schema, Model>,
+    ) => OperandExpression<SqlBool>;
 } & {
     AND?: OrArray<WhereInput<Schema, Model, Options, ScalarOnly>>;
     OR?: WhereInput<Schema, Model, Options, ScalarOnly>[];
