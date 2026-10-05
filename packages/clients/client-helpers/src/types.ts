@@ -1,4 +1,4 @@
-import { ExtQueryArgsMarker, ExtResultMarker, type QueryOptions } from '@zenstackhq/orm';
+import type { ExtQueryArgsMarker, ExtResultMarker, QueryOptions } from '@zenstackhq/orm';
 import type { SchemaDef } from '@zenstackhq/schema';
 
 /**

@@ -85,3 +85,128 @@ export const FILTER_PROPERTY_TO_KIND = {
  * Mapping of filter operators to their corresponding filter kind categories.
  */
 export type FilterPropertyToKind = typeof FILTER_PROPERTY_TO_KIND;
+
+/**
+ * List of core CRUD operations. It excludes the 'orThrow' variants.
+ */
+export const CoreCrudOperations = [
+    'findMany',
+    'findUnique',
+    'findFirst',
+    'create',
+    'createMany',
+    'createManyAndReturn',
+    'update',
+    'updateMany',
+    'updateManyAndReturn',
+    'upsert',
+    'delete',
+    'deleteMany',
+    'count',
+    'aggregate',
+    'groupBy',
+    'exists',
+] as const;
+
+/**
+ * List of core CRUD operations. It excludes the 'orThrow' variants.
+ */
+export type CoreCrudOperations = (typeof CoreCrudOperations)[number];
+
+/**
+ * List of core read operations. It excludes the 'orThrow' variants.
+ */
+export const CoreReadOperations = [
+    'findMany',
+    'findUnique',
+    'findFirst',
+    'count',
+    'aggregate',
+    'groupBy',
+    'exists',
+] as const;
+
+/**
+ * List of core read operations. It excludes the 'orThrow' variants.
+ */
+export type CoreReadOperations = (typeof CoreReadOperations)[number];
+
+/**
+ * List of core write operations.
+ */
+export const CoreWriteOperations = [
+    'create',
+    'createMany',
+    'createManyAndReturn',
+    'update',
+    'updateMany',
+    'updateManyAndReturn',
+    'upsert',
+    'delete',
+    'deleteMany',
+] as const;
+
+/**
+ * List of core write operations.
+ */
+export type CoreWriteOperations = (typeof CoreWriteOperations)[number];
+
+/**
+ * List of core create operations.
+ */
+export const CoreCreateOperations = ['create', 'createMany', 'createManyAndReturn', 'upsert'] as const;
+
+/**
+ * List of core create operations.
+ */
+export type CoreCreateOperations = (typeof CoreCreateOperations)[number];
+
+/**
+ * List of core update operations.
+ */
+export const CoreUpdateOperations = ['update', 'updateMany', 'updateManyAndReturn', 'upsert'] as const;
+
+/**
+ * List of core update operations.
+ */
+export type CoreUpdateOperations = (typeof CoreUpdateOperations)[number];
+
+/**
+ * List of core delete operations.
+ */
+export const CoreDeleteOperations = ['delete', 'deleteMany'] as const;
+
+/**
+ * List of core delete operations.
+ */
+export type CoreDeleteOperations = (typeof CoreDeleteOperations)[number];
+
+/**
+ * List of all CRUD operations, including 'orThrow' variants.
+ */
+export const AllCrudOperations = [...CoreCrudOperations, 'findUniqueOrThrow', 'findFirstOrThrow'] as const;
+
+/**
+ * List of all CRUD operations, including 'orThrow' variants.
+ */
+export type AllCrudOperations = (typeof AllCrudOperations)[number];
+
+/**
+ * List of all read operations, including 'orThrow' variants.
+ */
+export const AllReadOperations = [...CoreReadOperations, 'findUniqueOrThrow', 'findFirstOrThrow'] as const;
+
+/**
+ * List of all read operations, including 'orThrow' variants.
+ */
+export type AllReadOperations = (typeof AllReadOperations)[number];
+
+/**
+ * List of all write operations - simply an alias of CoreWriteOperations.
+ */
+export const AllWriteOperations = CoreWriteOperations;
+
+/**
+ * List of all write operations - simply an alias of CoreWriteOperations.
+ */
+export type AllWriteOperations = CoreWriteOperations;
