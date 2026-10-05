@@ -110,11 +110,11 @@ model Thread {
             db = await createTestClient(schema, { usePrismaPush: true });
             const task = await db.task.create({ data: {} });
             await db.note.create({ data: { sourceId: task.id } });
-            await db.task.create({ data: {} });
+            const kept = await db.task.create({ data: {} });
             await expect(db.task.deleteMany({ where: { notesAsSource: { some: {} } } })).resolves.toEqual({
                 count: 1,
             });
-            expect(await itemIds()).toHaveLength(1);
+            expect(await itemIds()).toEqual([kept.id]);
         });
     });
 
@@ -162,6 +162,9 @@ model Comment extends Item {
             await expect(db.item.deleteMany({ where: { itemKind: 'Task' }, limit: 1 })).resolves.toEqual({
                 count: 1,
             });
+            const [remainingTask] = await db.task.findMany();
+            const [remainingComment] = await db.comment.findMany();
+            expect(remainingComment.taskId).toBe(remainingTask.id);
             expect(await db.task.count()).toBe(1);
             expect(await db.comment.count()).toBe(1);
             expect(await itemIds()).toHaveLength(2);
