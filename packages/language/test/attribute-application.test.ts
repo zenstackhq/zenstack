@@ -366,7 +366,7 @@ describe('Attribute application validation tests', () => {
                     @@allow('all', true)
                 }
                 `,
-                `Field-level policies are not allowed for relation fields`,
+                `Field-level policies are only allowed for implicit many-to-many relation fields`,
             );
         });
 
@@ -505,7 +505,7 @@ describe('Attribute application validation tests', () => {
                     @@allow('all', true)
                 }
                 `,
-                `Field-level policies are not allowed for relation fields`,
+                `Field-level policies are only allowed for implicit many-to-many relation fields`,
             );
         });
 
@@ -531,7 +531,35 @@ describe('Attribute application validation tests', () => {
                     @@allow('all', true)
                 }
                 `,
-                `Field-level policies are not allowed for relation fields`,
+                `Field-level policies are only allowed for implicit many-to-many relation fields`,
+            );
+        });
+
+        it('rejects update field-level policy on a one-to-many field that is not many-to-many when a differently-named relation exists on the opposite model', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id     Int   @id @default(autoincrement())
+                    bars   Bar[] @allow('update', true)
+                    bar2   Bar   @relation("other", fields: [bar2Id], references: [id])
+                    bar2Id Int
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int @id @default(autoincrement())
+                    foo   Foo   @relation(fields: [fooId], references: [id])
+                    fooId Int
+                    foos  Foo[] @relation("other")
+                    @@allow('all', true)
+                }
+                `,
+                `Field-level policies are only allowed for implicit many-to-many relation fields`,
             );
         });
 

@@ -367,7 +367,9 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
                     });
                 }
             } else {
-                accept('error', `Field-level policies are not allowed for relation fields.`, { node: attr });
+                accept('error', `Field-level policies are only allowed for implicit many-to-many relation fields`, {
+                    node: attr,
+                });
             }
         }
 

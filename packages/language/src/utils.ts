@@ -169,13 +169,18 @@ export function isRelationshipField(field: DataField) {
 /**
  * Returns the name of the relation the given field belongs to, as declared in its `@relation`
  * attribute, or `undefined` if the field has no `@relation` attribute or no explicit name.
+ *
+ * The name argument is matched by its literal name (or absence of a name for the positional
+ * argument) rather than by `$resolvedParam`, because this function is also used during schema
+ * validation, where `$resolvedParam` may not have been resolved yet for attributes that have
+ * not been validated.
  */
-function getRelationName(field: DataField): string | undefined {
-    const relAttr = field.attributes.find((attr) => attr.decl.ref?.name === '@relation');
-    if (!relAttr) {
+export function getRelationName(field: DataField): string | undefined {
+    const relation = getAttribute(field, '@relation');
+    if (!relation) {
         return undefined;
     }
-    for (const arg of relAttr.args) {
+    for (const arg of relation.args) {
         if (!arg.name || arg.name === 'name') {
             if (isStringLiteral(arg.value)) {
                 return arg.value.value;
@@ -203,12 +208,9 @@ export function isManyToManyField(field: DataField) {
         if (f === field || !f.type.array || f.type.reference?.ref?.name !== containingModel.name) {
             return false;
         }
-        // if the field declares an explicit relation name, the opposite field must belong to the
-        // same relation; otherwise any array field referencing back is the opposite
-        if (relationName !== undefined) {
-            return getRelationName(f) === relationName;
-        }
-        return true;
+        // the opposite field must belong to the same relation: either both declare the same
+        // explicit relation name, or both are unnamed
+        return getRelationName(f) === relationName;
     });
 }
 

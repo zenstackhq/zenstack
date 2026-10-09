@@ -272,7 +272,6 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             return;
         }
 
-        // For each side, check that no constrained participant exists that is not updatable. Using
         // For each side, count the constrained participants that are updatable. A plain
         // `SELECT <filter> ... IN (...)` would return one row per matching participant, which
         // scalar subquery positions reject on some databases and which would only verify a single
