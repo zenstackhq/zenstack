@@ -20,15 +20,17 @@ describe('Hono adapter tests - rpc handler', () => {
 
         r = await handler(
             makeRequest('POST', '/api/user/create', {
-                include: { posts: true },
                 data: {
-                    id: 'user1',
-                    email: 'user1@abc.com',
-                    posts: {
-                        create: [
-                            { title: 'post1', published: true, viewCount: 1 },
-                            { title: 'post2', published: false, viewCount: 2 },
-                        ],
+                    include: { posts: true },
+                    data: {
+                        id: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: [
+                                { title: 'post1', published: true, viewCount: 1 },
+                                { title: 'post2', published: false, viewCount: 2 },
+                            ],
+                        },
                     },
                 },
             }),
@@ -51,7 +53,9 @@ describe('Hono adapter tests - rpc handler', () => {
         expect((await unmarshal(r)).data).toHaveLength(1);
 
         r = await handler(
-            makeRequest('PUT', '/api/user/update', { where: { id: 'user1' }, data: { email: 'user1@def.com' } }),
+            makeRequest('PUT', '/api/user/update', {
+                data: { where: { id: 'user1' }, data: { email: 'user1@def.com' } },
+            }),
         );
         expect(r.status).toBe(200);
         expect((await unmarshal(r)).data.email).toBe('user1@def.com');

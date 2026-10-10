@@ -1,4 +1,4 @@
-import { ClientContract } from '@zenstackhq/orm';
+import { ClientContract, definePlugin } from '@zenstackhq/orm';
 import { SchemaDef } from '@zenstackhq/orm/schema';
 import { createPolicyTestClient, createTestClient } from '@zenstackhq/testtools';
 import Decimal from 'decimal.js';
@@ -6,6 +6,7 @@ import SuperJSON from 'superjson';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { RPCApiHandler } from '../../src/api';
 import { schema } from '../utils';
+import z from 'zod';
 
 describe('RPC API Handler Tests', () => {
     let client: ClientContract<SchemaDef>;
@@ -30,7 +31,7 @@ describe('RPC API Handler Tests', () => {
         r = await handleRequest({
             method: 'get',
             path: '/user/exists',
-            query: { q: JSON.stringify({ where: { id: 'user1' } }) },
+            query: { data: JSON.stringify({ where: { id: 'user1' } }) },
             client: rawClient,
         });
         expect(r.status).toBe(200);
@@ -41,15 +42,17 @@ describe('RPC API Handler Tests', () => {
             path: '/user/create',
             query: {},
             requestBody: {
-                include: { posts: true },
                 data: {
-                    id: 'user1',
-                    email: 'user1@abc.com',
-                    posts: {
-                        create: [
-                            { title: 'post1', published: true, viewCount: 1 },
-                            { title: 'post2', published: false, viewCount: 2 },
-                        ],
+                    include: { posts: true },
+                    data: {
+                        id: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: [
+                                { title: 'post1', published: true, viewCount: 1 },
+                                { title: 'post2', published: false, viewCount: 2 },
+                            ],
+                        },
                     },
                 },
             },
@@ -69,7 +72,7 @@ describe('RPC API Handler Tests', () => {
         r = await handleRequest({
             method: 'get',
             path: '/user/exists',
-            query: { q: JSON.stringify({ where: { id: 'user1' } }) },
+            query: { data: JSON.stringify({ where: { id: 'user1' } }) },
             client: rawClient,
         });
         expect(r.status).toBe(200);
@@ -86,7 +89,7 @@ describe('RPC API Handler Tests', () => {
         r = await handleRequest({
             method: 'get',
             path: '/post/findMany',
-            query: { q: JSON.stringify({ where: { viewCount: { gt: 1 } } }) },
+            query: { data: JSON.stringify({ where: { viewCount: { gt: 1 } } }) },
             client: rawClient,
         });
         expect(r.status).toBe(200);
@@ -95,7 +98,9 @@ describe('RPC API Handler Tests', () => {
         r = await handleRequest({
             method: 'put',
             path: '/user/update',
-            requestBody: { where: { id: 'user1' }, data: { email: 'user1@def.com' } },
+            requestBody: {
+                data: { where: { id: 'user1' }, data: { email: 'user1@def.com' } },
+            },
             client: rawClient,
         });
         expect(r.status).toBe(200);
@@ -104,7 +109,7 @@ describe('RPC API Handler Tests', () => {
         r = await handleRequest({
             method: 'get',
             path: '/post/count',
-            query: { q: JSON.stringify({ where: { viewCount: { gt: 1 } } }) },
+            query: { data: JSON.stringify({ where: { viewCount: { gt: 1 } } }) },
             client: rawClient,
         });
         expect(r.status).toBe(200);
@@ -113,7 +118,7 @@ describe('RPC API Handler Tests', () => {
         r = await handleRequest({
             method: 'get',
             path: '/post/aggregate',
-            query: { q: JSON.stringify({ _sum: { viewCount: true } }) },
+            query: { data: JSON.stringify({ _sum: { viewCount: true } }) },
             client: rawClient,
         });
         expect(r.status).toBe(200);
@@ -122,7 +127,7 @@ describe('RPC API Handler Tests', () => {
         r = await handleRequest({
             method: 'get',
             path: '/post/groupBy',
-            query: { q: JSON.stringify({ by: ['published'], _sum: { viewCount: true } }) },
+            query: { data: JSON.stringify({ by: ['published'], _sum: { viewCount: true } }) },
             client: rawClient,
         });
         expect(r.status).toBe(200);
@@ -136,11 +141,55 @@ describe('RPC API Handler Tests', () => {
         r = await handleRequest({
             method: 'delete',
             path: '/user/deleteMany',
-            query: { q: JSON.stringify({ where: { id: 'user1' } }) },
+            query: { data: JSON.stringify({ where: { id: 'user1' } }) },
             client: rawClient,
         });
         expect(r.status).toBe(200);
         expect(r.data.count).toBe(1);
+    });
+
+    it('supports ext query args named meta', async () => {
+        let meta: any;
+        const metaClient = (await createPolicyTestClient(schema)).$use(
+            definePlugin({
+                id: 'meta',
+
+                queryArgs: {
+                    $create: z.object({
+                        meta: z.object({
+                            bio: z.string(),
+                        }),
+                    }),
+                },
+
+                onQuery: ({ args, proceed }) => {
+                    meta = args?.meta;
+                    return proceed(args);
+                },
+            }),
+        );
+
+        const handleRequest = makeHandler();
+
+        const r = await handleRequest({
+            method: 'post',
+            path: '/user/create',
+            requestBody: {
+                data: {
+                    data: {
+                        email: 'johndoe@email.com',
+                    },
+
+                    meta: {
+                        bio: 'Programmer',
+                    },
+                },
+            },
+            client: metaClient,
+        });
+
+        expect(r.status).toBe(201);
+        expect(meta).toMatchObject({ bio: 'Programmer' });
     });
 
     it('procedures', async () => {
@@ -189,7 +238,7 @@ procedure getUndefined(): Undefined
         let r = await handleProcRequest({
             method: 'get',
             path: '/$procs/echo',
-            query: { q: JSON.stringify({ args: { input: 'hello' } }) },
+            query: { data: JSON.stringify({ args: { input: 'hello' } }) },
         });
         expect(r.status).toBe(200);
         expect(r.data).toBe('hello');
@@ -197,7 +246,9 @@ procedure getUndefined(): Undefined
         r = await handleProcRequest({
             method: 'post',
             path: '/$procs/echo',
-            requestBody: { args: { input: 'hello' } },
+            requestBody: {
+                data: { args: { input: 'hello' } },
+            },
         });
         expect(r.status).toBe(400);
         expect(r.error?.message).toMatch(/only GET is supported/i);
@@ -206,7 +257,9 @@ procedure getUndefined(): Undefined
         r = await handleProcRequest({
             method: 'post',
             path: '/$procs/createUser',
-            requestBody: { args: { email: 'user1@abc.com' } },
+            requestBody: {
+                data: { args: { email: 'user1@abc.com' } },
+            },
         });
         expect(r.status).toBe(200);
         expect(r.data).toEqual(expect.objectContaining({ email: 'user1@abc.com' }));
@@ -214,7 +267,7 @@ procedure getUndefined(): Undefined
         r = await handleProcRequest({
             method: 'get',
             path: '/$procs/createUser',
-            query: { q: JSON.stringify({ args: { email: 'user2@abc.com' } }) },
+            query: { data: JSON.stringify({ args: { email: 'user2@abc.com' } }) },
         });
         expect(r.status).toBe(400);
         expect(r.error?.message).toMatch(/only POST is supported/i);
@@ -289,7 +342,7 @@ procedure echoOverview(o: Overview): Overview
         let r = await handleProcRequest({
             method: 'get',
             path: '/$procs/sum3',
-            query: { q: JSON.stringify({ args: { a: 1, b: 2, c: 3 } }) },
+            query: { data: JSON.stringify({ args: { a: 1, b: 2, c: 3 } }) },
         });
         expect(r.status).toBe(200);
         expect(r.data).toBe(6);
@@ -299,11 +352,11 @@ procedure echoOverview(o: Overview): Overview
         expect(r.status).toBe(200);
         expect(r.data).toBe(0);
 
-        // array-typed single param via q JSON array
+        // array-typed single param via data JSON array
         r = await handleProcRequest({
             method: 'get',
             path: '/$procs/sumIds',
-            query: { q: JSON.stringify({ args: { ids: [1, 2, 3] } }) },
+            query: { data: JSON.stringify({ args: { ids: [1, 2, 3] } }) },
         });
         expect(r.status).toBe(200);
         expect(r.data).toBe(6);
@@ -312,7 +365,7 @@ procedure echoOverview(o: Overview): Overview
         r = await handleProcRequest({
             method: 'get',
             path: '/$procs/echoRole',
-            query: { q: JSON.stringify({ args: { r: 'ADMIN' } }) },
+            query: { data: JSON.stringify({ args: { r: 'ADMIN' } }) },
         });
         expect(r.status).toBe(200);
         expect(r.data).toBe('ADMIN');
@@ -321,7 +374,7 @@ procedure echoOverview(o: Overview): Overview
         r = await handleProcRequest({
             method: 'get',
             path: '/$procs/echoOverview',
-            query: { q: JSON.stringify({ args: { o: { total: 123 } } }) },
+            query: { data: JSON.stringify({ args: { o: { total: 123 } } }) },
         });
         expect(r.status).toBe(200);
         expect(r.data).toMatchObject({ total: 123 });
@@ -330,7 +383,7 @@ procedure echoOverview(o: Overview): Overview
         r = await handleProcRequest({
             method: 'get',
             path: '/$procs/echoInt',
-            query: { q: JSON.stringify({ args: { x: 'x' } }) },
+            query: { data: JSON.stringify({ args: { x: 'x' } }) },
         });
         expect(r.status).toBe(422);
         expect(r.error?.message).toMatch(/invalid input/i);
@@ -339,7 +392,7 @@ procedure echoOverview(o: Overview): Overview
         r = await handleProcRequest({
             method: 'get',
             path: '/$procs/sum3',
-            query: { q: JSON.stringify({ args: [1, 2, 3, 4] }) },
+            query: { data: JSON.stringify({ args: [1, 2, 3, 4] }) },
         });
         expect(r.status).toBe(400);
         expect(r.error?.message).toMatch(/args/i);
@@ -348,7 +401,7 @@ procedure echoOverview(o: Overview): Overview
         r = await handleProcRequest({
             method: 'get',
             path: '/$procs/sum3',
-            query: { q: JSON.stringify({ args: { a: 1, b: 2, c: 3, d: 4 } }) },
+            query: { data: JSON.stringify({ args: { a: 1, b: 2, c: 3, d: 4 } }) },
         });
         expect(r.status).toBe(400);
         expect(r.error?.message).toMatch(/unknown procedure argument/i);
@@ -382,7 +435,7 @@ procedure echoOverview(o: Overview): Overview
         let r = await handleRequest({
             method: 'get',
             path: '/post/findMany',
-            query: { q: JSON.stringify({ orderBy: { title: 'asc' } }) },
+            query: { data: JSON.stringify({ orderBy: { title: 'asc' } }) },
             client: rawClient,
         });
         expect(r.status).toBe(200);
@@ -394,7 +447,7 @@ procedure echoOverview(o: Overview): Overview
         r = await handleRequest({
             method: 'get',
             path: '/post/findMany',
-            query: { q: JSON.stringify({ orderBy: { viewCount: 'desc' } }) },
+            query: { data: JSON.stringify({ orderBy: { viewCount: 'desc' } }) },
             client: rawClient,
         });
         expect(r.status).toBe(200);
@@ -405,7 +458,7 @@ procedure echoOverview(o: Overview): Overview
         r = await handleRequest({
             method: 'get',
             path: '/post/findMany',
-            query: { q: JSON.stringify({ orderBy: [{ published: 'desc' }, { title: 'asc' }] }) },
+            query: { data: JSON.stringify({ orderBy: [{ published: 'desc' }, { title: 'asc' }] }) },
             client: rawClient,
         });
         expect(r.status).toBe(200);
@@ -415,7 +468,7 @@ procedure echoOverview(o: Overview): Overview
         r = await handleRequest({
             method: 'get',
             path: '/post/findMany',
-            query: { q: JSON.stringify({ take: 3 }) },
+            query: { data: JSON.stringify({ take: 3 }) },
             client: rawClient,
         });
         expect(r.status).toBe(200);
@@ -425,7 +478,7 @@ procedure echoOverview(o: Overview): Overview
         r = await handleRequest({
             method: 'get',
             path: '/post/findMany',
-            query: { q: JSON.stringify({ skip: 2, take: 2 }) },
+            query: { data: JSON.stringify({ skip: 2, take: 2 }) },
             client: rawClient,
         });
         expect(r.status).toBe(200);
@@ -435,7 +488,7 @@ procedure echoOverview(o: Overview): Overview
         r = await handleRequest({
             method: 'get',
             path: '/post/findMany',
-            query: { q: JSON.stringify({ orderBy: { title: 'asc' }, skip: 1, take: 3 }) },
+            query: { data: JSON.stringify({ orderBy: { title: 'asc' }, skip: 1, take: 3 }) },
             client: rawClient,
         });
         expect(r.status).toBe(200);
@@ -447,7 +500,7 @@ procedure echoOverview(o: Overview): Overview
         r = await handleRequest({
             method: 'get',
             path: '/post/findMany',
-            query: { q: JSON.stringify({ orderBy: { id: 'asc' }, take: 2 }) },
+            query: { data: JSON.stringify({ orderBy: { id: 'asc' }, take: 2 }) },
             client: rawClient,
         });
         expect(r.status).toBe(200);
@@ -458,7 +511,7 @@ procedure echoOverview(o: Overview): Overview
         r = await handleRequest({
             method: 'get',
             path: '/post/findMany',
-            query: { q: JSON.stringify({ orderBy: { id: 'asc' }, take: 2, skip: 1, cursor: { id: lastId } }) },
+            query: { data: JSON.stringify({ orderBy: { id: 'asc' }, take: 2, skip: 1, cursor: { id: lastId } }) },
             client: rawClient,
         });
         expect(r.status).toBe(200);
@@ -490,7 +543,9 @@ procedure echoOverview(o: Overview): Overview
             method: 'post',
             path: '/post/create',
             requestBody: {
-                data: { id: '2', title: 'post2', authorId: '1', published: false },
+                data: {
+                    data: { id: '2', title: 'post2', authorId: '1', published: false },
+                },
             },
             client,
         });
@@ -503,8 +558,10 @@ procedure echoOverview(o: Overview): Overview
             method: 'put',
             path: '/post/update',
             requestBody: {
-                where: { id: '1' },
-                data: { title: 'post2' },
+                data: {
+                    where: { id: '1' },
+                    data: { title: 'post2' },
+                },
             },
             client,
         });
@@ -527,7 +584,9 @@ procedure echoOverview(o: Overview): Overview
         r = await handleRequest({
             method: 'post',
             path: '/post/create',
-            requestBody: { data: {} },
+            requestBody: {
+                data: { data: {} },
+            },
             client: rawClient,
         });
         expect(r.status).toBe(422);
@@ -537,7 +596,9 @@ procedure echoOverview(o: Overview): Overview
         r = await handleRequest({
             method: 'post',
             path: '/user/create',
-            requestBody: { data: { email: 'hello' } },
+            requestBody: {
+                data: { data: { email: 'hello' } },
+            },
             client: rawClient,
         });
         expect(r.status).toBe(422);
@@ -566,20 +627,20 @@ procedure echoOverview(o: Overview): Overview
         r = await handleRequest({
             method: 'get',
             path: '/post/findUnique',
-            query: { q: 'abc' },
+            query: { data: 'abc' },
             client: rawClient,
         });
         expect(r.status).toBe(400);
-        expect(r.error.message).toContain('invalid "q" query parameter');
+        expect(r.error.message).toContain('invalid "data" query parameter');
 
         r = await handleRequest({
             method: 'delete',
             path: '/post/deleteMany',
-            query: { q: 'abc' },
+            query: { data: 'abc' },
             client: rawClient,
         });
         expect(r.status).toBe(400);
-        expect(r.error.message).toContain('invalid "q" query parameter');
+        expect(r.error.message).toContain('invalid "data" query parameter');
     });
 
     it('field types', async () => {
@@ -644,7 +705,7 @@ procedure echoOverview(o: Overview): Overview
             query: {},
             client,
             requestBody: {
-                ...(serialized.json as any),
+                data: serialized.json,
                 meta: { serialization: serialized.meta },
             },
         });
@@ -671,7 +732,7 @@ procedure echoOverview(o: Overview): Overview
             method: 'get',
             path: '/foo/findFirst',
             query: {
-                q: JSON.stringify(serializedQ.json),
+                data: JSON.stringify(serializedQ.json),
                 meta: JSON.stringify({ serialization: serializedQ.meta }),
             },
             client,
@@ -689,7 +750,7 @@ procedure echoOverview(o: Overview): Overview
             method: 'get',
             path: '/foo/findFirst',
             query: {
-                q: JSON.stringify(serializedQ1.json),
+                data: JSON.stringify(serializedQ1.json),
                 meta: JSON.stringify({ serialization: serializedQ1.meta }),
             },
             client,
@@ -711,7 +772,7 @@ procedure echoOverview(o: Overview): Overview
             method: 'get',
             path: '/foo/findFirst',
             query: {
-                q: JSON.stringify(serializedQ2.json),
+                data: JSON.stringify(serializedQ2.json),
                 meta: JSON.stringify({ serialization: serializedQ2.meta }),
             },
             client,
@@ -733,7 +794,7 @@ procedure echoOverview(o: Overview): Overview
             method: 'get',
             path: '/foo/findFirst',
             query: {
-                q: JSON.stringify(serializedQ3.json),
+                data: JSON.stringify(serializedQ3.json),
                 meta: JSON.stringify({ serialization: serializedQ3.meta }),
             },
             client,
@@ -754,7 +815,7 @@ procedure echoOverview(o: Overview): Overview
             query: {},
             client,
             requestBody: {
-                ...(serializedUpdate.json as any),
+                data: serializedUpdate.json,
                 meta: { serialization: serializedUpdate.meta },
             },
         });
@@ -774,23 +835,25 @@ procedure echoOverview(o: Overview): Overview
             const r = await handleRequest({
                 method: 'post',
                 path: '/$transaction/sequential',
-                requestBody: [
-                    {
-                        model: 'User',
-                        op: 'create',
-                        args: { data: { id: 'txuser1', email: 'txuser1@abc.com' } },
-                    },
-                    {
-                        model: 'Post',
-                        op: 'create',
-                        args: { data: { id: 'txpost1', title: 'Tx Post', authorId: 'txuser1' } },
-                    },
-                    {
-                        model: 'Post',
-                        op: 'findMany',
-                        args: { where: { authorId: 'txuser1' } },
-                    },
-                ],
+                requestBody: {
+                    data: [
+                        {
+                            model: 'User',
+                            op: 'create',
+                            args: { data: { id: 'txuser1', email: 'txuser1@abc.com' } },
+                        },
+                        {
+                            model: 'Post',
+                            op: 'create',
+                            args: { data: { id: 'txpost1', title: 'Tx Post', authorId: 'txuser1' } },
+                        },
+                        {
+                            model: 'Post',
+                            op: 'findMany',
+                            args: { where: { authorId: 'txuser1' } },
+                        },
+                    ],
+                },
                 client: rawClient,
             });
 
@@ -833,7 +896,9 @@ procedure echoOverview(o: Overview): Overview
             r = await handleRequest({
                 method: 'post',
                 path: '/$transaction/sequential',
-                requestBody: [],
+                requestBody: {
+                    data: [],
+                },
                 client: rawClient,
             });
             expect(r.status).toBe(400);
@@ -842,7 +907,9 @@ procedure echoOverview(o: Overview): Overview
             r = await handleRequest({
                 method: 'post',
                 path: '/$transaction/sequential',
-                requestBody: { model: 'User', op: 'findMany', args: {} },
+                requestBody: {
+                    data: { model: 'User', op: 'findMany', args: {} },
+                },
                 client: rawClient,
             });
             expect(r.status).toBe(400);
@@ -855,7 +922,9 @@ procedure echoOverview(o: Overview): Overview
             const r = await handleRequest({
                 method: 'post',
                 path: '/$transaction/sequential',
-                requestBody: [{ model: 'Ghost', op: 'create', args: { data: {} } }],
+                requestBody: {
+                    data: [{ model: 'Ghost', op: 'create', args: { data: {} } }],
+                },
                 client: rawClient,
             });
             expect(r.status).toBe(400);
@@ -868,7 +937,9 @@ procedure echoOverview(o: Overview): Overview
             const r = await handleRequest({
                 method: 'post',
                 path: '/$transaction/sequential',
-                requestBody: [{ model: 'User', op: 'dropTable', args: {} }],
+                requestBody: {
+                    data: [{ model: 'User', op: 'dropTable', args: {} }],
+                },
                 client: rawClient,
             });
             expect(r.status).toBe(400);
@@ -881,7 +952,9 @@ procedure echoOverview(o: Overview): Overview
             let r = await handleRequest({
                 method: 'post',
                 path: '/$transaction/sequential',
-                requestBody: [{ op: 'create', args: { data: {} } }],
+                requestBody: {
+                    data: [{ op: 'create', args: { data: {} } }],
+                },
                 client: rawClient,
             });
             expect(r.status).toBe(400);
@@ -890,7 +963,9 @@ procedure echoOverview(o: Overview): Overview
             r = await handleRequest({
                 method: 'post',
                 path: '/$transaction/sequential',
-                requestBody: [{ model: 'User', args: { data: {} } }],
+                requestBody: {
+                    data: [{ model: 'User', args: { data: {} } }],
+                },
                 client: rawClient,
             });
             expect(r.status).toBe(400);
@@ -904,13 +979,15 @@ procedure echoOverview(o: Overview): Overview
             let r = await handleRequest({
                 method: 'post',
                 path: '/$transaction/sequential',
-                requestBody: [
-                    {
-                        model: 'User',
-                        op: 'findMany',
-                        args: { where: { nonExistentField: 'value' } },
-                    },
-                ],
+                requestBody: {
+                    data: [
+                        {
+                            model: 'User',
+                            op: 'findMany',
+                            args: { where: { nonExistentField: 'value' } },
+                        },
+                    ],
+                },
                 client: rawClient,
             });
             expect(r.status).toBe(422);
@@ -920,13 +997,15 @@ procedure echoOverview(o: Overview): Overview
             r = await handleRequest({
                 method: 'post',
                 path: '/$transaction/sequential',
-                requestBody: [
-                    {
-                        model: 'Post',
-                        op: 'findUnique',
-                        args: {},
-                    },
-                ],
+                requestBody: {
+                    data: [
+                        {
+                            model: 'Post',
+                            op: 'findUnique',
+                            args: {},
+                        },
+                    ],
+                },
                 client: rawClient,
             });
             expect(r.status).toBe(422);
@@ -936,14 +1015,16 @@ procedure echoOverview(o: Overview): Overview
             r = await handleRequest({
                 method: 'post',
                 path: '/$transaction/sequential',
-                requestBody: [
-                    {
-                        model: 'Post',
-                        op: 'create',
-                        // title is required but omitted
-                        args: { data: {} },
-                    },
-                ],
+                requestBody: {
+                    data: [
+                        {
+                            model: 'Post',
+                            op: 'create',
+                            // title is required but omitted
+                            args: { data: {} },
+                        },
+                    ],
+                },
                 client: rawClient,
             });
             expect(r.status).toBe(422);
@@ -969,18 +1050,22 @@ procedure echoOverview(o: Overview): Overview
             const r = await handleRequest({
                 method: 'post',
                 path: '/$transaction/sequential',
-                requestBody: [
-                    {
-                        model: 'User',
-                        op: 'create',
-                        args: { ...(serialized.json as any), meta: { serialization: serialized.meta } },
-                    },
-                    {
-                        model: 'Post',
-                        op: 'create',
-                        args: { ...(serializedPost.json as any), meta: { serialization: serializedPost.meta } },
-                    },
-                ],
+                requestBody: {
+                    data: [
+                        {
+                            model: 'User',
+                            op: 'create',
+                            args: serialized.json,
+                            meta: { serialization: serialized.meta },
+                        },
+                        {
+                            model: 'Post',
+                            op: 'create',
+                            args: serializedPost.json,
+                            meta: { serialization: serialized.meta },
+                        },
+                    ],
+                },
                 client: rawClient,
             });
 
