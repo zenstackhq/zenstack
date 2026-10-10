@@ -4029,6 +4029,12 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "typeRef": {
               "$ref": "#/rules@30"
             }
+          },
+          {
+            "$type": "SimpleType",
+            "typeRef": {
+              "$ref": "#/rules@46"
+            }
           }
         ]
       }

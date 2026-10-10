@@ -669,7 +669,7 @@ describe('field-level policy tests migrated from v2', () => {
         }
         `,
                 ),
-            ).rejects.toThrow(/Field-level policies are not allowed for relation fields/);
+            ).rejects.toThrow(/Field-level policies are only allowed for implicit many-to-many relation fields/);
         });
 
         it('evaluates computed field to null when based on non-readable field', async () => {

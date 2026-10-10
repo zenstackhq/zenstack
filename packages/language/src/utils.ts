@@ -167,6 +167,54 @@ export function isRelationshipField(field: DataField) {
 }
 
 /**
+ * Returns the name of the relation the given field belongs to, as declared in its `@relation`
+ * attribute, or `undefined` if the field has no `@relation` attribute or no explicit name.
+ *
+ * The name argument is matched by its literal name (or absence of a name for the positional
+ * argument) rather than by `$resolvedParam`, because this function is also used during schema
+ * validation, where `$resolvedParam` may not have been resolved yet for attributes that have
+ * not been validated.
+ */
+export function getRelationName(field: DataField): string | undefined {
+    const relation = getAttribute(field, '@relation');
+    if (!relation) {
+        return undefined;
+    }
+    for (const arg of relation.args) {
+        if (!arg.name || arg.name === 'name') {
+            if (isStringLiteral(arg.value)) {
+                return arg.value.value;
+            }
+        }
+    }
+    return undefined;
+}
+
+/**
+ * Returns if the given field is a many-to-many relation field, i.e. a relation field that is an
+ * array and whose opposite relation field on the referenced model (belonging to the same relation)
+ * is also an array referencing back to the containing model.
+ */
+export function isManyToManyField(field: DataField) {
+    if (!isRelationshipField(field) || !field.type.array) {
+        return false;
+    }
+
+    const oppositeModel = field.type.reference!.ref as DataModel;
+    const containingModel = field.$container as DataModel;
+    const relationName = getRelationName(field);
+
+    return getAllFields(oppositeModel).some((f) => {
+        if (f === field || !f.type.array || f.type.reference?.ref?.name !== containingModel.name) {
+            return false;
+        }
+        // the opposite field must belong to the same relation: either both declare the same
+        // explicit relation name, or both are unnamed
+        return getRelationName(f) === relationName;
+    });
+}
+
+/**
  * Returns if the given field is a computed field.
  */
 export function isComputedField(field: DataField) {

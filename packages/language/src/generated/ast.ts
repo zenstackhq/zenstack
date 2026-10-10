@@ -904,7 +904,7 @@ export function isReferenceExpr(item: unknown): item is ReferenceExpr {
     return reflection.isInstance(item, ReferenceExpr.$type);
 }
 
-export type ReferenceTarget = CollectionPredicateBinding | DataField | EnumField | FunctionParam;
+export type ReferenceTarget = CollectionPredicateBinding | DataField | Enum | EnumField | FunctionParam;
 
 export const ReferenceTarget = {
     $type: 'ReferenceTarget'
@@ -1434,7 +1434,7 @@ export class ZModelAstReflection extends langium.AbstractAstReflection {
                     name: Enum.name
                 }
             },
-            superTypes: [AbstractDeclaration.$type, TypeDeclaration.$type]
+            superTypes: [AbstractDeclaration.$type, ReferenceTarget.$type, TypeDeclaration.$type]
         },
         EnumField: {
             name: EnumField.$type,
