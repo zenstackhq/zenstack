@@ -41,6 +41,7 @@ import {
     getAllAttributes,
     getAllFields,
     getAttributeArg,
+    getRelationName,
     isDataFieldReference,
     isLiteAttribute,
 } from '@zenstackhq/language/utils';
@@ -869,7 +870,7 @@ export class TsSchemaGenerator {
             );
         }
 
-        const relationName = this.getRelationName(field);
+        const relationName = getRelationName(field);
         if (relationName) {
             relationFields.push(
                 ts.factory.createPropertyAssignment('name', ts.factory.createStringLiteral(relationName)),
@@ -959,7 +960,7 @@ export class TsSchemaGenerator {
         const sourceModel = isTypeDef(field.$container) ? contextModel : (field.$container as DataModel);
 
         const targetModel = field.type.reference.ref as DataModel;
-        const relationName = this.getRelationName(field);
+        const relationName = getRelationName(field);
         for (const otherField of getAllFields(targetModel)) {
             if (otherField === field) {
                 // backlink field is never self
@@ -969,21 +970,9 @@ export class TsSchemaGenerator {
                 // relation names must match on both sides, including the case where neither side
                 // is named - otherwise an unnamed relation can be paired with a named one that
                 // happens to be declared first
-                if (this.getRelationName(otherField) === relationName) {
+                if (getRelationName(otherField) === relationName) {
                     return otherField;
                 }
-            }
-        }
-        return undefined;
-    }
-
-    private getRelationName(field: DataField) {
-        const relation = getAttribute(field, '@relation');
-        if (relation) {
-            const nameArg = relation.args.find((arg) => arg.$resolvedParam?.name === 'name');
-            if (nameArg) {
-                invariant(isLiteralExpr(nameArg.value), 'name must be a literal');
-                return nameArg.value.value as string;
             }
         }
         return undefined;
