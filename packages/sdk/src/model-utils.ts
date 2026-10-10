@@ -77,7 +77,8 @@ export function isDelegateModel(node: AstNode) {
  */
 export function getOwnedFields(model: DataModel | TypeDef): DataField[] {
     const fields: DataField[] = [...model.fields];
-    for (const mixin of model.mixins) {
+    const mixins = model.mixins.filter((m) => !m.ref?.base);
+    for (const mixin of mixins) {
         if (mixin.ref) {
             fields.push(...getOwnedFields(mixin.ref));
         }

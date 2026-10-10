@@ -39,6 +39,7 @@ import {
 } from '@zenstackhq/language/ast';
 import {
     getAllAttributes,
+    getAllFieldAttributes,
     getAllFields,
     getAttributeArg,
     getRelationName,
@@ -508,6 +509,9 @@ export class TsSchemaGenerator {
             // name
             ts.factory.createPropertyAssignment('name', ts.factory.createStringLiteral(td.name)),
 
+            // base
+            ...(td.base ? [ts.factory.createPropertyAssignment('base', ts.factory.createStringLiteral(td.base))] : []),
+
             // fields
             ts.factory.createPropertyAssignment(
                 'fields',
@@ -652,7 +656,8 @@ export class TsSchemaGenerator {
             objectFields.push(ts.factory.createPropertyAssignment('isDiscriminator', ts.factory.createTrue()));
         }
 
-        const attributes = lite ? field.attributes.filter((attr) => isLiteAttribute(attr.decl.ref!)) : field.attributes;
+        const fieldAttributes = getAllFieldAttributes(field);
+        const attributes = lite ? fieldAttributes.filter((attr) => isLiteAttribute(attr.decl.ref!)) : fieldAttributes;
 
         if (attributes.length > 0) {
             objectFields.push(
@@ -1076,8 +1081,7 @@ export class TsSchemaGenerator {
             ? ts.factory.createStringLiteral(field.type.type)
             : field.type.reference
               ? ts.factory.createStringLiteral(field.type.reference.$refText)
-              : // `Unsupported` type
-                ts.factory.createStringLiteral('Unsupported');
+              : ts.factory.createStringLiteral('Unsupported');
     }
 
     private createEnumObject(e: Enum) {

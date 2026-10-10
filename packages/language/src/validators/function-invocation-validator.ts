@@ -14,6 +14,7 @@ import {
     isDataModel,
     isDataModelAttribute,
     isStringLiteral,
+    isThisExpr,
 } from '../generated/ast';
 import {
     getFunctionExpressionContext,
@@ -266,7 +267,7 @@ export default class FunctionInvocationValidator implements AstValidator<Express
     private _checkLength(expr: InvocationExpr, accept: ValidationAcceptor) {
         const msg = 'argument must be a string or list field';
         const fieldArg = expr.args[0]!.value;
-        if (!isDataFieldReference(fieldArg)) {
+        if (!isDataFieldReference(fieldArg) && !isThisExpr(fieldArg)) {
             accept('error', msg, {
                 node: expr.args[0]!,
             });

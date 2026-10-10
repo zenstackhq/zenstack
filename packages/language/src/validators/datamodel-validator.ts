@@ -19,6 +19,7 @@ import {
 } from '../generated/ast';
 import {
     getAllAttributes,
+    getAllFieldAttributes,
     getAllFields,
     getAttribute,
     getAttributeArg,
@@ -28,6 +29,7 @@ import {
     hasAttribute,
     isDelegateModel,
     isEnumFieldReference,
+    isPrimitiveTypeDef,
 } from '../utils';
 import { validateAttributeApplication } from './attribute-application-validator';
 import { validateDuplicatedDeclarations, type AstValidator } from './common';
@@ -46,6 +48,15 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         }
         this.validateInherits(dm, accept);
         this.validateDelegateMap(dm, accept);
+        this.validateInheritance(dm, accept);
+    }
+
+    private validateInheritance(dm: DataModel, accept: ValidationAcceptor) {
+        if (dm.base) {
+            accept('error', `model "${dm.name}" cannot inherit from a primitive type`, {
+                node: dm,
+            });
+        }
     }
 
     private validateFields(dm: DataModel, accept: ValidationAcceptor) {
@@ -87,7 +98,9 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 }
 
                 const isArray = idField.type.array;
-                const isScalar = SCALAR_TYPES.includes(idField.type.type as (typeof SCALAR_TYPES)[number]);
+                const isScalar = SCALAR_TYPES.includes(
+                    (idField.$resolvedType?.decl ?? idField.type.type) as (typeof SCALAR_TYPES)[number],
+                );
                 const isValidType = isScalar || isEnum(idField.type.reference?.ref);
 
                 if (isArray || !isValidType) {
@@ -121,7 +134,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
 
         field.attributes.forEach((attr) => validateAttributeApplication(attr, accept));
 
-        if (isTypeDef(field.type.reference?.ref)) {
+        if (isTypeDef(field.type.reference?.ref) && !isPrimitiveTypeDef(field.type.reference.ref)) {
             if (!hasAttribute(field, '@json')) {
                 accept('error', 'Custom-typed field must have @json attribute', { node: field });
             }
@@ -160,7 +173,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         // group field attributes carrying `@@@onceInModel` by their attribute declaration
         const occurrences = new Map<Attribute, DataFieldAttribute[]>();
         for (const field of getAllFields(dm)) {
-            for (const attr of field.attributes) {
+            for (const attr of getAllFieldAttributes(field)) {
                 const decl = attr.decl.ref;
                 if (decl && hasAttribute(decl, '@@@onceInModel')) {
                     const list = occurrences.get(decl) ?? [];
@@ -537,6 +550,12 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             }
             seen.push(current);
             todo.push(...current.mixins.map((mixin) => mixin.ref!));
+
+            if (current.base) {
+                accept('error', `cannot use primitive type def "${current.name}" as a mixin`, {
+                    node: dm,
+                });
+            }
         }
     }
 
