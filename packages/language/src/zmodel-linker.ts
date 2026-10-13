@@ -374,16 +374,18 @@ export class ZModelLinker extends DefaultLinker {
 
         let decl: AstNode | undefined = node.$container;
 
-        while (decl && !isDataModel(decl) && !isPrimitiveTypeDef(decl)) {
-            decl = decl.$container;
-        }
-
-        if (decl) {
+        while (decl) {
             if (isPrimitiveTypeDef(decl)) {
                 this.resolveToBuiltinTypeOrDecl(node, decl.base!);
-            } else {
-                this.resolveToBuiltinTypeOrDecl(node, decl);
+                return;
             }
+
+            if (isDataModel(decl)) {
+                this.resolveToBuiltinTypeOrDecl(node, decl);
+                return;
+            }
+
+            decl = decl.$container;
         }
     }
 
