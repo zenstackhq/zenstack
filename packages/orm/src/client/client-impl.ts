@@ -257,7 +257,16 @@ export class ClientImpl {
         // mark the normalized hooks as validated so derived clients don't warn again
         warnedPlugins.add(normalizedHooks);
 
-        return { ...plugin, onEntityMutation: normalizedHooks } as AnyPlugin;
+        // create a copy that preserves the plugin's prototype chain (plugins may be class
+        // instances with hooks defined on the prototype), overriding only `onEntityMutation`
+        const copy = Object.create(Object.getPrototypeOf(plugin), Object.getOwnPropertyDescriptors(plugin));
+        Object.defineProperty(copy, 'onEntityMutation', {
+            value: normalizedHooks,
+            enumerable: true,
+            configurable: true,
+            writable: true,
+        });
+        return copy as AnyPlugin;
     }
 
     private validateOptions(baseClient: ClientImpl | undefined, options: ClientOptions<SchemaDef>) {

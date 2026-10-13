@@ -996,6 +996,41 @@ describe('Entity mutation hooks tests', () => {
         }
     });
 
+    it('preserves prototype-defined hooks of class-based plugins using the legacy shape', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            const calls: string[] = [];
+
+            class LegacyPlugin {
+                id = 'class-legacy';
+                onEntityMutation = {
+                    afterEntityMutation: (args: any) => {
+                        calls.push(`mutation:${args.action}`);
+                    },
+                };
+                // the following hooks live on the prototype, not as own properties
+                onQuery(ctx: any) {
+                    calls.push(`query:${ctx.operation}`);
+                    return ctx.proceed(ctx.args);
+                }
+                onKyselyQuery(ctx: any) {
+                    calls.push('kysely');
+                    return ctx.proceed(ctx.query);
+                }
+            }
+
+            const client = _client.$use(new LegacyPlugin() as any);
+            expect(warn).toHaveBeenCalledTimes(1);
+
+            await client.user.create({ data: { email: 'u1@test.com' } });
+            expect(calls).toContain('mutation:create');
+            expect(calls).toContain('query:create');
+            expect(calls).toContain('kysely');
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
     it('explicit $all takes precedence over legacy keys when both are present', async () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         try {
