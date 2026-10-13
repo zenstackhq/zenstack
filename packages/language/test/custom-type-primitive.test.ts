@@ -199,6 +199,24 @@ describe('Custom type primitive tests', () => {
             `);
     });
 
+    it('does not require a "this" field', async () => {
+        await loadSchema(
+            `
+                datasource db {
+                    provider = 'postgresql'
+                    url      = env('DATABASE_URL')
+                }
+
+                model User {
+                    id    String @id
+                    email Email
+                }
+
+                type Email with String {}
+            `,
+        );
+    });
+
     it('rejects when there is more than 1 field', async () => {
         await loadSchemaWithError(
             `
@@ -218,27 +236,6 @@ describe('Custom type primitive tests', () => {
                 }
             `,
             'primitive type def must only declare 1 field',
-        );
-    });
-
-    it('rejects when there is no "this" field', async () => {
-        await loadSchemaWithError(
-            `
-                datasource db {
-                    provider = 'postgresql'
-                    url      = env('DATABASE_URL')
-                }
-
-                model User {
-                    id    String @id
-                    email Email
-                }
-
-                type Email with String {
-                    this2 String
-                }
-            `,
-            'primitive type def is missing "this" field',
         );
     });
 

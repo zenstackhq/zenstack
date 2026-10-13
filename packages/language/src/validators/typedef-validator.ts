@@ -35,11 +35,7 @@ export default class TypeDefValidator implements AstValidator<TypeDef> {
                 });
             }
             const thisField = getPrimitiveTypeDefThisField(typeDef);
-            if (!thisField) {
-                accept('error', 'primitive type def is missing "this" field', {
-                    node: typeDef,
-                });
-            } else {
+            if (thisField) {
                 if (thisField.type.type !== typeDef.base) {
                     accept('error', 'primitive type def\'s "this" field must match the declared type', {
                         node: thisField,
