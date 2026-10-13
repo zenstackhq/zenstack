@@ -48,6 +48,7 @@ import {
     getTypeDef,
     getUniqueFields,
     isEnum,
+    isPrimitiveTypeDef,
     isTypeDef,
     requireField,
     requireModel,
@@ -581,7 +582,7 @@ export class ZodSchemaFactory<
                 } else if (fieldDef.array) {
                     // array field
                     fieldSchema = this.makeArrayFilterSchema(fieldDef.type, allowedFilterKinds);
-                } else if (this.isTypeDefType(fieldDef.type)) {
+                } else if (this.isTypeDefType(fieldDef.type) && !isPrimitiveTypeDef(this.schema, fieldDef.type)) {
                     fieldSchema = this.makeTypedJsonFilterSchema(
                         fieldDef.type,
                         !!fieldDef.optional,
@@ -589,9 +590,9 @@ export class ZodSchemaFactory<
                         allowedFilterKinds,
                     );
                 } else {
-                    // primitive field
+                    // primitive field (or a primitive typedef, which filters like its base type)
                     fieldSchema = this.makePrimitiveFilterSchema(
-                        fieldDef.type as BuiltinType,
+                        this.getEffectiveFieldType(fieldDef.type) as BuiltinType,
                         !!fieldDef.optional,
                         withAggregations,
                         allowedFilterKinds,
@@ -718,7 +719,7 @@ export class ZodSchemaFactory<
             // fields filter — typedef sub-fields are not model fields, no slicing applies
             const fieldSchemas: Record<string, ZodType> = {};
             for (const [fieldName, fieldDef] of Object.entries(typeDef.fields)) {
-                if (this.isTypeDefType(fieldDef.type)) {
+                if (this.isTypeDefType(fieldDef.type) && !isPrimitiveTypeDef(this.schema, fieldDef.type)) {
                     fieldSchemas[fieldName] = this.makeTypedJsonFilterSchema(
                         fieldDef.type,
                         !!fieldDef.optional,
@@ -739,7 +740,7 @@ export class ZodSchemaFactory<
                         fieldSchemas[fieldName] = this.makeArrayFilterSchema(fieldDef.type, undefined).optional();
                     } else {
                         fieldSchemas[fieldName] = this.makePrimitiveFilterSchema(
-                            fieldDef.type as BuiltinType,
+                            this.getEffectiveFieldType(fieldDef.type) as BuiltinType,
                             !!fieldDef.optional,
                             false,
                             undefined,
@@ -817,6 +818,13 @@ export class ZodSchemaFactory<
 
     private isTypeDefType(type: string) {
         return this.schema.typeDefs && type in this.schema.typeDefs;
+    }
+
+    private getEffectiveFieldType(type: string): string {
+        if (isPrimitiveTypeDef(this.schema, type)) {
+            return this.schema.typeDefs![type]!.base!;
+        }
+        return type;
     }
 
     @cache()
@@ -2565,7 +2573,7 @@ export class ZodSchemaFactory<
     }
 
     private isNumericField(fieldDef: FieldDef) {
-        return NUMERIC_FIELD_TYPES.includes(fieldDef.type) && !fieldDef.array;
+        return NUMERIC_FIELD_TYPES.includes(this.getEffectiveFieldType(fieldDef.type)) && !fieldDef.array;
     }
 
     private get providerSupportsCaseSensitivity() {
