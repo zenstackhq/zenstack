@@ -506,6 +506,10 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
                 }
             }
         }
+        // a primitive typedef maps to its base type's SQL type
+        if (isPrimitiveTypeDef(this.schema, zmodelType)) {
+            zmodelType = this.schema.typeDefs![zmodelType]!.base!;
+        }
         if (isEnum(this.schema, zmodelType)) {
             // reduce enum to text for type compatibility
             return 'text';
