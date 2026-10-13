@@ -53,7 +53,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
 
     private validateInheritance(dm: DataModel, accept: ValidationAcceptor) {
         if (dm.base) {
-            accept('error', `model "${dm.name}" cannot inherit from a primitive type`, {
+            accept('error', `model "${dm.name}" cannot use a primitive type as mix-in`, {
                 node: dm,
             });
         }
