@@ -45,6 +45,7 @@ import {
     getRelationName,
     isDataFieldReference,
     isLiteAttribute,
+    isPrimitiveTypeDef,
 } from '@zenstackhq/language/utils';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -818,9 +819,12 @@ export class TsSchemaGenerator {
     ): string | number | boolean | unknown[] | { call: string; args: any[] } | { authMember: string[] } | null {
         if (isLiteralExpr(expr)) {
             const lit = (expr as LiteralExpr).value;
-            return fieldType.type === 'Boolean'
+            // resolve the effective base type for primitive typedef references so that
+            // numeric/boolean defaults are emitted with the correct JS type
+            const effectiveType = this.getMappedValueBaseType(fieldType);
+            return effectiveType === 'Boolean'
                 ? (lit as boolean)
-                : ['Int', 'Float', 'Decimal', 'BigInt'].includes(fieldType.type!)
+                : ['Int', 'Float', 'Decimal', 'BigInt'].includes(effectiveType!)
                   ? Number(lit)
                   : lit;
         } else if (isArrayExpr(expr)) {
@@ -841,6 +845,19 @@ export class TsSchemaGenerator {
         } else {
             throw new Error(`Unsupported expression type: ${expr.$type}`);
         }
+    }
+
+    /**
+     * The primitive type used to map a literal default value to its JS representation. For a
+     * primitive typedef reference (e.g. `type Age with Int`), this resolves to the base type so
+     * that e.g. an `Int`-based typedef default is emitted as a number instead of a string.
+     */
+    private getMappedValueBaseType(fieldType: DataFieldType): string | undefined {
+        if (fieldType.type) {
+            return fieldType.type;
+        }
+        const ref = fieldType.reference?.ref;
+        return ref && isPrimitiveTypeDef(ref) ? ref.base : undefined;
     }
 
     private getMemberAccessChain(expr: MemberAccessExpr): string[] {
