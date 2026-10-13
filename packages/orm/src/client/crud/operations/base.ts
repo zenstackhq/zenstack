@@ -44,6 +44,7 @@ import {
     getModel,
     getRelationForeignKeyFieldPairs,
     isForeignKeyField,
+    isPrimitiveTypeDef,
     isRelationField,
     isScalarField,
     requireField,
@@ -1561,7 +1562,10 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
     }
 
     private isNumericField(fieldDef: FieldDef) {
-        return NUMERIC_FIELD_TYPES.includes(fieldDef.type) && !fieldDef.array;
+        const type = isPrimitiveTypeDef(this.schema, fieldDef.type)
+            ? this.schema.typeDefs![fieldDef.type]!.base!
+            : fieldDef.type;
+        return NUMERIC_FIELD_TYPES.includes(type) && !fieldDef.array;
     }
 
     private makeContextComment(_context: { model: string; operation: CRUD }) {
