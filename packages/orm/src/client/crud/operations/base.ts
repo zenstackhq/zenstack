@@ -1744,6 +1744,11 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         }
     }
 
+    /**
+     * Runs `updateMany` on a delegate sub model by id. Reads the ids of the rows that match
+     * `where`, then updates them in batches with an id filter. Callers run this inside a
+     * transaction (`needsNestedUpdate` is true for every model with a base model).
+     */
     private async updateManyByIds<ReturnData extends boolean, Result>(
         kysely: AnyKysely,
         model: string,
