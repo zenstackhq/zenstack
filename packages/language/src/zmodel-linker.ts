@@ -505,13 +505,13 @@ export class ZModelLinker extends DefaultLinker {
 
         let scopes = extraScopes;
 
-        // if the field has enum declaration type, resolve the rest with that enum's fields on top of the scopes
         if (node.type.reference?.ref) {
+            // if the field has enum declaration type, resolve the rest with that enum's fields on top of the scopes
             if (isEnum(node.type.reference.ref)) {
                 const contextEnum = node.type.reference.ref as Enum;
                 const enumScope: ScopeProvider = (name) => contextEnum.fields.find((f) => f.name === name);
                 scopes = [enumScope, ...scopes];
-            } else if (isTypeDef(node.type.reference.ref) && isPrimitiveTypeDef(node.type.reference.ref)) {
+            } else if (isPrimitiveTypeDef(node.type.reference.ref)) {
                 node.$resolvedType = {
                     decl: node.type.reference.ref.base,
                     array: node.type.array,
