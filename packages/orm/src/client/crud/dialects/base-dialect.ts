@@ -850,14 +850,17 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                 const fieldDef = typeDef.fields[key];
                 invariant(fieldDef, `Field "${key}" not found in type definition "${typeDefName}"`);
                 const fieldReceiver = this.buildJsonPathSelection(receiver, `$.${key}`);
-                if (isTypeDef(this.schema, fieldDef.type)) {
+                if (isTypeDef(this.schema, fieldDef.type) && !isPrimitiveTypeDef(this.schema, fieldDef.type)) {
                     clauses.push(this.buildTypedJsonFilter(fieldReceiver, value, fieldDef.type, !!fieldDef.array));
                 } else {
                     if (fieldDef.array) {
                         clauses.push(this.buildArrayFilter(fieldReceiver, fieldDef, value));
                     } else {
+                        const effectiveType = isPrimitiveTypeDef(this.schema, fieldDef.type)
+                            ? this.schema.typeDefs![fieldDef.type]!.base!
+                            : fieldDef.type;
                         let _receiver = fieldReceiver;
-                        if (fieldDef.type === 'String' || isEnum(this.schema, fieldDef.type)) {
+                        if (effectiveType === 'String' || isEnum(this.schema, effectiveType)) {
                             // trim quotes for string and enum fields (enums are stored as JSON strings)
                             _receiver = this.trimTextQuotes(this.castText(fieldReceiver));
                         }

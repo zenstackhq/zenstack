@@ -1,7 +1,7 @@
 import type { SchemaDef } from '@zenstackhq/schema';
 import { sql } from 'kysely';
 import { match } from 'ts-pattern';
-import { aggregate, getField } from '../../query-utils';
+import { aggregate, getField, isPrimitiveTypeDef } from '../../query-utils';
 import { BaseOperationHandler } from './base';
 
 export class GroupByOperationHandler<Schema extends SchemaDef> extends BaseOperationHandler<Schema> {
@@ -132,7 +132,9 @@ export class GroupByOperationHandler<Schema extends SchemaDef> extends BaseOpera
             if (typeof value === 'string') {
                 const fieldDef = getField(this.schema, this.model, field);
                 if (fieldDef) {
-                    const type = fieldDef.type;
+                    const type = isPrimitiveTypeDef(this.schema, fieldDef.type)
+                        ? this.schema.typeDefs![fieldDef.type]!.base!
+                        : fieldDef.type;
                     if (op === '_avg') {
                         val = parseFloat(val);
                     } else {
