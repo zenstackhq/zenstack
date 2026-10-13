@@ -450,8 +450,11 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
         }
 
         if (this.dialect.supportsReturning) {
-            // entities are returned in the query result
-            return queryResult.rows as Record<string, unknown>[];
+            // entities are returned in the query result; shallow-copy the rows so that
+            // hooks (which may run after the ORM has post-processed the query result
+            // in place, e.g., when deferred to after transaction commit) always see
+            // raw database rows
+            return (queryResult.rows as Record<string, unknown>[]).map((row) => ({ ...row }));
         } else {
             const mutatedIds = InsertQueryNode.is(queryNode)
                 ? this.getInsertIds(mutationInfo.model, queryNode, queryResult)
