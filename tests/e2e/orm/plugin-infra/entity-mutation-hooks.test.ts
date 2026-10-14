@@ -1,8 +1,11 @@
-import { type ClientContract } from '@zenstackhq/orm';
+import { type ClientContract, type MutationHookEntity } from '@zenstackhq/orm';
 import { createTestClient } from '@zenstackhq/testtools';
 import { DeleteQueryNode, InsertQueryNode, UpdateQueryNode } from 'kysely';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { sql } from 'kysely';
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { schema } from '../schemas/basic';
+import { schema as delegateSchemaTyped } from '../schemas/delegate/schema';
+import { schema as typingSchema } from '../schemas/typing/schema';
 
 describe('Entity mutation hooks tests', () => {
     let _client: ClientContract<typeof schema>;
@@ -869,12 +872,266 @@ describe('Entity mutation hooks tests', () => {
             data: { email: 'u1@test.com' },
         });
     });
+
+    it('after-mutation entities match $qb rows', async () => {
+        let postEntity: any;
+        let userEntity: any;
+
+        const client = _client.$use({
+            id: 'test',
+            onEntityMutation: {
+                Post: {
+                    async afterEntityMutation(args) {
+                        const entities = await args.loadAfterMutationEntities();
+                        postEntity = entities?.[0];
+                        // entity type must be identical to a `$qb` selectAll row
+                        expectTypeOf(entities!).items.toEqualTypeOf<Awaited<ReturnType<typeof qbPostQuery>>>();
+                    },
+                },
+                User: {
+                    async afterEntityMutation(args) {
+                        const entities = await args.loadAfterMutationEntities();
+                        userEntity = entities?.[0];
+                    },
+                },
+            },
+        });
+
+        const qbPostQuery = () => client.$qb.selectFrom('Post').selectAll().executeTakeFirstOrThrow();
+
+        const user = await client.user.create({
+            data: {
+                email: 'u1@test.com',
+                meta: { foo: 'bar' },
+                posts: { create: { title: 'P1', published: true } },
+            },
+        });
+
+        const qbPost = await client.$qb
+            .selectFrom('Post')
+            .selectAll()
+            .where('authorId', '=', user.id)
+            .executeTakeFirstOrThrow();
+        const qbUser = await client.$qb
+            .selectFrom('User')
+            .selectAll()
+            .where('id', '=', user.id)
+            .executeTakeFirstOrThrow();
+
+        expect(postEntity).toEqual(qbPost);
+        expect(userEntity).toEqual(qbUser);
+    });
+
+    it('before-mutation entities match $qb rows', async () => {
+        let beforeEntity: any;
+        let beforeEntityInAfterHook: any;
+
+        const client = _client.$use({
+            id: 'test',
+            onEntityMutation: {
+                Post: {
+                    async beforeEntityMutation(args) {
+                        beforeEntity = (await args.loadBeforeMutationEntities())?.[0];
+                    },
+                    afterEntityMutation(args) {
+                        beforeEntityInAfterHook = args.beforeMutationEntities?.[0];
+                    },
+                },
+            },
+        });
+
+        const user = await client.user.create({ data: { email: 'u1@test.com' } });
+        const post = await client.post.create({ data: { title: 'P1', published: true, authorId: user.id } });
+        const qbPostBefore = await client.$qb
+            .selectFrom('Post')
+            .selectAll()
+            .where('id', '=', post.id)
+            .executeTakeFirstOrThrow();
+
+        await client.post.update({ where: { id: post.id }, data: { title: 'P2' } });
+
+        expect(beforeEntity).toEqual(qbPostBefore);
+        expect(beforeEntityInAfterHook).toEqual(qbPostBefore);
+    });
+
+    it('supports legacy-shaped onEntityMutation (hooks directly under onEntityMutation) with a warning', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            const calls: string[] = [];
+            let thisArg: unknown;
+            const legacy = {
+                id: 'legacy',
+                beforeEntityMutation(args: any) {
+                    calls.push(`before:${args.model}:${args.action}`);
+                },
+                onEntityMutation: {
+                    beforeEntityMutation(this: any, args: any) {
+                        thisArg = this;
+                        calls.push(`before:${args.model}:${args.action}`);
+                    },
+                    afterEntityMutation(args: any) {
+                        calls.push(`after:${args.model}:${args.action}`);
+                    },
+                    runAfterMutationWithinTransaction: true,
+                },
+            };
+
+            const client = _client.$use(legacy as any);
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn.mock.calls[0]![0]).toContain('deprecated');
+
+            await client.user.create({ data: { email: 'u1@test.com' } });
+            expect(calls).toEqual(['before:User:create', 'after:User:create']);
+            // `this` is the plugin object
+            expect(thisArg).toBe(legacy);
+
+            // derived clients (e.g., transactions) should not warn again
+            await client.$transaction(async (tx) => {
+                await tx.user.create({ data: { email: 'u2@test.com' } });
+            });
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(calls).toContain('after:User:create');
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
+    it('preserves prototype-defined hooks of class-based plugins using the legacy shape', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            const calls: string[] = [];
+
+            class LegacyPlugin {
+                id = 'class-legacy';
+                onEntityMutation = {
+                    afterEntityMutation: (args: any) => {
+                        calls.push(`mutation:${args.action}`);
+                    },
+                };
+                // the following hooks live on the prototype, not as own properties
+                onQuery(ctx: any) {
+                    calls.push(`query:${ctx.operation}`);
+                    return ctx.proceed(ctx.args);
+                }
+                onKyselyQuery(ctx: any) {
+                    calls.push('kysely');
+                    return ctx.proceed(ctx.query);
+                }
+            }
+
+            const client = _client.$use(new LegacyPlugin() as any);
+            expect(warn).toHaveBeenCalledTimes(1);
+
+            await client.user.create({ data: { email: 'u1@test.com' } });
+            expect(calls).toContain('mutation:create');
+            expect(calls).toContain('query:create');
+            expect(calls).toContain('kysely');
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
+    it('explicit $all takes precedence over legacy keys when both are present', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            const calls: string[] = [];
+            const client = _client.$use({
+                id: 'mixed',
+                onEntityMutation: {
+                    afterEntityMutation() {
+                        calls.push('legacy');
+                    },
+                    $all: {
+                        afterEntityMutation() {
+                            calls.push('$all');
+                        },
+                    },
+                },
+            } as any);
+
+            await client.user.create({ data: { email: 'u1@test.com' } });
+            expect(calls).toEqual(['$all']);
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
+    it('warns on onEntityMutation keys that are not $all or a known model name', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            const client = _client.$use({
+                id: 'typo',
+                onEntityMutation: {
+                    user: {
+                        afterEntityMutation() {},
+                    },
+                },
+            } as any);
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn.mock.calls[0]![0]).toContain('"user"');
+
+            // no repeated warnings for derived clients
+            await client.$transaction(async (tx) => {
+                await tx.user.create({ data: { email: 'u1@test.com' } });
+            });
+            expect(warn).toHaveBeenCalledTimes(1);
+        } finally {
+            warn.mockRestore();
+        }
+    });
+});
+
+describe('Entity mutation hooks - computed fields', () => {
+    it('hook entities exclude computed fields in both type and value', async () => {
+        const db = await createTestClient(
+            `
+model User {
+    id Int @id @default(autoincrement())
+    firstName String
+    lastName String
+    fullName String @computed
+}
+`,
+            {
+                computedFields: {
+                    User: {
+                        fullName: (eb: any) => eb.fn('concat', [eb.ref('firstName'), sql.lit(' '), eb.ref('lastName')]),
+                    },
+                },
+            } as any,
+        );
+
+        let entity: any;
+        const client = db.$use({
+            id: 'test',
+            onEntityMutation: {
+                User: {
+                    async afterEntityMutation(args: any) {
+                        entity = (await args.loadAfterMutationEntities())?.[0];
+                    },
+                },
+            },
+        });
+
+        await client.user.create({ data: { firstName: 'Alex', lastName: 'Smith' } });
+
+        // type-level: computed field `postCount` is not part of the hook entity type
+        type UserEntity = MutationHookEntity<typeof typingSchema, 'User'>;
+        expectTypeOf<UserEntity>().toHaveProperty('email');
+        expectTypeOf<UserEntity>().not.toHaveProperty('postCount');
+        // relations are not part of the entity either
+        expectTypeOf<UserEntity>().not.toHaveProperty('posts');
+
+        expect(entity).toBeDefined();
+        expect(entity).toMatchObject({ firstName: 'Alex', lastName: 'Smith' });
+        expect(entity).not.toHaveProperty('fullName');
+
+        await db.$disconnect();
+    });
 });
 
 describe('Entity mutation hooks - delegate model interaction', () => {
-    it('update on child model succeeds with afterEntityMutation plugin', async () => {
-        const client = await createTestClient(
-            `
+    const delegateSchema = `
 model Base {
     id Int @id @default(autoincrement())
     orgId Int
@@ -885,8 +1142,162 @@ model Base {
 model Child extends Base {
     childField Int
 }
-`,
-        );
+`;
+
+    it('hook entity types match per-table rows (no inherited or descendant fields)', () => {
+        // Asset (root base): only its own columns
+        type AssetEntity = MutationHookEntity<typeof delegateSchemaTyped, 'Asset'>;
+        expectTypeOf<AssetEntity>().toHaveProperty('assetType');
+        expectTypeOf<AssetEntity>().toHaveProperty('ownerId');
+        expectTypeOf<AssetEntity>().not.toHaveProperty('duration');
+        expectTypeOf<AssetEntity>().not.toHaveProperty('rating');
+        expectTypeOf<AssetEntity>().not.toHaveProperty('owner');
+
+        // Video (sub-model and delegate base): own columns, no inherited ones
+        type VideoEntity = MutationHookEntity<typeof delegateSchemaTyped, 'Video'>;
+        expectTypeOf<VideoEntity>().toHaveProperty('id');
+        expectTypeOf<VideoEntity>().toHaveProperty('duration');
+        expectTypeOf<VideoEntity>().toHaveProperty('videoType');
+        expectTypeOf<VideoEntity>().not.toHaveProperty('assetType');
+        expectTypeOf<VideoEntity>().not.toHaveProperty('viewCount');
+        expectTypeOf<VideoEntity>().not.toHaveProperty('rating');
+
+        // RatedVideo (chained sub-model): own columns only
+        type RatedVideoEntity = MutationHookEntity<typeof delegateSchemaTyped, 'RatedVideo'>;
+        expectTypeOf<RatedVideoEntity>().toHaveProperty('id');
+        expectTypeOf<RatedVideoEntity>().toHaveProperty('rating');
+        expectTypeOf<RatedVideoEntity>().toHaveProperty('userId');
+        expectTypeOf<RatedVideoEntity>().not.toHaveProperty('duration');
+        expectTypeOf<RatedVideoEntity>().not.toHaveProperty('assetType');
+    });
+
+    it('Child hook entities contain only child-table columns; Base hook entities only base-table columns', async () => {
+        const db = await createTestClient(delegateSchema);
+        let childEntity: any;
+        let baseEntity: any;
+
+        const client = db.$use({
+            id: 'test',
+            onEntityMutation: {
+                Child: {
+                    async afterEntityMutation(args: any) {
+                        childEntity = (await args.loadAfterMutationEntities())?.[0];
+                    },
+                },
+                Base: {
+                    async afterEntityMutation(args: any) {
+                        baseEntity = (await args.loadAfterMutationEntities())?.[0];
+                    },
+                },
+            },
+        });
+
+        const created = await client.child.create({ data: { orgId: 1, childField: 10 } });
+
+        const qbChild = await db.$qb
+            .selectFrom('Child')
+            .selectAll()
+            .where('id', '=', created.id)
+            .executeTakeFirstOrThrow();
+        const qbBase = await db.$qb
+            .selectFrom('Base')
+            .selectAll()
+            .where('id', '=', created.id)
+            .executeTakeFirstOrThrow();
+
+        expect(childEntity).toEqual(qbChild);
+        expect(childEntity).toEqual({ id: created.id, childField: 10 });
+
+        expect(baseEntity).toEqual(qbBase);
+        expect(baseEntity).toEqual({ id: created.id, orgId: 1, type: 'Child' });
+
+        await db.$disconnect();
+    });
+
+    it("fires per-model hooks once per table written, keyed by that table's model", async () => {
+        const db = await createTestClient(delegateSchema);
+        const events: string[] = [];
+
+        const client = db.$use({
+            id: 'test',
+            onEntityMutation: {
+                Base: {
+                    afterEntityMutation(args: any) {
+                        events.push(`Base:${args.action}`);
+                    },
+                },
+                Child: {
+                    afterEntityMutation(args: any) {
+                        events.push(`Child:${args.action}`);
+                    },
+                },
+            },
+        });
+
+        // create writes both tables
+        const created = await client.child.create({ data: { orgId: 1, childField: 10 } });
+        expect(events).toEqual(['Base:create', 'Child:create']);
+
+        // updating only a sub-model field writes only the sub-model table
+        events.length = 0;
+        await client.child.update({ where: { id: created.id }, data: { childField: 11 } });
+        expect(events).toEqual(['Child:update']);
+
+        // updating only an inherited field writes only the base table, so only
+        // the base model's hook fires
+        events.length = 0;
+        await client.child.update({ where: { id: created.id }, data: { orgId: 2 } });
+        expect(events).toEqual(['Base:update']);
+
+        // updating both writes both tables
+        events.length = 0;
+        await client.child.update({ where: { id: created.id }, data: { orgId: 3, childField: 12 } });
+        expect(events).toEqual(['Base:update', 'Child:update']);
+
+        // deleting a sub-model entity deletes the base row (sub-model row is cascaded),
+        // so only the base model's hook fires
+        events.length = 0;
+        await client.child.delete({ where: { id: created.id } });
+        expect(events).toEqual(['Base:delete']);
+
+        await db.$disconnect();
+    });
+
+    it('base model hook entities carry the discriminator so the concrete sub-model can be identified', async () => {
+        const db = await createTestClient(delegateSchema);
+        const types: string[] = [];
+
+        const client = db.$use({
+            id: 'test',
+            onEntityMutation: {
+                Base: {
+                    async beforeEntityMutation(args: any) {
+                        const entities = await args.loadBeforeMutationEntities();
+                        if (entities) {
+                            types.push(...entities.map((e: any) => `${args.action}:${e.type}`));
+                        }
+                    },
+                    async afterEntityMutation(args: any) {
+                        const entities = await args.loadAfterMutationEntities();
+                        if (entities) {
+                            types.push(...entities.map((e: any) => `${args.action}:${e.type}`));
+                        }
+                    },
+                },
+            },
+        });
+
+        const created = await client.child.create({ data: { orgId: 1, childField: 10 } });
+        await client.child.update({ where: { id: created.id }, data: { orgId: 2 } });
+        await client.child.delete({ where: { id: created.id } });
+
+        expect(types).toEqual(['create:Child', 'update:Child', 'update:Child', 'delete:Child']);
+
+        await db.$disconnect();
+    });
+
+    it('update on child model succeeds with afterEntityMutation plugin', async () => {
+        const client = await createTestClient(delegateSchema);
 
         const withPlugin = client.$use({
             id: 'test',

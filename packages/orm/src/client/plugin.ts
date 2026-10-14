@@ -1,11 +1,11 @@
-import type { OperationNode, QueryId, QueryResult, RootOperationNode, UnknownRow } from 'kysely';
+import type { OperationNode, QueryId, QueryResult, RootOperationNode, Selectable, UnknownRow } from 'kysely';
 import type { ZodType } from 'zod';
 import type { ClientContract, ZModelFunction } from '.';
 import type { GetModelFields, GetModels, NonRelationFields, SchemaDef } from '@zenstackhq/schema';
 import type { MaybePromise } from '../utils/type-utils';
 import type { MapModelFieldType } from './crud-types';
 import type { AllCrudOperations, CoreCrudOperations } from './crud/operations/base';
-import type { DefaultModelResult } from './crud-types';
+import type { ToKyselySchema } from './query-builder';
 
 type AllowedExtQueryArgKeys = CoreCrudOperations | '$create' | '$read' | '$update' | '$delete' | '$all';
 
@@ -388,12 +388,32 @@ export type PluginAfterEntityMutationArgs<Schema extends SchemaDef> = MutationHo
     client: ClientContract<Schema>;
 };
 
+/**
+ * The shape of an entity passed to per-model entity mutation hooks. Entities are
+ * loaded directly from the database table (the same way as `$qb` query results),
+ * so they contain only physical columns (no relations, no computed fields, and no
+ * fields inherited from a delegate base model), and values are in the form returned
+ * by the database driver, not post-processed by the ORM.
+ *
+ * For models using delegate inheritance (`@@delegate`), a mutation fires one event
+ * per physical table written, keyed by that table's model. E.g., creating a sub-model
+ * entity fires a base-model event followed by a sub-model event; updating only
+ * inherited fields fires only a base-model event; deleting a sub-model entity fires
+ * only a base-model event (the sub-model row is removed by cascade). Base-model
+ * entities carry the discriminator field, which can be used to identify the concrete
+ * sub-model. To observe all mutations of a sub-model, register hooks on its base model
+ * (or use `$all`).
+ */
+export type MutationHookEntity<Schema extends SchemaDef, Model extends GetModels<Schema>> = Selectable<
+    ToKyselySchema<Schema>[Model]
+>;
+
 export type PluginModelBeforeEntityMutationArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = Omit<
     MutationHooksArgs<Schema>,
     'model'
 > & {
     model: Model;
-    loadBeforeMutationEntities(): Promise<DefaultModelResult<Schema, Model>[] | undefined>;
+    loadBeforeMutationEntities(): Promise<MutationHookEntity<Schema, Model>[] | undefined>;
     client: ClientContract<Schema>;
 };
 
@@ -402,8 +422,8 @@ export type PluginModelAfterEntityMutationArgs<Schema extends SchemaDef, Model e
     'model'
 > & {
     model: Model;
-    loadAfterMutationEntities(): Promise<DefaultModelResult<Schema, Model>[] | undefined>;
-    beforeMutationEntities?: DefaultModelResult<Schema, Model>[];
+    loadAfterMutationEntities(): Promise<MutationHookEntity<Schema, Model>[] | undefined>;
+    beforeMutationEntities?: MutationHookEntity<Schema, Model>[];
     client: ClientContract<Schema>;
 };
 
