@@ -36,6 +36,7 @@ import {
     ensureArray,
     extractIdFields,
     flattenCompoundUniqueFilters,
+    getDelegateDescendantModels,
     getDelegateDiscriminatorValue,
     getDiscriminatorField,
     getField,
@@ -178,6 +179,16 @@ export const AllWriteOperations = CoreWriteOperations;
  * List of all write operations - simply an alias of CoreWriteOperations.
  */
 export type AllWriteOperations = CoreWriteOperations;
+
+/**
+ * Maximum number of rows identified by id in a single statement during cascade delete simulation.
+ */
+const DELETE_ID_BATCH_SIZE = 1000;
+
+/**
+ * Same as `DELETE_ID_BATCH_SIZE`, for compound ids, which are matched with one `OR` branch per row.
+ */
+const DELETE_COMPOUND_ID_BATCH_SIZE = 100;
 
 // context for nested relation operations
 export type FromRelationContext = {
@@ -2376,8 +2387,10 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         limit?: number,
         filterModel?: string,
         fieldsToReturn?: readonly string[],
+        visited?: Set<string>,
     ): Promise<QueryResult<unknown>> {
         filterModel ??= model;
+        visited ??= new Set<string>();
 
         const modelDef = this.requireModel(model);
 
@@ -2386,9 +2399,109 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                 throw createNotSupportedError('Deleting with a limit is not supported for polymorphic models');
             }
             // just delete base and it'll cascade back to this model
-            return this.processBaseModelDelete(kysely, modelDef.baseModel, where, limit, filterModel);
+            return this.processBaseModelDelete(kysely, modelDef.baseModel, where, limit, filterModel, visited);
         }
 
+        // if the model being deleted has a relation to a model that extends a delegate model, and if that
+        // relation is set to trigger a cascade delete from this model, the deletion will not automatically
+        // clean up the base hierarchy of the relation side (because polymorphic model's cascade deletion
+        // works downward not upward). We need to take care of the base deletions manually here.
+        const cascadeRelations = this.getDelegateCascadeRelations(model, filterModel);
+        if (cascadeRelations.length === 0) {
+            return this.executeDelete(kysely, model, where, limit, filterModel, fieldsToReturn);
+        }
+
+        if (!modelDef.isDelegate) {
+            if (limit !== undefined) {
+                throw createNotSupportedError('Deleting with a limit is not supported for polymorphic models');
+            }
+            for (const { fieldDef } of cascadeRelations) {
+                await this.delete(
+                    kysely,
+                    fieldDef.type,
+                    { [fieldDef.relation!.opposite!]: where },
+                    undefined,
+                    undefined,
+                    undefined,
+                    visited,
+                );
+            }
+            return this.executeDelete(kysely, model, where, limit, filterModel, fieldsToReturn);
+        }
+
+        // for a delegate model, resolve the rows being deleted first: `where` can filter on a sub model or on
+        // related rows, which the cascades below may delete
+        const discriminator = getDiscriminatorField(this.schema, model)!;
+        const deletedRows = await this.read(kysely, filterModel, {
+            where,
+            select: { ...this.makeIdSelect(filterModel), [discriminator]: true },
+            ...(limit !== undefined ? { take: limit } : {}),
+        });
+
+        // rows already being deleted in this chain are skipped, otherwise cyclic data recurses forever
+        deletedRows.forEach((row) => visited.add(this.makeVisitedKey(model, row)));
+
+        for (const { fieldDef, discriminatorValue } of cascadeRelations) {
+            const parentRows =
+                discriminatorValue === undefined
+                    ? deletedRows
+                    : deletedRows.filter((row) => row[discriminator] === discriminatorValue);
+            for (const batch of this.batchRows(model, parentRows)) {
+                const childModel = fieldDef.type;
+                const childRows = await this.read(kysely, childModel, {
+                    where: this.makeChildFilter(model, fieldDef, batch) as any,
+                    select: this.makeIdSelect(childModel),
+                });
+                const pendingRows = childRows.filter((row) => {
+                    const key = this.makeVisitedKey(childModel, row);
+                    if (visited.has(key)) {
+                        return false;
+                    }
+                    visited.add(key);
+                    return true;
+                });
+
+                // the deletion will propagate upward to the base model chain
+                for (const childBatch of this.batchRows(childModel, pendingRows)) {
+                    await this.delete(
+                        kysely,
+                        childModel,
+                        this.makeIdsFilter(childModel, childBatch),
+                        undefined,
+                        undefined,
+                        undefined,
+                        visited,
+                    );
+                }
+            }
+        }
+
+        let numAffectedRows = 0n;
+        const rows: unknown[] = [];
+        for (const batch of this.batchRows(model, deletedRows)) {
+            const result = await this.executeDelete(
+                kysely,
+                model,
+                this.makeIdsFilter(model, batch),
+                undefined,
+                model,
+                fieldsToReturn,
+            );
+            numAffectedRows += result.numAffectedRows ?? 0n;
+            rows.push(...result.rows);
+        }
+        return { numAffectedRows, rows };
+    }
+
+    private async executeDelete(
+        kysely: AnyKysely,
+        model: string,
+        where: any,
+        limit: number | undefined,
+        filterModel: string,
+        fieldsToReturn: readonly string[] | undefined,
+    ): Promise<QueryResult<unknown>> {
+        const modelDef = this.requireModel(model);
         fieldsToReturn = fieldsToReturn ?? requireIdFields(this.schema, model);
 
         let needIdFilter = false;
@@ -2428,13 +2541,6 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                   )
             : () => this.dialect.buildFilter(model, model, where);
 
-        // if the model being deleted has a relation to a model that extends a delegate model, and if that
-        // relation is set to trigger a cascade delete from this model, the deletion will not automatically
-        // clean up the base hierarchy of the relation side (because polymorphic model's cascade deletion
-        // works downward not upward). We need to take care of the base deletions manually here.
-
-        await this.processDelegateRelationDelete(kysely, modelDef, where, limit);
-
         const query = kysely
             .deleteFrom(model)
             .where(deleteFilter)
@@ -2445,31 +2551,96 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         return this.executeQuery(kysely, query, 'delete');
     }
 
-    private async processDelegateRelationDelete(
-        kysely: ToKysely<Schema>,
-        modelDef: ModelDef,
-        where: any,
-        limit: number | undefined,
-    ) {
-        for (const fieldDef of Object.values(modelDef.fields)) {
-            if (fieldDef.relation && fieldDef.relation.opposite) {
-                const oppositeModelDef = this.requireModel(fieldDef.type);
-                const oppositeRelation = this.requireField(fieldDef.type, fieldDef.relation.opposite);
-                if (oppositeModelDef.baseModel && oppositeRelation.relation?.onDelete === 'Cascade') {
-                    if (limit !== undefined) {
-                        throw createNotSupportedError('Deleting with a limit is not supported for polymorphic models');
+    /**
+     * Gets the relations whose deletion must be simulated when deleting from the given model: relations
+     * pointing to a model that extends a delegate model, with cascade delete on the opposite side. For a
+     * delegate model, this includes relations declared on its sub models, because deleting a base row
+     * cascades to the sub model rows in the database. `discriminatorValue` is set for a sub model relation:
+     * it is the base model's discriminator value of the rows the relation can belong to.
+     */
+    protected getDelegateCascadeRelations(model: string, filterModel = model) {
+        const modelDef = this.requireModel(model);
+        // when deleting through a sub model, only relations its rows can have apply
+        const filterDiscriminatorValue =
+            filterModel === model ? undefined : this.getDiscriminatorValueBelow(model, filterModel);
+        const candidates = Object.values(modelDef.fields).map((fieldDef) => ({
+            fieldDef,
+            discriminatorValue: undefined as unknown,
+        }));
+        if (modelDef.isDelegate) {
+            for (const subModel of getDelegateDescendantModels(this.schema, model)) {
+                // the sub model's ancestor directly below `model` gives the discriminator value its rows carry
+                const discriminatorValue = this.getDiscriminatorValueBelow(model, subModel.name);
+                if (filterDiscriminatorValue !== undefined && discriminatorValue !== filterDiscriminatorValue) {
+                    continue;
+                }
+                for (const fieldDef of Object.values(subModel.fields)) {
+                    if (!fieldDef.originModel) {
+                        candidates.push({ fieldDef, discriminatorValue });
                     }
-                    // the deletion will propagate upward to the base model chain
-                    await this.delete(
-                        kysely,
-                        fieldDef.type as GetModels<Schema>,
-                        {
-                            [fieldDef.relation.opposite]: where,
-                        },
-                        undefined,
-                    );
                 }
             }
+        }
+
+        return candidates.filter(({ fieldDef }) => {
+            if (!fieldDef.relation?.opposite) {
+                return false;
+            }
+            const oppositeModelDef = this.requireModel(fieldDef.type);
+            const oppositeRelation = this.requireField(fieldDef.type, fieldDef.relation.opposite);
+            return !!oppositeModelDef.baseModel && oppositeRelation.relation?.onDelete === 'Cascade';
+        });
+    }
+
+    // gets the discriminator value that `model` stores for rows of `subModel`, which is the value of
+    // `subModel`'s ancestor directly below `model`
+    private getDiscriminatorValueBelow(model: string, subModel: string) {
+        let ancestor = this.requireModel(subModel);
+        while (ancestor.baseModel !== model) {
+            ancestor = this.requireModel(ancestor.baseModel!);
+        }
+        return getDelegateDiscriminatorValue(this.schema, ancestor.name);
+    }
+
+    private makeVisitedKey(model: string, row: any) {
+        // key by the root of the delegate hierarchy, since a row can be reached through any model in it
+        let root = model;
+        for (let base = this.requireModel(root).baseModel; base; base = this.requireModel(root).baseModel) {
+            root = base;
+        }
+        return JSON.stringify([root, ...this.requireModel(model).idFields.map((f) => row[f])]);
+    }
+
+    // filters the children of the given parent rows, by foreign key when it references the parent's id
+    private makeChildFilter(model: string, fieldDef: FieldDef, parentRows: any[]) {
+        const opposite = fieldDef.relation!.opposite!;
+        const { fields, references } = this.requireField(fieldDef.type, opposite).relation ?? {};
+        const idFields = this.requireModel(model).idFields;
+        if (!fields || !references || !references.every((f) => idFields.includes(f))) {
+            return { [opposite]: this.makeIdsFilter(model, parentRows) };
+        }
+        if (fields.length === 1) {
+            return { [fields[0]!]: { in: parentRows.map((row) => row[references[0]!]) } };
+        }
+        return {
+            OR: parentRows.map((row) => Object.fromEntries(fields.map((f, i) => [f, row[references[i]!]]))),
+        };
+    }
+
+    private makeIdsFilter(model: string, rows: any[]) {
+        const idFields = this.requireModel(model).idFields;
+        if (idFields.length === 1) {
+            return { [idFields[0]!]: { in: rows.map((row) => row[idFields[0]!]) } };
+        }
+        return { OR: rows.map((row) => Object.fromEntries(idFields.map((f) => [f, row[f]]))) };
+    }
+
+    private *batchRows<T>(model: string, rows: T[]) {
+        // keeps id lists within the databases' limits on query parameters and expression depth
+        const size =
+            this.requireModel(model).idFields.length === 1 ? DELETE_ID_BATCH_SIZE : DELETE_COMPOUND_ID_BATCH_SIZE;
+        for (let i = 0; i < rows.length; i += size) {
+            yield rows.slice(i, i + size);
         }
     }
 
@@ -2479,8 +2650,9 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         where: any,
         limit: number | undefined,
         filterModel: string,
+        visited: Set<string>,
     ) {
-        return this.delete(kysely, model, where, limit, filterModel);
+        return this.delete(kysely, model, where, limit, filterModel, undefined, visited);
     }
 
     protected makeIdSelect(model: string) {
