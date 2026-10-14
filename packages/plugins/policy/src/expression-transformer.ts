@@ -342,14 +342,13 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             const rightFieldDef = this.getFieldDefFromFieldRef(normalizedRight, context);
             // Map ZModel operator to SQL operator string
             const sqlOp = op === '==' ? '=' : op;
+            // `before()` enums are text in the VALUES table and pg can't compare text to a native enum
+            const asText =
+                this.isBeforeEnumField(normalizedLeft, context) || this.isBeforeEnumField(normalizedRight, context);
+            const operand = (node: OperationNode) =>
+                asText ? this.dialect.castText(new ExpressionWrapper(node)) : new ExpressionWrapper(node);
             return this.dialect
-                .buildComparison(
-                    new ExpressionWrapper(left),
-                    leftFieldDef,
-                    sqlOp,
-                    new ExpressionWrapper(right),
-                    rightFieldDef,
-                )
+                .buildComparison(operand(left), leftFieldDef, sqlOp, operand(right), rightFieldDef)
                 .toOperationNode();
         }
     }
@@ -1213,6 +1212,14 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     private isRelationField(expr: Expression, context: ExpressionTransformerContext) {
         const fieldDef = this.getFieldDefFromFieldRef(expr, context);
         return !!fieldDef?.relation;
+    }
+
+    private isBeforeEnumField(expr: Expression, context: ExpressionTransformerContext) {
+        if (!ExpressionUtils.isMember(expr) || !isBeforeInvocation(expr.receiver)) {
+            return false;
+        }
+        const fieldDef = QueryUtils.getField(this.schema, context.modelOrType, expr.members[0]!);
+        return !!fieldDef && QueryUtils.isEnum(this.schema, fieldDef.type);
     }
 
     private getFieldDefFromFieldRef(expr: Expression, context: ExpressionTransformerContext): FieldDef | undefined {
