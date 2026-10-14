@@ -106,6 +106,16 @@
                 "default": "./dist/common-types.cjs"
             }
         },
+        "./constants": {
+            "import": {
+                "types": "./dist/constants.d.mts",
+                "default": "./dist/constants.mjs"
+            },
+            "require": {
+                "types": "./dist/constants.d.cts",
+                "default": "./dist/constants.cjs"
+            }
+        },
         "./package.json": {
             "import": "./package.json",
             "require": "./package.json"

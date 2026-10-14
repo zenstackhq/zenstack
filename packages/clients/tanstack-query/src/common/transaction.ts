@@ -2,7 +2,7 @@ import type { Logger } from '@zenstackhq/client-helpers';
 import { createInvalidator, TRANSACTION_ROUTE_PREFIX, type InvalidateFunc } from '@zenstackhq/client-helpers';
 import { fetcher, marshal, type FetchFn } from '@zenstackhq/client-helpers/fetch';
 import type { TransactionOperation } from '@zenstackhq/client-helpers';
-import { CoreReadOperations } from '@zenstackhq/orm';
+import { CoreReadOperations } from '@zenstackhq/orm/constants';
 import type { SchemaDef } from '@zenstackhq/schema';
 
 /**
