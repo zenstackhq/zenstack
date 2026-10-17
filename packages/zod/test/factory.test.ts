@@ -1686,9 +1686,9 @@ describe.each([
     describe('custom type primitives', () => {
         it('supports model validation using `this` attributes', () => {
             const postSchema = factory.makeModelSchema('Post');
-            const result = postSchema.safeParse({ ...validPost, tags: ['LOWERCASED'] });
+            const result = postSchema.safeParse({ ...validPost, tags: ['LOWERCASED', 'Other'] });
             expect(result.success).toBe(true);
-            expect(result.data?.tags).toMatchObject(['lowercased']);
+            expect(result.data?.tags).toMatchObject(['lowercased', 'other']);
         });
 
         it('supports model validation using `@@validate`', () => {
@@ -1742,6 +1742,30 @@ describe.each([
 
             result = contactSchema.safeParse(-1.0);
             expect(result.success).toBe(false);
+        });
+
+        describe('lists', () => {
+            it('applies field attributes to the list', () => {
+                const postSchema = factory.makeModelSchema('Post');
+                let result = postSchema.safeParse({ ...validPost, tags: ['a', 'b'] });
+                expect(result.success).toBe(true);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a', 'b', 'c'] });
+                expect(result.success).toBe(true);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a'] });
+                expect(result.success).toBe(false);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a', 'b', 'c', 'd'] });
+                expect(result.success).toBe(false);
+            });
+
+            it('applies typedef attributes to each item', () => {
+                const postSchema = factory.makeModelSchema('Post');
+                const result = postSchema.safeParse({ ...validPost, tags: ['A', 'B'] });
+                expect(result.success).toBe(true);
+                expect(result.data?.tags).toEqual(['a', 'b']);
+            });
         });
     });
 });
