@@ -473,7 +473,11 @@ class SchemaFactory<Schema extends SchemaDef> {
         const typeDef = this.schema.requireTypeDef(type);
         if (typeDef.base) {
             return addCustomValidation(
-                this.makeScalarSchema(typeDef.base, attributes ?? typeDef.fields['this']?.attributes),
+                // validate against both the typedef's own attributes and those of the consuming field
+                this.makeScalarSchema(typeDef.base, [
+                    ...(typeDef.fields['this']?.attributes ?? []),
+                    ...(attributes ?? []),
+                ]),
                 typeDef.attributes,
             ) as unknown as MapTypeDefToZod<Schema, Type>;
         }

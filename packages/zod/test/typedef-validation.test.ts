@@ -21,6 +21,7 @@ const schema = {
                 id: { name: 'id', type: 'Int', id: true, attributes: [{ name: '@id' }] },
                 tags: { name: 'tags', type: 'Tag', array: true, attributes: [length(2, 3)] },
                 labels: { name: 'labels', type: 'String', array: true, optional: true, attributes: [length(1, 2)] },
+                email: { name: 'email', type: 'Email', optional: true, attributes: [length(1, 7)] },
             },
             idFields: ['id'],
             uniqueFields: { id: { type: 'Int' } },
@@ -34,11 +35,18 @@ const schema = {
                 this: { name: 'this', type: 'String', attributes: [length(1, 10)] },
             },
         },
+        Email: {
+            name: 'Email',
+            base: 'String',
+            fields: {
+                this: { name: 'this', type: 'String', attributes: [{ name: '@email' }] },
+            },
+        },
     },
     plugins: {},
 } as const satisfies SchemaDef;
 
-describe('list field validation', () => {
+describe('primitive typedef field validation', () => {
     const postSchema = createSchemaFactory(schema).makeModelSchema('Post');
 
     it('applies field attributes to the list and typedef attributes to each item', () => {
@@ -56,5 +64,13 @@ describe('list field validation', () => {
         expect(postSchema.safeParse({ id: 1, tags: ['a', 'b'], labels: [] }).success).toBe(false);
         expect(postSchema.safeParse({ id: 1, tags: ['a', 'b'], labels: ['a', 'b', 'c'] }).success).toBe(false);
         expect(postSchema.safeParse({ id: 1, tags: ['a', 'b'], labels: null }).success).toBe(true);
+    });
+
+    it('applies both typedef and field attributes to a non-list typedef field', () => {
+        expect(postSchema.safeParse({ id: 1, tags: ['a', 'b'], email: 'a@b.com' }).success).toBe(true);
+        // too long: rejected by the field's @length
+        expect(postSchema.safeParse({ id: 1, tags: ['a', 'b'], email: 'ab@cd.com' }).success).toBe(false);
+        // not an email: rejected by the typedef's @email
+        expect(postSchema.safeParse({ id: 1, tags: ['a', 'b'], email: 'abc' }).success).toBe(false);
     });
 });

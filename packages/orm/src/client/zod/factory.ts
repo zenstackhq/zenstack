@@ -368,7 +368,10 @@ export class ZodSchemaFactory<
 
     private makeScalarSchema(type: string, attributes?: readonly AttributeApplication[]) {
         if (this.schema.typeDefs && type in this.schema.typeDefs) {
-            return this.makeTypeDefSchema(type);
+            // attributes declared on the consuming field only apply to primitive typedefs
+            return this.schema.typeDefs[type]!.base
+                ? this.makeTypeDefSchema(type, attributes)
+                : this.makeTypeDefSchema(type);
         } else if (this.schema.enums && type in this.schema.enums) {
             return this.makeEnumSchema(type);
         } else {
@@ -459,12 +462,24 @@ export class ZodSchemaFactory<
         return schema;
     }
 
+    /**
+     * Attributes to validate each value of a scalar field against. For typedef list fields, the
+     * field's own attributes (e.g. `@length`) validate the list rather than its items.
+     */
+    private getItemAttributes(fieldDef: FieldDef) {
+        return fieldDef.array && isTypeDef(this.schema, fieldDef.type) ? undefined : fieldDef.attributes;
+    }
+
     @cache()
-    private makeTypeDefSchema(type: string): ZodType {
+    private makeTypeDefSchema(type: string, fieldAttributes?: readonly AttributeApplication[]): ZodType {
         const typeDef = getTypeDef(this.schema, type);
         invariant(typeDef, `Type definition "${type}" not found in schema`);
         if (typeDef.base) {
-            const schema = this.makeScalarSchema(typeDef.base, typeDef.fields['this']?.attributes);
+            // validate against both the typedef's own attributes and those of the consuming field
+            const schema = this.makeScalarSchema(typeDef.base, [
+                ...(typeDef.fields['this']?.attributes ?? []),
+                ...(fieldAttributes ?? []),
+            ]);
             return this.extraValidationsEnabled ? ZodUtils.addCustomValidation(schema, typeDef.attributes) : schema;
         }
         const func = typeDef.strict ? z.strictObject : z.looseObject;
@@ -1688,7 +1703,7 @@ export class ZodSchemaFactory<
                     uncheckedVariantFields[field] = fieldSchema;
                 }
             } else {
-                let fieldSchema = this.makeScalarSchema(fieldDef.type, fieldDef.attributes);
+                let fieldSchema = this.makeScalarSchema(fieldDef.type, this.getItemAttributes(fieldDef));
 
                 if (fieldDef.array) {
                     fieldSchema = ZodUtils.addListValidation(fieldSchema.array(), fieldDef.attributes);
@@ -2046,7 +2061,7 @@ export class ZodSchemaFactory<
                     uncheckedVariantFields[field] = fieldSchema;
                 }
             } else {
-                let fieldSchema = this.makeScalarSchema(fieldDef.type, fieldDef.attributes);
+                let fieldSchema = this.makeScalarSchema(fieldDef.type, this.getItemAttributes(fieldDef));
 
                 if (this.isNumericField(fieldDef)) {
                     fieldSchema = z.union([
