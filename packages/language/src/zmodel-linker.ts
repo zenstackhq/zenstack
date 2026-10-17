@@ -51,7 +51,6 @@ import {
     isNumberLiteral,
     isReferenceExpr,
     isStringLiteral,
-    isTypeDef,
 } from './ast';
 import {
     getAllFields,
