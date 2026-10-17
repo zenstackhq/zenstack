@@ -155,7 +155,7 @@ export class SchemaType implements SchemaDef {
                     name: "tags",
                     type: "PostTag",
                     array: true,
-                    attributes: [{ name: "@lower" }] as readonly AttributeApplication[]
+                    attributes: [{ name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(2) }, { name: "max", value: ExpressionUtils.literal(3) }] }, { name: "@lower" }] as readonly AttributeApplication[]
                 },
                 author: {
                     name: "author",

@@ -75,7 +75,7 @@ model Post {
     id        String    @id @default(cuid())
     title     String
     published Boolean
-    tags      PostTag[]
+    tags      PostTag[] @length(2, 3)
     author    User?     @relation(fields: [authorId], references: [id])
     authorId  String?
 }
