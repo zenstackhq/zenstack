@@ -25,6 +25,7 @@ import {
     addBigIntValidation,
     addCustomValidation,
     addDecimalValidation,
+    addListValidation,
     addNumberValidation,
     addStringValidation,
 } from './utils';
@@ -408,7 +409,11 @@ class SchemaFactory<Schema extends SchemaDef> {
     }
 
     private makeScalarFieldSchema(def: FieldDef): z.ZodType {
-        const { type, attributes } = def;
+        const { type } = def;
+        // for list fields, field-level attributes (e.g. `@length`) validate the list itself
+        // rather than its items
+        const itemAttributes = def.array ? undefined : def.attributes;
+
         // enum
         const enumDef = this.schema.getEnum(type);
         if (enumDef) {
@@ -418,10 +423,10 @@ class SchemaFactory<Schema extends SchemaDef> {
         // typedef
         const typedefDef = this.schema.getTypeDef(type);
         if (typedefDef) {
-            return this.applyCardinality(this.makeTypeSchema(type as GetTypeDefs<Schema>, def.attributes), def);
+            return this.applyCardinality(this.makeTypeSchema(type as GetTypeDefs<Schema>, itemAttributes), def);
         }
 
-        return this.applyCardinality(this.makeScalarSchema(type as BuiltinType, attributes), def);
+        return this.applyCardinality(this.makeScalarSchema(type as BuiltinType, itemAttributes), def);
     }
 
     private makeJsonSchema(): z.ZodType {
@@ -453,7 +458,7 @@ class SchemaFactory<Schema extends SchemaDef> {
     private applyCardinality(schema: z.ZodType, fieldDef: FieldDef): z.ZodType {
         let result = schema;
         if (fieldDef.array) {
-            result = result.array();
+            result = addListValidation(result.array(), fieldDef.attributes);
         }
         if (fieldDef.optional) {
             result = result.nullable().optional();
