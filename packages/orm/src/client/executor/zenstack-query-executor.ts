@@ -125,7 +125,12 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
     }
 
     private get hasEntityMutationPluginsWithAfterMutationHooks() {
-        return (this.client.$options.plugins ?? []).some((plugin) => plugin.onEntityMutation?.afterEntityMutation);
+        return (this.client.$options.plugins ?? []).some((plugin) => {
+            if (!plugin.onEntityMutation) return false;
+            if (plugin.onEntityMutation['$all']?.afterEntityMutation) return true;
+            const models = Object.keys(this.client.$schema.models);
+            return models.some((model) => (plugin.onEntityMutation as any)?.[model]?.afterEntityMutation);
+        });
     }
 
     private get hasOnKyselyHooks() {
@@ -353,18 +358,34 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
         if (this.options.plugins) {
             for (const plugin of this.options.plugins) {
                 const onEntityMutation = plugin.onEntityMutation;
-                if (!onEntityMutation?.beforeEntityMutation) {
+                if (!onEntityMutation) {
                     continue;
                 }
 
-                await onEntityMutation.beforeEntityMutation({
-                    model: mutationInfo.model,
-                    action: mutationInfo.action,
-                    queryNode,
-                    loadBeforeMutationEntities,
-                    client,
-                    queryId,
-                });
+                // all-model hook
+                if (onEntityMutation['$all']?.beforeEntityMutation) {
+                    await onEntityMutation['$all'].beforeEntityMutation({
+                        model: mutationInfo.model,
+                        action: mutationInfo.action,
+                        queryNode,
+                        loadBeforeMutationEntities,
+                        client,
+                        queryId,
+                    });
+                }
+
+                // per-model hook
+                const modelHooks = (onEntityMutation as Record<string, any>)[mutationInfo.model];
+                if (modelHooks?.beforeEntityMutation) {
+                    await modelHooks.beforeEntityMutation({
+                        model: mutationInfo.model,
+                        action: mutationInfo.action,
+                        queryNode,
+                        loadBeforeMutationEntities,
+                        client,
+                        queryId,
+                    });
+                }
             }
         }
     }
@@ -375,22 +396,29 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
 
         const hooks: AfterEntityMutationCallback<SchemaDef>[] = [];
 
-        // tsc perf
         for (const plugin of this.options.plugins ?? []) {
             const onEntityMutation = plugin.onEntityMutation;
 
-            if (!onEntityMutation?.afterEntityMutation) {
-                continue;
-            }
-            if (filterFor === 'inTx' && !onEntityMutation.runAfterMutationWithinTransaction) {
+            if (!onEntityMutation) {
                 continue;
             }
 
-            if (filterFor === 'outTx' && onEntityMutation.runAfterMutationWithinTransaction) {
-                continue;
+            // all-model hook
+            if (onEntityMutation['$all']?.afterEntityMutation) {
+                const runInTx = onEntityMutation['$all'].runAfterMutationWithinTransaction ?? false;
+                if (filterFor === 'all' || (filterFor === 'inTx' && runInTx) || (filterFor === 'outTx' && !runInTx)) {
+                    hooks.push(onEntityMutation['$all'].afterEntityMutation.bind(plugin));
+                }
             }
 
-            hooks.push(onEntityMutation.afterEntityMutation.bind(plugin));
+            // per-model hook
+            const modelHooks = (onEntityMutation as Record<string, any>)[mutationInfo.model];
+            if (modelHooks?.afterEntityMutation) {
+                const runInTx = modelHooks.runAfterMutationWithinTransaction ?? false;
+                if (filterFor === 'all' || (filterFor === 'inTx' && runInTx) || (filterFor === 'outTx' && !runInTx)) {
+                    hooks.push(modelHooks.afterEntityMutation.bind(plugin));
+                }
+            }
         }
 
         if (hooks.length === 0) {
@@ -422,8 +450,11 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
         }
 
         if (this.dialect.supportsReturning) {
-            // entities are returned in the query result
-            return queryResult.rows as Record<string, unknown>[];
+            // entities are returned in the query result; shallow-copy the rows so that
+            // hooks (which may run after the ORM has post-processed the query result
+            // in place, e.g., when deferred to after transaction commit) always see
+            // raw database rows
+            return (queryResult.rows as Record<string, unknown>[]).map((row) => ({ ...row }));
         } else {
             const mutatedIds = InsertQueryNode.is(queryNode)
                 ? this.getInsertIds(mutationInfo.model, queryNode, queryResult)

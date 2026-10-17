@@ -45,6 +45,10 @@ import { createZenStackPromise, type ZenStackPromise } from './promise';
 import { fieldHasDefaultValue, getField, isUnsupportedField, requireModel } from './query-utils';
 import { ResultProcessor } from './result-processor';
 
+// tracks `onEntityMutation` objects that have already been validated/warned about,
+// so that derived clients (e.g., from `$use` or transactions) don't warn repeatedly
+const warnedPlugins = new WeakSet<object>();
+
 type ExtResultFieldDef = {
     needs: Record<string, true>;
     compute: (data: Record<string, any>) => unknown;
@@ -91,6 +95,10 @@ export class ClientImpl {
             ...BuiltinFunctions,
             ...this.$options.functions,
         };
+
+        if (this.$options.plugins) {
+            this.$options.plugins = this.normalizePlugins(this.$options.plugins);
+        }
 
         this.validateOptions(baseClient, options);
 
@@ -161,6 +169,104 @@ export class ClientImpl {
             new InputValidator(this as any, { enabled: this.$options.validateInput !== false });
 
         return createClientProxy(this);
+    }
+
+    /**
+     * Normalizes plugin definitions for backward compatibility and validates
+     * `onEntityMutation` keys. Legacy plugins that define hooks directly under
+     * `onEntityMutation` (instead of under `$all`) are converted to the new shape
+     * with a one-time warning.
+     */
+    private normalizePlugins(plugins: AnyPlugin[]): AnyPlugin[] {
+        let changed = false;
+        const result = plugins.map((plugin) => {
+            const normalized = this.normalizeEntityMutationHooks(plugin);
+            if (normalized !== plugin) {
+                changed = true;
+            }
+            return normalized;
+        });
+        return changed ? result : plugins;
+    }
+
+    private normalizeEntityMutationHooks(plugin: AnyPlugin): AnyPlugin {
+        const hooks = plugin.onEntityMutation as Record<string, unknown> | undefined;
+        if (!hooks || typeof hooks !== 'object') {
+            return plugin;
+        }
+
+        const legacyKeys = ['beforeEntityMutation', 'afterEntityMutation', 'runAfterMutationWithinTransaction'];
+        const presentLegacyKeys = legacyKeys.filter((key) => key in hooks);
+
+        const unknownKeys = Object.keys(hooks).filter(
+            (key) => key !== '$all' && !legacyKeys.includes(key) && !(key in this.$schema.models),
+        );
+
+        const warnOnce = (message: string) => {
+            if (!warnedPlugins.has(hooks)) {
+                console.warn(message);
+            }
+        };
+
+        if (unknownKeys.length > 0) {
+            warnOnce(
+                `Plugin "${plugin.id}" defines "onEntityMutation" hooks for unknown keys: ${unknownKeys
+                    .map((k) => `"${k}"`)
+                    .join(', ')}. Valid keys are "$all" and model names. These hooks will never be invoked.`,
+            );
+        }
+
+        if (presentLegacyKeys.length === 0) {
+            warnedPlugins.add(hooks);
+            return plugin;
+        }
+
+        warnOnce(
+            `Plugin "${plugin.id}" defines "onEntityMutation" hooks in a deprecated shape. ` +
+                `Hooks that apply to all models should be nested under "$all": ` +
+                `{ onEntityMutation: { $all: { beforeEntityMutation, afterEntityMutation, runAfterMutationWithinTransaction } } }. ` +
+                `The legacy shape is still supported but will be removed in a future release.`,
+        );
+        warnedPlugins.add(hooks);
+
+        const legacy: Record<string, unknown> = {};
+        const rest: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(hooks)) {
+            if (legacyKeys.includes(key)) {
+                legacy[key] = value;
+            } else {
+                rest[key] = value;
+            }
+        }
+
+        // bind legacy callbacks to the original plugin object to preserve `this`
+        for (const key of ['beforeEntityMutation', 'afterEntityMutation']) {
+            if (typeof legacy[key] === 'function') {
+                legacy[key] = (legacy[key] as Function).bind(plugin);
+            }
+        }
+
+        const normalizedHooks = {
+            ...rest,
+            $all: {
+                // explicitly nested `$all` (if any) takes precedence over legacy keys
+                ...legacy,
+                ...(rest['$all'] as object | undefined),
+            },
+        };
+        // mark the normalized hooks as validated so derived clients don't warn again
+        warnedPlugins.add(normalizedHooks);
+
+        // create a copy that preserves the plugin's prototype chain (plugins may be class
+        // instances with hooks defined on the prototype), overriding only `onEntityMutation`
+        const copy = Object.create(Object.getPrototypeOf(plugin), Object.getOwnPropertyDescriptors(plugin));
+        Object.defineProperty(copy, 'onEntityMutation', {
+            value: normalizedHooks,
+            enumerable: true,
+            configurable: true,
+            writable: true,
+        });
+        return copy as AnyPlugin;
     }
 
     private validateOptions(baseClient: ClientImpl | undefined, options: ClientOptions<SchemaDef>) {
