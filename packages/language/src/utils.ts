@@ -746,7 +746,7 @@ export function getAllFields(
 
 export function getAllFieldAttributes(field: DataField) {
     const attributes: DataFieldAttribute[] = [...field.attributes];
-    if (isTypeDef(field.type?.reference?.ref) && isPrimitiveTypeDef(field.type.reference.ref)) {
+    if (field.type?.reference?.ref && isPrimitiveTypeDef(field.type.reference.ref)) {
         const thisField = getPrimitiveTypeDefThisField(field.type.reference.ref);
         attributes.push(...(thisField?.attributes ?? []));
     }

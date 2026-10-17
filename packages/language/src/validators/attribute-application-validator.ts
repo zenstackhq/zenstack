@@ -678,10 +678,7 @@ function assignableToAttributeParam(
             // attribute parameter type is ContextType, need to infer type from
             // the attribute's container
             if (isDataField(attr.$container)) {
-                if (
-                    isTypeDef(attr.$container?.type?.reference?.ref) &&
-                    isPrimitiveTypeDef(attr.$container.type.reference.ref)
-                ) {
+                if (attr.$container.type.reference?.ref && isPrimitiveTypeDef(attr.$container.type.reference.ref)) {
                     dstType = mapBuiltinTypeToExpressionType(attr.$container.type.reference.ref.base!);
                 } else {
                     if (!attr.$container?.type?.type) {

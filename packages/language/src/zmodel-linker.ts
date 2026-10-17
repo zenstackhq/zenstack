@@ -562,7 +562,7 @@ export class ZModelLinker extends DefaultLinker {
                 array: type.array,
                 nullable: nullable,
             };
-        } else if (isTypeDef(type.reference?.ref) && isPrimitiveTypeDef(type.reference.ref)) {
+        } else if (type.reference?.ref && isPrimitiveTypeDef(type.reference.ref)) {
             node.$resolvedType = {
                 decl: type.reference.ref.base,
                 array: type.array,

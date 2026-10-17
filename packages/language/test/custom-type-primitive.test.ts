@@ -367,5 +367,19 @@ describe('Custom type primitive tests', () => {
             `,
             'cannot use primitive type def "Email" as a mixin',
         );
+
+        await loadSchemaWithError(
+            `
+                datasource db {
+                    provider = 'postgresql'
+                    url      = env('DATABASE_URL')
+                }
+
+                model User with String {
+                    id    String @id
+                }
+            `,
+            'model "User" cannot use a primitive type as a mixin',
+        );
     });
 });

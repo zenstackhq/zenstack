@@ -43,22 +43,12 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         this.validateAttributes(dm, accept);
         this.validateFields(dm, accept);
         this.validateOnceInModelAttributes(dm, accept);
-        if (dm.mixins.length > 0) {
+        if (dm.mixins.length > 0 || dm.base) {
             this.validateMixins(dm, accept);
         }
         this.validateInherits(dm, accept);
         this.validateDelegateMap(dm, accept);
-        this.validateInheritance(dm, accept);
     }
-
-    private validateInheritance(dm: DataModel, accept: ValidationAcceptor) {
-        if (dm.base) {
-            accept('error', `model "${dm.name}" cannot use a primitive type as mix-in`, {
-                node: dm,
-            });
-        }
-    }
-
     private validateFields(dm: DataModel, accept: ValidationAcceptor) {
         const allFields = getAllFields(dm);
         const idFields = allFields.filter((f) => f.attributes.find((attr) => attr.decl.ref?.name === '@id'));
@@ -538,6 +528,12 @@ export default class DataModelValidator implements AstValidator<DataModel> {
     }
 
     private validateMixins(dm: DataModel, accept: ValidationAcceptor) {
+        if (dm.base) {
+            accept('error', `model "${dm.name}" cannot use a primitive type as a mixin`, {
+                node: dm,
+            });
+            return;
+        }
         const seen: TypeDef[] = [];
         const todo: TypeDef[] = dm.mixins.map((mixin) => mixin.ref!);
         while (todo.length > 0) {
