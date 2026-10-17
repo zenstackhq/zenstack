@@ -129,6 +129,7 @@ export type EnumDef = {
 export type TypeDefDef = {
     name: string;
     strict?: boolean;
+    base?: BuiltinType;
     fields: Record<string, FieldDef>;
     attributes?: readonly AttributeApplication[];
 };
@@ -283,6 +284,13 @@ export type TypeDefFieldIsArray<
     TypeDef extends GetTypeDefs<Schema>,
     Field extends GetTypeDefFields<Schema, TypeDef>,
 > = GetTypeDefField<Schema, TypeDef, Field>['array'] extends true ? true : false;
+
+export type TypeDefIsPrimitive<Schema extends SchemaDef, TypeDef extends GetTypeDefs<Schema>> = GetTypeDef<
+    Schema,
+    TypeDef
+>['base'] extends string
+    ? true
+    : false;
 
 export type FieldIsRelation<
     Schema extends SchemaDef,

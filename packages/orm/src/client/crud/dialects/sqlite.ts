@@ -21,6 +21,8 @@ import {
     getDelegateDescendantModels,
     getManyToManyRelation,
     getRelationForeignKeyFieldPairs,
+    isPrimitiveTypeDef,
+    isTypeDef,
     requireField,
     requireIdFields,
     requireModel,
@@ -81,7 +83,17 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
             invariant(false, 'should not reach here: AnyNull is not a valid input value');
         }
 
-        if (type === 'Json' || (this.schema.typeDefs && type in this.schema.typeDefs)) {
+        if (isTypeDef(this.schema, type)) {
+            if (isPrimitiveTypeDef(this.schema, type)) {
+                // a primitive typedef is stored as its base type
+                type = this.schema.typeDefs![type]!.base!;
+            } else {
+                // JSON data should be stringified
+                return JSON.stringify(value);
+            }
+        }
+
+        if (type === 'Json') {
             // JSON data should be stringified
             return JSON.stringify(value);
         }
@@ -108,10 +120,13 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
         }
     }
 
-    override transformOutput(value: unknown, type: BuiltinType, array: boolean) {
+    override transformOutput(value: unknown, type: BuiltinType, array: boolean): unknown {
         if (value === null || value === undefined) {
             return value;
         } else if (this.schema.typeDefs && type in this.schema.typeDefs) {
+            if (isPrimitiveTypeDef(this.schema, type)) {
+                return this.transformOutput(value, this.schema.typeDefs[type]!.base!, array);
+            }
             // typed JSON field
             return this.transformOutputJson(value);
         } else {

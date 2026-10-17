@@ -2,6 +2,7 @@ import {
     ExpressionUtils,
     SchemaAccessor,
     type AttributeApplication,
+    type BuiltinType,
     type FieldDef,
     type GetEnum,
     type GetEnums,
@@ -17,13 +18,14 @@ import type {
     GetModelFieldsShape,
     GetModelSchemaShapeWithOptions,
     GetModelUpdateFieldsShape,
-    GetTypeDefFieldsShape,
+    MapTypeDefToZod,
     ModelSchemaOptions,
 } from './types';
 import {
     addBigIntValidation,
     addCustomValidation,
     addDecimalValidation,
+    addListValidation,
     addNumberValidation,
     addStringValidation,
 } from './utils';
@@ -361,64 +363,70 @@ class SchemaFactory<Schema extends SchemaDef> {
         return z.lazy(() => this.makeModelSchema(relatedModelName));
     }
 
-    private makeScalarFieldSchema(fieldDef: FieldDef): z.ZodType {
-        const { type, attributes } = fieldDef;
-
-        // enum
-        const enumDef = this.schema.getEnum(type);
-        if (enumDef) {
-            return this.applyCardinality(this.makeEnumSchema(type as GetEnums<Schema>), fieldDef);
-        }
-
-        // typedef
-        const typedefDef = this.schema.getTypeDef(type);
-        if (typedefDef) {
-            return this.applyCardinality(this.makeTypeSchema(type as GetTypeDefs<Schema>), fieldDef);
-        }
-
-        let base: z.ZodType;
+    private makeScalarSchema(type: BuiltinType, attributes: readonly AttributeApplication[] | undefined): z.ZodType {
+        let schema: z.ZodType;
         switch (type) {
             case 'String':
-                base = addStringValidation(z.string(), attributes);
+                schema = addStringValidation(z.string(), attributes);
                 break;
             case 'Int':
-                base = addNumberValidation(z.number().int(), attributes);
+                schema = addNumberValidation(z.number().int(), attributes);
                 break;
             case 'Float':
-                base = addNumberValidation(z.number(), attributes);
+                schema = addNumberValidation(z.number(), attributes);
                 break;
             case 'Boolean':
-                base = z.boolean();
+                schema = z.boolean();
                 break;
             case 'BigInt':
-                base = addBigIntValidation(z.bigint(), attributes);
+                schema = addBigIntValidation(z.bigint(), attributes);
                 break;
             case 'Decimal':
-                base = z.union([
+                schema = z.union([
                     addNumberValidation(z.number(), attributes) as z.ZodNumber,
                     addDecimalValidation(z.string(), attributes, true) as z.ZodString,
                     addDecimalValidation(z.instanceof(Decimal), attributes, true),
                 ]);
                 break;
             case 'DateTime':
-                base = z.union([z.date(), z.iso.datetime()]);
+                schema = z.union([z.date(), z.iso.datetime()]);
                 break;
             case 'Bytes':
-                base = z.instanceof(Uint8Array);
+                schema = z.instanceof(Uint8Array);
                 break;
             case 'Json':
-                base = this.makeJsonSchema();
+                schema = this.makeJsonSchema();
                 break;
             case 'Unsupported':
-                base = z.unknown();
+                schema = z.unknown();
                 break;
             default: {
                 const _exhaustive: never = type as never;
                 throw new SchemaFactoryError(`Unsupported field type: ${_exhaustive}`);
             }
         }
+        return schema;
+    }
 
-        return this.applyCardinality(base, fieldDef);
+    private makeScalarFieldSchema(def: FieldDef): z.ZodType {
+        const { type } = def;
+        // for list fields, field-level attributes (e.g. `@length`) validate the list itself
+        // rather than its items
+        const itemAttributes = def.array ? undefined : def.attributes;
+
+        // enum
+        const enumDef = this.schema.getEnum(type);
+        if (enumDef) {
+            return this.applyCardinality(this.makeEnumSchema(type as GetEnums<Schema>), def);
+        }
+
+        // typedef
+        const typedefDef = this.schema.getTypeDef(type);
+        if (typedefDef) {
+            return this.applyCardinality(this.makeTypeSchema(type as GetTypeDefs<Schema>, itemAttributes), def);
+        }
+
+        return this.applyCardinality(this.makeScalarSchema(type as BuiltinType, itemAttributes), def);
     }
 
     private makeJsonSchema(): z.ZodType {
@@ -450,7 +458,7 @@ class SchemaFactory<Schema extends SchemaDef> {
     private applyCardinality(schema: z.ZodType, fieldDef: FieldDef): z.ZodType {
         let result = schema;
         if (fieldDef.array) {
-            result = result.array();
+            result = addListValidation(result.array(), fieldDef.attributes);
         }
         if (fieldDef.optional) {
             result = result.nullable().optional();
@@ -460,8 +468,20 @@ class SchemaFactory<Schema extends SchemaDef> {
 
     makeTypeSchema<Type extends GetTypeDefs<Schema>>(
         type: Type,
-    ): z.ZodObject<GetTypeDefFieldsShape<Schema, Type>, z.core.$strict> {
+        attributes?: readonly AttributeApplication[],
+    ): MapTypeDefToZod<Schema, Type> {
         const typeDef = this.schema.requireTypeDef(type);
+        if (typeDef.base) {
+            return addCustomValidation(
+                // validate against both the typedef's own attributes and those of the consuming field
+                this.makeScalarSchema(typeDef.base, [
+                    ...(typeDef.fields['this']?.attributes ?? []),
+                    ...(attributes ?? []),
+                ]),
+                typeDef.attributes,
+            ) as unknown as MapTypeDefToZod<Schema, Type>;
+        }
+
         const fields: Record<string, z.ZodType> = {};
 
         for (const [fieldName, fieldDef] of Object.entries(typeDef.fields)) {
@@ -472,7 +492,7 @@ class SchemaFactory<Schema extends SchemaDef> {
         return this.applyDescription(
             addCustomValidation(shape, typeDef.attributes),
             typeDef.attributes,
-        ) as unknown as z.ZodObject<GetTypeDefFieldsShape<Schema, Type>, z.core.$strict>;
+        ) as unknown as MapTypeDefToZod<Schema, Type>;
     }
 
     makeEnumSchema<Enum extends GetEnums<Schema>>(

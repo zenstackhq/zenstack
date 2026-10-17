@@ -39,11 +39,13 @@ import {
 } from '@zenstackhq/language/ast';
 import {
     getAllAttributes,
+    getAllFieldAttributes,
     getAllFields,
     getAttributeArg,
     getRelationName,
     isDataFieldReference,
     isLiteAttribute,
+    isPrimitiveTypeDef,
 } from '@zenstackhq/language/utils';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -508,6 +510,9 @@ export class TsSchemaGenerator {
             // name
             ts.factory.createPropertyAssignment('name', ts.factory.createStringLiteral(td.name)),
 
+            // base
+            ...(td.base ? [ts.factory.createPropertyAssignment('base', ts.factory.createStringLiteral(td.base))] : []),
+
             // fields
             ts.factory.createPropertyAssignment(
                 'fields',
@@ -652,7 +657,8 @@ export class TsSchemaGenerator {
             objectFields.push(ts.factory.createPropertyAssignment('isDiscriminator', ts.factory.createTrue()));
         }
 
-        const attributes = lite ? field.attributes.filter((attr) => isLiteAttribute(attr.decl.ref!)) : field.attributes;
+        const fieldAttributes = getAllFieldAttributes(field);
+        const attributes = lite ? fieldAttributes.filter((attr) => isLiteAttribute(attr.decl.ref!)) : fieldAttributes;
 
         if (attributes.length > 0) {
             objectFields.push(
@@ -813,9 +819,12 @@ export class TsSchemaGenerator {
     ): string | number | boolean | unknown[] | { call: string; args: any[] } | { authMember: string[] } | null {
         if (isLiteralExpr(expr)) {
             const lit = (expr as LiteralExpr).value;
-            return fieldType.type === 'Boolean'
+            // resolve the effective base type for primitive typedef references so that
+            // numeric/boolean defaults are emitted with the correct JS type
+            const effectiveType = this.getMappedValueBaseType(fieldType);
+            return effectiveType === 'Boolean'
                 ? (lit as boolean)
-                : ['Int', 'Float', 'Decimal', 'BigInt'].includes(fieldType.type!)
+                : ['Int', 'Float', 'Decimal', 'BigInt'].includes(effectiveType!)
                   ? Number(lit)
                   : lit;
         } else if (isArrayExpr(expr)) {
@@ -836,6 +845,19 @@ export class TsSchemaGenerator {
         } else {
             throw new Error(`Unsupported expression type: ${expr.$type}`);
         }
+    }
+
+    /**
+     * The primitive type used to map a literal default value to its JS representation. For a
+     * primitive typedef reference (e.g. `type Age with Int`), this resolves to the base type so
+     * that e.g. an `Int`-based typedef default is emitted as a number instead of a string.
+     */
+    private getMappedValueBaseType(fieldType: DataFieldType): string | undefined {
+        if (fieldType.type) {
+            return fieldType.type;
+        }
+        const ref = fieldType.reference?.ref;
+        return ref && isPrimitiveTypeDef(ref) ? ref.base : undefined;
     }
 
     private getMemberAccessChain(expr: MemberAccessExpr): string[] {
@@ -1076,8 +1098,7 @@ export class TsSchemaGenerator {
             ? ts.factory.createStringLiteral(field.type.type)
             : field.type.reference
               ? ts.factory.createStringLiteral(field.type.reference.$refText)
-              : // `Unsupported` type
-                ts.factory.createStringLiteral('Unsupported');
+              : ts.factory.createStringLiteral('Unsupported');
     }
 
     private createEnumObject(e: Enum) {

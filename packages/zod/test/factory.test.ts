@@ -33,6 +33,7 @@ describe.each([
         status: 'ACTIVE',
         address: null,
         extId: null,
+        contacts: [],
     };
 
     // A fully valid Post object (without relations)
@@ -748,6 +749,7 @@ describe.each([
                         zip: '90210',
                         type: 'RESIDENTIAL',
                     },
+                    contacts: [],
                 };
                 expect(userSchema.safeParse(validUser).success).toBe(true);
                 expect(
@@ -1677,6 +1679,92 @@ describe.each([
                 const schema = factory.makeModelSchema('User', { select: { email: true, age: true } });
                 expect(schema.safeParse({ email: 'valid@example.com', age: 16 }).success).toBe(false);
                 expect(schema.safeParse({ email: 'valid@example.com', age: 18 }).success).toBe(true);
+            });
+        });
+    });
+
+    describe('custom type primitives', () => {
+        it('supports model validation using `this` attributes', () => {
+            const postSchema = factory.makeModelSchema('Post');
+            const result = postSchema.safeParse({ ...validPost, tags: ['LOWERCASED', 'Other'] });
+            expect(result.success).toBe(true);
+            expect(result.data?.tags).toMatchObject(['lowercased', 'other']);
+        });
+
+        it('supports model validation using `@@validate`', () => {
+            const userSchema = factory.makeModelSchema('User');
+            let result = userSchema.safeParse({ ...validUser, score: 0 });
+            expect(result.success).toBe(true);
+
+            result = userSchema.safeParse({ ...validUser, score: 99.0 });
+            expect(result.success).toBe(true);
+
+            result = userSchema.safeParse({ ...validUser, score: 100.0 });
+            expect(result.success).toBe(false);
+
+            result = userSchema.safeParse({ ...validUser, score: -1.0 });
+            expect(result.success).toBe(false);
+        });
+
+        it('supports field validation using `this` attributes', () => {
+            const postTagSchema = factory.makeTypeSchema('PostTag');
+            const result = postTagSchema.safeParse('LOWERCASE');
+            expect(result.success).toBe(true);
+            expect(result.data).toBe('lowercase');
+        });
+
+        it('supports `@@validate` attributes', () => {
+            const contactSchema = factory.makeTypeSchema('Contact');
+            let result = contactSchema.safeParse('test@mail.com');
+            expect(result.success).toBe(true);
+            expect(result.data).toBe('test@mail.com');
+
+            result = contactSchema.safeParse('+15555555555');
+            expect(result.success).toBe(true);
+            expect(result.data).toBe('+15555555555');
+
+            result = contactSchema.safeParse('not-a-contact');
+            expect(result.success).toBe(false);
+        });
+
+        it('supports multiple `@@validate` attributes', () => {
+            const contactSchema = factory.makeTypeSchema('Score');
+            let result = contactSchema.safeParse(0);
+            expect(result.success).toBe(true);
+            expect(result.data).toBe(0);
+
+            result = contactSchema.safeParse(99.0);
+            expect(result.success).toBe(true);
+            expect(result.data).toBe(99.0);
+
+            result = contactSchema.safeParse(100.0);
+            expect(result.success).toBe(false);
+
+            result = contactSchema.safeParse(-1.0);
+            expect(result.success).toBe(false);
+        });
+
+        describe('lists', () => {
+            it('applies field attributes to the list', () => {
+                const postSchema = factory.makeModelSchema('Post');
+                let result = postSchema.safeParse({ ...validPost, tags: ['a', 'b'] });
+                expect(result.success).toBe(true);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a', 'b', 'c'] });
+                expect(result.success).toBe(true);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a'] });
+                expect(result.success).toBe(false);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a', 'b', 'c', 'd'] });
+                expect(result.success).toBe(false);
+            });
+
+            it('applies typedef attributes to each item', () => {
+                const postSchema = factory.makeModelSchema('Post');
+                const result = postSchema.safeParse({ ...validPost, tags: ['A', 'B'] });
+                expect(result.success).toBe(true);
+                expect(result.data?.tags).toEqual(['a', 'b']);
             });
         });
     });
