@@ -1713,6 +1713,14 @@ describe.each([
             expect(result.data).toBe('lowercase');
         });
 
+        it('applies string `@length` on `this` field', () => {
+            const postTagSchema = factory.makeTypeSchema('PostTag');
+            expect(postTagSchema.safeParse('').success).toBe(false);
+            expect(postTagSchema.safeParse('a').success).toBe(true);
+            expect(postTagSchema.safeParse('abcdefghijkl').success).toBe(true);
+            expect(postTagSchema.safeParse('abcdefghijklm').success).toBe(false);
+        });
+
         it('supports `@@validate` attributes', () => {
             const contactSchema = factory.makeTypeSchema('Contact');
             let result = contactSchema.safeParse('test@mail.com');
@@ -1752,6 +1760,24 @@ describe.each([
 
                 result = postSchema.safeParse({ ...validPost, tags: ['a', 'b', 'c'] });
                 expect(result.success).toBe(true);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a'] });
+                expect(result.success).toBe(false);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a', 'b', 'c', 'd'] });
+                expect(result.success).toBe(false);
+            });
+
+            it('applies both the list length and the element string length', () => {
+                const postSchema = factory.makeModelSchema('Post');
+                let result = postSchema.safeParse({ ...validPost, tags: ['a', 'abcdefghijkl'] });
+                expect(result.success).toBe(true);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a', ''] });
+                expect(result.success).toBe(false);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a', 'abcdefghijklm'] });
+                expect(result.success).toBe(false);
 
                 result = postSchema.safeParse({ ...validPost, tags: ['a'] });
                 expect(result.success).toBe(false);

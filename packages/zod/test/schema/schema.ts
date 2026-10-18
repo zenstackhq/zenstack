@@ -156,7 +156,7 @@ export class SchemaType implements SchemaDef {
                     name: "tags",
                     type: "PostTag",
                     array: true,
-                    attributes: [{ name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(2) }, { name: "max", value: ExpressionUtils.literal(3) }] }, { name: "@lower" }] as readonly AttributeApplication[]
+                    attributes: [{ name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(2) }, { name: "max", value: ExpressionUtils.literal(3) }] }, { name: "@lower" }, { name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(1) }, { name: "max", value: ExpressionUtils.literal(12) }] }] as readonly AttributeApplication[]
                 },
                 author: {
                     name: "author",
@@ -404,7 +404,7 @@ export class SchemaType implements SchemaDef {
                 this: {
                     name: "this",
                     type: "String",
-                    attributes: [{ name: "@lower" }] as readonly AttributeApplication[]
+                    attributes: [{ name: "@lower" }, { name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(1) }, { name: "max", value: ExpressionUtils.literal(12) }] }] as readonly AttributeApplication[]
                 }
             }
         }

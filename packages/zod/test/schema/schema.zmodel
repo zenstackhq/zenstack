@@ -81,7 +81,7 @@ model Post {
 }
 
 type PostTag with String {
-    this String @lower
+    this String @lower @length(1, 12)
 }
 
 // --- Computed fields ---
