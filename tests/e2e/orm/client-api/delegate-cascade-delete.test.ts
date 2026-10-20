@@ -116,6 +116,18 @@ model Thread {
             });
             expect(await itemIds()).toEqual([kept.id]);
         });
+
+        it('deletes non-delegate rows filtered by the related rows it cascades to', async () => {
+            db = await createTestClient(schema, { usePrismaPush: true });
+            const thread = await db.thread.create({ data: {} });
+            await db.note.create({ data: { threadId: thread.id } });
+            const kept = await db.thread.create({ data: {} });
+            await expect(db.thread.deleteMany({ where: { notes: { some: {} } } })).resolves.toEqual({
+                count: 1,
+            });
+            expect(await itemIds()).toEqual([]);
+            expect(await db.thread.findMany()).toEqual([{ id: kept.id }]);
+        });
     });
 
     describe('with a sub model relation', () => {
@@ -249,14 +261,16 @@ model Thread {
 }
 `;
 
-        it('deletes rows that can be deleted but not read', async () => {
+        it('skips rows that can be deleted but not read', async () => {
+            // the rows to delete are resolved with a read before the cascade runs, so rows hidden by the read
+            // policy are left alone together with their related rows
             db = await createPolicyTestClient(schema, { usePrismaPush: true });
             const raw = db.$unuseAll();
             await raw.thread.create({ data: { id: 'visible', notes: { create: {} } } });
-            await raw.thread.create({ data: { id: 'hidden', hidden: true, notes: { create: {} } } });
-            await expect(db.thread.deleteMany({})).resolves.toEqual({ count: 2 });
-            expect(await raw.thread.count()).toBe(0);
-            expect(await itemIds()).toEqual([]);
+            await raw.thread.create({ data: { id: 'hidden', hidden: true, notes: { create: { id: 'hiddenNote' } } } });
+            await expect(db.thread.deleteMany({})).resolves.toEqual({ count: 1 });
+            expect(await raw.thread.findMany()).toEqual([expect.objectContaining({ id: 'hidden' })]);
+            expect(await itemIds()).toEqual(['hiddenNote']);
         });
     });
 });
