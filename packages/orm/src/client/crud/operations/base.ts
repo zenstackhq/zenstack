@@ -257,7 +257,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                         result,
                         fieldDef.originModel,
                         field,
-                        fieldDef.originModel,
+                        this.dialect.delegateJoinAlias(model, parentAlias, fieldDef.originModel),
                         payload,
                     );
                 } else {

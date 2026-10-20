@@ -431,4 +431,43 @@ model Article extends Content {
         const row = await raw.article.findUniqueOrThrow({ where: { id: a.id } });
         expect(row.title).toBe('a');
     });
+
+    it('hides soft-deleted delegate rows reached through a relation', async () => {
+        // In a relation subquery the delegate base is joined under an alias derived from the
+        // subquery's alias, so the read filter must reference the base through that alias.
+        const delegateSchema = `
+model User {
+    id       Int       @id @default(autoincrement())
+    articles Article[]
+}
+
+model Content {
+    id          Int       @id @default(autoincrement())
+    contentType String
+    deletedAt   DateTime? @deletedAt
+    @@delegate(contentType)
+}
+
+model Article extends Content {
+    title    String
+    author   User   @relation(fields: [authorId], references: [id])
+    authorId Int
+}
+`;
+        const raw = await createSoftDeleteTestClient(delegateSchema, { usePrismaPush: true });
+        const db = raw.$use(new SoftDeletePlugin());
+
+        const user = await db.user.create({ data: {} });
+        const kept = await db.article.create({ data: { title: 'kept', authorId: user.id } });
+        const removed = await db.article.create({ data: { title: 'removed', authorId: user.id } });
+        await db.article.delete({ where: { id: removed.id } });
+
+        await expect(db.user.findUnique({ where: { id: user.id }, include: { articles: true } })).resolves.toEqual(
+            expect.objectContaining({ articles: [expect.objectContaining({ id: kept.id })] }),
+        );
+        await expect(
+            db.user.findUnique({ where: { id: user.id }, include: { _count: { select: { articles: true } } } }),
+        ).resolves.toMatchObject({ _count: { articles: 1 } });
+        await expect(db.user.count({ where: { articles: { some: { title: 'removed' } } } })).resolves.toBe(0);
+    });
 });
