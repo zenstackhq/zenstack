@@ -1275,12 +1275,25 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
         // order by to-one relation
         const joinAlias = tmpAlias(`${modelAlias}$ob$${index}`);
-        const joined = query.leftJoin(`${relationModel} as ${joinAlias}`, (join) => {
-            const joinPairs = buildJoinPairs(this.schema, model, modelAlias, field, joinAlias);
+        let joined = query.leftJoin(`${relationModel} as ${joinAlias}`, (join) => {
+            const joinPairs = buildJoinPairs(
+                this.schema,
+                model,
+                // if field is from a base, use the base model to join
+                this.delegateFieldAlias(model, modelAlias, fieldDef),
+                field,
+                joinAlias,
+            );
             return join.on((eb) =>
                 this.and(...joinPairs.map(([left, right]) => eb(this.eb.ref(left), '=', this.eb.ref(right)))),
             );
         });
+        // join delegate bases so that the ordering can reference inherited fields
+        let joinBase = requireModel(this.schema, relationModel).baseModel;
+        while (joinBase) {
+            joined = this.buildDelegateJoin(relationModel, joinAlias, joinBase, joined);
+            joinBase = requireModel(this.schema, joinBase).baseModel;
+        }
         return this.buildOrderBy(joined, relationModel, joinAlias, value, negated, take);
     }
 

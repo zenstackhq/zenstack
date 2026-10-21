@@ -7,6 +7,7 @@ describe('Regression for issue #2870', () => {
 model Item {
   id            String @id @default(cuid())
   itemKind      String
+  rank          Int    @default(0)
   notesAsSource Note[] @relation("NoteSource")
   pinnedTaskId  String?
   pinnedTask    Task?  @relation("Pinned", fields: [pinnedTaskId], references: [id])
@@ -26,6 +27,13 @@ model Tag extends Item {
 model Note extends Item {
   sourceId String?
   source   Item?   @relation("NoteSource", fields: [sourceId], references: [id])
+  comments Comment[]
+}
+
+model Comment {
+  id     String  @id @default(cuid())
+  noteId String?
+  note   Note?   @relation(fields: [noteId], references: [id])
 }
 `;
 
@@ -80,6 +88,29 @@ model Note extends Item {
         await expect(
             db.item.findFirst({ orderBy: [{ notesAsSource: { _count: 'desc' } }, { id: 'asc' }] }),
         ).resolves.toMatchObject({ id: task.id });
+    });
+
+    it('orders by an inherited field of a to-one relation', async () => {
+        const db = await createTestClient(schema, { usePrismaPush: true });
+        const highTask = await db.task.create({ data: { rank: 2 } });
+        const lowTask = await db.task.create({ data: { rank: 1 } });
+        // each note's own rank is the opposite of its pinned task's rank
+        const first = await db.note.create({ data: { rank: 2, pinnedTaskId: lowTask.id } });
+        const second = await db.note.create({ data: { rank: 1, pinnedTaskId: highTask.id } });
+
+        // outer model in the same hierarchy as the related model's base
+        await expect(db.note.findMany({ orderBy: { pinnedTask: { rank: 'asc' } } })).resolves.toEqual([
+            expect.objectContaining({ id: first.id }),
+            expect.objectContaining({ id: second.id }),
+        ]);
+
+        // outer model outside the hierarchy
+        const c1 = await db.comment.create({ data: { noteId: second.id } });
+        const c2 = await db.comment.create({ data: { noteId: first.id } });
+        await expect(db.comment.findMany({ orderBy: { note: { rank: 'desc' } } })).resolves.toEqual([
+            expect.objectContaining({ id: c2.id }),
+            expect.objectContaining({ id: c1.id }),
+        ]);
     });
 
     it('includes relations into the same hierarchy', async () => {
