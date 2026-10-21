@@ -27,10 +27,6 @@ type Address {
     @@meta("description", "A mailing address")
 }
 
-type Age with Int {
-    this Int @gt(0)
-}
-
 model User {
     id        String    @id @default(cuid())
     email     String    @email @meta("description", "The user's email address")
@@ -58,19 +54,6 @@ model User {
     @@meta("description", "A user of the system")
 }
 
-type Score with Float {
-    this Float
-
-    @@validate(this >= 0.0)
-    @@validate(this < 100.0)
-}
-
-type Contact with String {
-    this String
-
-    @@validate(isPhone(this) || isEmail(this))
-}
-
 model Post {
     id        String    @id @default(cuid())
     title     String
@@ -80,8 +63,9 @@ model Post {
     authorId  String?
 }
 
-type PostTag with String {
-    this String @lower @length(1, 12)
+model Holder {
+    id     Int     @id @default(autoincrement())
+    labels Label[]
 }
 
 // --- Computed fields ---
@@ -110,4 +94,30 @@ model Video extends Asset {
 model Image extends Asset {
     format String
     width  Int
+}
+
+// --- Primitives ---
+type Label with String {
+    this String @length(1, 12)
+}
+
+type Age with Int {
+    this Int @gt(0)
+}
+
+type Score with Float {
+    this Float
+
+    @@validate(this >= 0.0)
+    @@validate(this < 100.0)
+}
+
+type Contact with String {
+    this String
+
+    @@validate(isPhone(this) || isEmail(this))
+}
+
+type PostTag with String {
+    this String @lower @length(1, 12)
 }

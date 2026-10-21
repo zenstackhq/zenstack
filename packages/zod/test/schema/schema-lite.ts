@@ -50,7 +50,7 @@ export class SchemaType implements SchemaDef {
                 age: {
                     name: "age",
                     type: "Age",
-                    attributes: [{ name: "@lte", args: [{ name: "value", value: ExpressionUtils.literal(150) }] }, { name: "@gt", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[]
+                    attributes: [{ name: "@lte", args: [{ name: "value", value: ExpressionUtils.literal(150) }] }] as readonly AttributeApplication[]
                 },
                 score: {
                     name: "score",
@@ -155,7 +155,7 @@ export class SchemaType implements SchemaDef {
                     name: "tags",
                     type: "PostTag",
                     array: true,
-                    attributes: [{ name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(2) }, { name: "max", value: ExpressionUtils.literal(3) }] }, { name: "@lower" }, { name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(1) }, { name: "max", value: ExpressionUtils.literal(12) }] }] as readonly AttributeApplication[]
+                    attributes: [{ name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(2) }, { name: "max", value: ExpressionUtils.literal(3) }] }] as readonly AttributeApplication[]
                 },
                 author: {
                     name: "author",
@@ -175,6 +175,27 @@ export class SchemaType implements SchemaDef {
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "String" }
+            }
+        },
+        Holder: {
+            name: "Holder",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "Int",
+                    id: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                },
+                labels: {
+                    name: "labels",
+                    type: "Label",
+                    array: true
+                }
+            },
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "Int" }
             }
         },
         Product: {
@@ -352,6 +373,17 @@ export class SchemaType implements SchemaDef {
                 { name: "@@validate", args: [{ name: "value", value: ExpressionUtils.binary(ExpressionUtils.binary(ExpressionUtils.field("zip"), "==", ExpressionUtils._null()), "||", ExpressionUtils.binary(ExpressionUtils.call("length", [ExpressionUtils.field("zip")]), "==", ExpressionUtils.literal(5))) }, { name: "message", value: ExpressionUtils.literal("Zip code must be exactly 5 characters") }, { name: "path", value: ExpressionUtils.array("String", [ExpressionUtils.literal("zip")]) }] },
                 { name: "@@meta", args: [{ name: "name", value: ExpressionUtils.literal("description") }, { name: "value", value: ExpressionUtils.literal("A mailing address") }] }
             ] as readonly AttributeApplication[]
+        },
+        Label: {
+            name: "Label",
+            base: "String",
+            fields: {
+                this: {
+                    name: "this",
+                    type: "String",
+                    attributes: [{ name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(1) }, { name: "max", value: ExpressionUtils.literal(12) }] }] as readonly AttributeApplication[]
+                }
+            }
         },
         Age: {
             name: "Age",
