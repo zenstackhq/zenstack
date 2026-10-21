@@ -18,12 +18,12 @@
         "@zenstackhq/better-auth": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
         "@zenstackhq/schema": "workspace:*",
-        "better-auth": "^1.4.21",
+        "better-auth": "^1.7.12",
         "better-sqlite3": "catalog:",
         "commander": "^14.0.2"
     },
     "devDependencies": {
-        "@better-auth/cli": "^1.4.21",
+        "auth": "^1.7.12",
         "@types/better-sqlite3": "catalog:",
         "@types/node": "catalog:",
         "@zenstackhq/cli": "workspace:*"
