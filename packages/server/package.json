@@ -201,6 +201,9 @@
         "nuxt": {
             "optional": true
         },
+        "h3": {
+            "optional": true
+        },
         "@sveltejs/kit": {
             "optional": true
         }
