@@ -17,6 +17,7 @@ const stringFuncZodMap = {
     isEmail: 'email',
     isUrl: 'url',
     isPhone: 'e164',
+    isUuid: 'uuid',
     isDate: 'date',
     isTime: 'time',
     isDateTime: 'datetime',
@@ -27,6 +28,18 @@ function getArgValue<T extends string | number | boolean>(expr: Expression | und
         return undefined;
     }
     return expr.value as T;
+}
+
+function getNamedAttributeArgValue<T extends string | number | boolean>(
+    attr: AttributeApplication,
+    name: string,
+): T | undefined {
+    const named = attr.args?.find((a) => a.name === name);
+    if (named) {
+        return getArgValue<T>(named.value);
+    } else {
+        return undefined;
+    }
 }
 
 export function addStringValidation(
@@ -79,6 +92,17 @@ export function addStringValidation(
                 }
                 break;
             }
+            case '@uuid': {
+                const version = getNamedAttributeArgValue<number>(attr, 'version');
+                if (version === 4) {
+                    result = result.uuidv4();
+                } else if (version === 7) {
+                    result = result.uuidv7();
+                } else {
+                    result = result.uuid();
+                }
+                break;
+            }
             case '@email':
                 result = result.email();
                 break;
@@ -89,7 +113,7 @@ export function addStringValidation(
                 result = result.date();
                 break;
             case '@time': {
-                const precision = getArgValue<number>(attr.args?.[0]?.value);
+                const precision = getNamedAttributeArgValue<number>(attr, 'precision');
                 result = result.time({ precision });
                 break;
             }
@@ -555,6 +579,7 @@ function evalCall(data: any, expr: CallExpression) {
         case 'isEmail':
         case 'isUrl':
         case 'isPhone':
+        case 'isUuid':
         case 'isDate':
         case 'isTime':
         case 'isDateTime': {
@@ -569,6 +594,13 @@ function evalCall(data: any, expr: CallExpression) {
                     `"isTime" optional second argument must be a number`,
                 );
                 return z.iso.time({ precision }).safeParse(fieldArg).success;
+            } else if (f === 'isUuid') {
+                const version = getArgValue<number>(expr.args?.[1]);
+                invariant(
+                    version === null || version == undefined || version === 4 || version === 7,
+                    `"isUuid" optional second argument must 4 or 7`,
+                );
+                return z.uuid({ version: version ? `v${version}` : undefined }).safeParse(fieldArg).success;
             }
             const fn = stringFuncZodMap[f];
             return z.string()[fn]().safeParse(fieldArg).success;

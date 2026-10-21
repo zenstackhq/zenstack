@@ -481,7 +481,9 @@ describe('createClient', () => {
             mockFetch.mockResolvedValue({ ok: true, text: async () => makeResponseText(true) });
 
             const client = createClient(schema, { endpoint: ENDPOINT });
-            const result = await (client as any).$procs.sendNotification.mutate({ args: { message: 'hello' } });
+            const result = await (client as any).$procs.sendNotification.mutate({
+                args: { notification: { message: 'hello' } },
+            });
 
             const [url, init] = mockFetch.mock.calls[0] ?? [];
             expect(url).toBe(`${ENDPOINT}/$procs/sendNotification`);

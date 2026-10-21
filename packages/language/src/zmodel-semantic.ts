@@ -21,7 +21,18 @@ import {
     isPluginField,
     isReferenceExpr,
     isTypeDef,
+    isProcedure,
+    isFunctionParamType,
+    isAttributeParamType,
+    isUnaryExpr,
+    isBinaryExpr,
+    isNumberLiteral,
+    isCollectionPredicateBinding,
+    isFunctionParam,
+    isAttributeParam,
+    isProcedureParam,
     type AstNode,
+    isDataFieldParam,
 } from './ast';
 
 export class ZModelSemanticTokenProvider extends AbstractSemanticTokenProvider {
@@ -44,25 +55,31 @@ export class ZModelSemanticTokenProvider extends AbstractSemanticTokenProvider {
                 property: 'baseModel',
                 type: SemanticTokenTypes.type,
             });
-        } else if (isDataSource(node) || isGeneratorDecl(node) || isPlugin(node) || isEnum(node) || isTypeDef(node)) {
+        } else if (isTypeDef(node)) {
             acceptor({
                 node,
                 property: 'name',
                 type: SemanticTokenTypes.type,
             });
-        } else if (
-            isDataField(node) ||
-            isConfigField(node) ||
-            isAttributeArg(node) ||
-            isPluginField(node) ||
-            isEnumField(node)
-        ) {
+
+            acceptor({
+                node,
+                property: 'mixins',
+                type: SemanticTokenTypes.type,
+            });
+        } else if (isDataSource(node) || isGeneratorDecl(node) || isPlugin(node)) {
             acceptor({
                 node,
                 property: 'name',
-                type: SemanticTokenTypes.variable,
+                type: SemanticTokenTypes.type,
             });
-        } else if (isDataFieldType(node)) {
+        } else if (isDataField(node) || isConfigField(node) || isPluginField(node)) {
+            acceptor({
+                node,
+                property: 'name',
+                type: SemanticTokenTypes.property,
+            });
+        } else if (isDataFieldType(node) || isFunctionParamType(node) || isAttributeParamType(node)) {
             if (node.type) {
                 acceptor({
                     node,
@@ -80,7 +97,21 @@ export class ZModelSemanticTokenProvider extends AbstractSemanticTokenProvider {
             acceptor({
                 node,
                 property: 'decl',
-                type: SemanticTokenTypes.function,
+                type: SemanticTokenTypes.decorator,
+            });
+
+            if (node.decl.$refText === '@regex' && node.args[0]) {
+                acceptor({
+                    node: node.args[0],
+                    property: 'value',
+                    type: SemanticTokenTypes.regexp,
+                });
+            }
+        } else if (isAttribute(node)) {
+            acceptor({
+                node,
+                property: 'name',
+                type: SemanticTokenTypes.decorator,
             });
         } else if (isInvocationExpr(node)) {
             acceptor({
@@ -88,23 +119,95 @@ export class ZModelSemanticTokenProvider extends AbstractSemanticTokenProvider {
                 property: 'function',
                 type: SemanticTokenTypes.function,
             });
-        } else if (isFunctionDecl(node) || isAttribute(node)) {
+        } else if (isFunctionDecl(node) || isProcedure(node)) {
             acceptor({
                 node,
                 property: 'name',
                 type: SemanticTokenTypes.function,
             });
+
+            if ('mutation' in node && node.mutation) {
+                acceptor({
+                    node,
+                    property: 'mutation',
+                    type: SemanticTokenTypes.modifier,
+                });
+            }
         } else if (isReferenceExpr(node)) {
-            acceptor({
-                node,
-                property: 'target',
-                type: SemanticTokenTypes.variable,
-            });
+            if (isEnumField(node.target.ref)) {
+                acceptor({
+                    node,
+                    property: 'target',
+                    type: SemanticTokenTypes.enumMember,
+                });
+            } else if (isFunctionParam(node.target.ref)) {
+                acceptor({
+                    node,
+                    property: 'target',
+                    type: SemanticTokenTypes.parameter,
+                });
+            } else if (isCollectionPredicateBinding(node.target.ref)) {
+                acceptor({
+                    node,
+                    property: 'target',
+                    type: SemanticTokenTypes.variable,
+                });
+            } else {
+                acceptor({
+                    node,
+                    property: 'target',
+                    type: SemanticTokenTypes.property,
+                });
+            }
         } else if (isMemberAccessExpr(node)) {
             acceptor({
                 node,
                 property: 'member',
                 type: SemanticTokenTypes.property,
+            });
+        } else if (isNumberLiteral(node)) {
+            acceptor({
+                node,
+                property: 'value',
+                type: SemanticTokenTypes.number,
+            });
+        } else if (isUnaryExpr(node) || isBinaryExpr(node)) {
+            if (node.operator !== 'in') {
+                acceptor({
+                    node,
+                    property: 'operator',
+                    type: SemanticTokenTypes.operator,
+                });
+            }
+        } else if (isEnumField(node)) {
+            acceptor({
+                node,
+                property: 'name',
+                type: SemanticTokenTypes.enumMember,
+            });
+        } else if (isEnum(node)) {
+            acceptor({
+                node,
+                property: 'name',
+                type: SemanticTokenTypes.enum,
+            });
+        } else if (
+            isFunctionParam(node) ||
+            isAttributeArg(node) ||
+            isAttributeParam(node) ||
+            isProcedureParam(node) ||
+            isDataFieldParam(node)
+        ) {
+            acceptor({
+                node,
+                property: 'name',
+                type: SemanticTokenTypes.parameter,
+            });
+        } else if (isCollectionPredicateBinding(node)) {
+            acceptor({
+                node,
+                property: 'name',
+                type: SemanticTokenTypes.variable,
             });
         }
     }

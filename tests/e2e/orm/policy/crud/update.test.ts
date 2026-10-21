@@ -1041,7 +1041,7 @@ model Group {
                 db.user.update({ where: { id: 2 }, data: { groups: { connect: { id: 2 } } } }),
             ).toBeRejectedByPolicy();
 
-            // disconnect rejected
+            // disconnect rejected because group is not updatable
             await db.$unuseAll().user.update({ where: { id: 2 }, data: { groups: { connect: { id: 2 } } } });
             await expect(
                 db.user.update({
@@ -1049,9 +1049,7 @@ model Group {
                     data: { groups: { disconnect: { id: 2 } } },
                     include: { groups: true },
                 }),
-            ).resolves.toMatchObject({
-                groups: [{ id: 2 }], // verify not disconnected
-            });
+            ).toBeRejectedByPolicy();
 
             // delete rejected
             await expect(

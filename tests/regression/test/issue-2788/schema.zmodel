@@ -1,0 +1,26 @@
+// This is a sample model to get you started.
+
+/// A sample data source using local sqlite db.
+datasource db {
+    provider = 'sqlite'
+    url = 'file:./dev.db'
+}
+
+/// User model
+model User {
+    id       String @id @default(cuid())
+    email    String @unique @email @length(6, 32)
+    posts    Post[]
+}
+
+/// Post model
+model Post {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    title     String   @length(1, 256)
+    content   String
+    published Boolean  @default(false)
+    author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+    authorId  String
+}

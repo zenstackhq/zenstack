@@ -11,7 +11,6 @@ import {
     DataModelAttribute,
     Enum,
     Expression,
-    FunctionParamType,
     InvocationExpr,
     isArrayExpr,
     isBinaryExpr,
@@ -38,7 +37,14 @@ import {
     UnaryExpr,
     type Model,
 } from '@zenstackhq/language/ast';
-import { getAllAttributes, getAllFields, getAttributeArg, isDataFieldReference } from '@zenstackhq/language/utils';
+import {
+    getAllAttributes,
+    getAllFields,
+    getAttributeArg,
+    getRelationName,
+    isDataFieldReference,
+    isLiteAttribute,
+} from '@zenstackhq/language/utils';
 import fs from 'node:fs';
 import path from 'node:path';
 import { match } from 'ts-pattern';
@@ -374,7 +380,7 @@ export class TsSchemaGenerator {
     private createDataModelObject(dm: DataModel, lite: boolean) {
         const allFields = getAllFields(dm);
         const allAttributes = lite
-            ? [] // in lite mode, skip all model-level attributes
+            ? getAllAttributes(dm).filter((attr) => isLiteAttribute(attr.decl.ref!))
             : getAllAttributes(dm).filter((attr) => {
                   // exclude `@@delegate` attribute from base model
                   if (attr.decl.$refText === '@@delegate' && attr.$container !== dm) {
@@ -463,14 +469,6 @@ export class TsSchemaGenerator {
             ...(dm.isView ? [ts.factory.createPropertyAssignment('isView', ts.factory.createTrue())] : []),
         ];
 
-        const computedFields = allFields.filter((f) => hasAttribute(f, '@computed') && !getDelegateOriginModel(f, dm));
-
-        if (computedFields.length > 0) {
-            fields.push(
-                ts.factory.createPropertyAssignment('computedFields', this.createComputedFieldsObject(computedFields)),
-            );
-        }
-
         return ts.factory.createObjectLiteralExpression(fields, true);
     }
 
@@ -502,7 +500,9 @@ export class TsSchemaGenerator {
 
     private createTypeDefObject(td: TypeDef, lite: boolean): ts.Expression {
         const allFields = getAllFields(td);
-        const allAttributes = getAllAttributes(td);
+        const attributes = lite
+            ? getAllAttributes(td).filter((attr) => isLiteAttribute(attr.decl.ref!))
+            : getAllAttributes(td);
 
         const fields: ts.PropertyAssignment[] = [
             // name
@@ -523,13 +523,13 @@ export class TsSchemaGenerator {
             ),
 
             // attributes
-            ...(allAttributes.length > 0
+            ...(attributes.length > 0
                 ? [
                       ts.factory.createPropertyAssignment(
                           'attributes',
                           this.createAttributesTypeAssertion(
                               ts.factory.createArrayLiteralExpression(
-                                  allAttributes.map((attr) => this.createAttributeObject(attr)),
+                                  attributes.map((attr) => this.createAttributeObject(attr)),
                                   true,
                               ),
                           ),
@@ -538,88 +538,17 @@ export class TsSchemaGenerator {
                 : []),
         ];
 
+        if (getAllAttributes(td).some((attr) => attr.decl.$refText === '@@strict')) {
+            fields.push(ts.factory.createPropertyAssignment('strict', ts.factory.createTrue()));
+        }
+
         return ts.factory.createObjectLiteralExpression(fields, true);
     }
 
-    private createComputedFieldsObject(fields: DataField[]) {
-        return ts.factory.createObjectLiteralExpression(
-            fields.map((field) => {
-                const params: ts.ParameterDeclaration[] = [
-                    // parameter: `_context: { modelAlias: string }`
-                    ts.factory.createParameterDeclaration(
-                        undefined,
-                        undefined,
-                        '_context',
-                        undefined,
-                        ts.factory.createTypeLiteralNode([
-                            ts.factory.createPropertySignature(
-                                undefined,
-                                'modelAlias',
-                                undefined,
-                                ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
-                            ),
-                        ]),
-                        undefined,
-                    ),
-                ];
-
-                // For a parameterized computed field, add `args: { <param>: <type> }`.
-                // The field's params flow into this stub's signature so that
-                // `Parameters<typeof stub>` carries the args type for both the
-                // implementation (ComputedFieldsOptions) and the query input types.
-                if (field.params.length > 0) {
-                    params.push(
-                        ts.factory.createParameterDeclaration(
-                            undefined,
-                            undefined,
-                            'args',
-                            undefined,
-                            ts.factory.createTypeLiteralNode(
-                                field.params.map((param) =>
-                                    ts.factory.createPropertySignature(
-                                        undefined,
-                                        param.name,
-                                        param.optional
-                                            ? ts.factory.createToken(ts.SyntaxKind.QuestionToken)
-                                            : undefined,
-                                        ts.factory.createTypeReferenceNode(
-                                            this.mapFunctionParamTypeToTSType(param.type),
-                                        ),
-                                    ),
-                                ),
-                            ),
-                            undefined,
-                        ),
-                    );
-                }
-
-                return ts.factory.createMethodDeclaration(
-                    undefined,
-                    undefined,
-                    field.name,
-                    undefined,
-                    undefined,
-                    params,
-                    ts.factory.createTypeReferenceNode(this.mapFieldTypeToTSType(field.type)),
-                    ts.factory.createBlock(
-                        [
-                            ts.factory.createThrowStatement(
-                                ts.factory.createNewExpression(ts.factory.createIdentifier('Error'), undefined, [
-                                    ts.factory.createStringLiteral('This is a stub for computed field'),
-                                ]),
-                            ),
-                        ],
-                        true,
-                    ),
-                );
-            }),
-            true,
-        );
-    }
-
     // Emits the `params` metadata for a parameterized computed field. Shape mirrors
-    // `ProcedureParam` (`Record<string, { name; type; array?; optional? }>`) and is
-    // read at runtime (to forward args) and by the zod input-validation factory.
+    // `ProcedureParam` (`Record<string, { name; type; array?; optional? }>`). It is read at
+    // runtime (to forward args), by the zod input-validation factory, and by the ORM types that
+    // derive the query-time `args` and the implementation signature from it.
     private createFieldParamsObject(params: DataFieldParam[]) {
         return ts.factory.createObjectLiteralExpression(
             params.map((param) =>
@@ -644,25 +573,6 @@ export class TsSchemaGenerator {
         );
     }
 
-    private mapFunctionParamTypeToTSType(type: FunctionParamType): string {
-        let result = match(type.type)
-            .with('String', () => 'string')
-            .with('Boolean', () => 'boolean')
-            .with('Int', () => 'number')
-            .with('Float', () => 'number')
-            .with('BigInt', () => 'bigint')
-            .with('Decimal', () => 'number')
-            .with('DateTime', () => 'Date')
-            // non-scalar references (enums/type defs/models) aren't in scope in the generated
-            // schema file, so fall back to `unknown` — same convention as computed-field return
-            // types (`mapFieldTypeToTSType`). Runtime zod still validates these precisely.
-            .otherwise(() => 'unknown');
-        if (type.array) {
-            result = `${result}[]`;
-        }
-        return result;
-    }
-
     private createUpdatedAtObject(ignoreArg: AttributeArg) {
         return ts.factory.createObjectLiteralExpression([
             ts.factory.createPropertyAssignment(
@@ -674,24 +584,6 @@ export class TsSchemaGenerator {
                 ),
             ),
         ]);
-    }
-
-    private mapFieldTypeToTSType(type: DataFieldType) {
-        let result = match(type.type)
-            .with('String', () => 'string')
-            .with('Boolean', () => 'boolean')
-            .with('Int', () => 'number')
-            .with('Float', () => 'number')
-            .with('BigInt', () => 'bigint')
-            .with('Decimal', () => 'number')
-            .otherwise(() => 'unknown');
-        if (type.array) {
-            result = `${result}[]`;
-        }
-        if (type.optional) {
-            result = `${result} | null`;
-        }
-        return result;
     }
 
     private createDataFieldObject(field: DataField, contextModel: DataModel | undefined, lite: boolean) {
@@ -760,14 +652,15 @@ export class TsSchemaGenerator {
             objectFields.push(ts.factory.createPropertyAssignment('isDiscriminator', ts.factory.createTrue()));
         }
 
-        // attributes, only when not in lite mode
-        if (!lite && field.attributes.length > 0) {
+        const attributes = lite ? field.attributes.filter((attr) => isLiteAttribute(attr.decl.ref!)) : field.attributes;
+
+        if (attributes.length > 0) {
             objectFields.push(
                 ts.factory.createPropertyAssignment(
                     'attributes',
                     this.createAttributesTypeAssertion(
                         ts.factory.createArrayLiteralExpression(
-                            field.attributes.map((attr) => this.createAttributeObject(attr)),
+                            attributes.map((attr) => this.createAttributeObject(attr)),
                         ),
                     ),
                 ),
@@ -977,7 +870,7 @@ export class TsSchemaGenerator {
             );
         }
 
-        const relationName = this.getRelationName(field);
+        const relationName = getRelationName(field);
         if (relationName) {
             relationFields.push(
                 ts.factory.createPropertyAssignment('name', ts.factory.createStringLiteral(relationName)),
@@ -1067,7 +960,7 @@ export class TsSchemaGenerator {
         const sourceModel = isTypeDef(field.$container) ? contextModel : (field.$container as DataModel);
 
         const targetModel = field.type.reference.ref as DataModel;
-        const relationName = this.getRelationName(field);
+        const relationName = getRelationName(field);
         for (const otherField of getAllFields(targetModel)) {
             if (otherField === field) {
                 // backlink field is never self
@@ -1077,21 +970,9 @@ export class TsSchemaGenerator {
                 // relation names must match on both sides, including the case where neither side
                 // is named - otherwise an unnamed relation can be paired with a named one that
                 // happens to be declared first
-                if (this.getRelationName(otherField) === relationName) {
+                if (getRelationName(otherField) === relationName) {
                     return otherField;
                 }
-            }
-        }
-        return undefined;
-    }
-
-    private getRelationName(field: DataField) {
-        const relation = getAttribute(field, '@relation');
-        if (relation) {
-            const nameArg = relation.args.find((arg) => arg.$resolvedParam?.name === 'name');
-            if (nameArg) {
-                invariant(isLiteralExpr(nameArg.value), 'name must be a literal');
-                return nameArg.value.value as string;
             }
         }
         return undefined;
@@ -1475,6 +1356,16 @@ export class TsSchemaGenerator {
             .when(isEnumField, () => this.createLiteralExpression('StringLiteral', expr.target.$refText))
             .when(isCollectionPredicateBinding, () =>
                 this.createExpressionUtilsCall('binding', [this.createLiteralNode(expr.target.$refText)]),
+            )
+            .when(isEnum, () =>
+                this.createExpressionUtilsCall('array', [
+                    this.createLiteralNode(expr.target.$refText),
+                    ts.factory.createArrayLiteralExpression(
+                        (target as Enum).fields.map((field) =>
+                            this.createLiteralExpression('StringLiteral', field.name),
+                        ),
+                    ),
+                ]),
             )
             .otherwise(() => {
                 throw Error(`Unsupported reference type: ${expr.target.$refText}`);

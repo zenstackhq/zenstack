@@ -2,6 +2,8 @@ import { invariant } from '@zenstackhq/common-helpers';
 import type { BuiltinType, FieldDef, SchemaDef } from '@zenstackhq/schema';
 import Decimal from 'decimal.js';
 import {
+    ValueNode,
+    type OperationNode,
     expressionBuilder,
     sql,
     type AliasableExpression,
@@ -531,6 +533,17 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
     ) {
         const leftResolved = this.resolveFieldSqlType(leftFieldDef);
         const rightResolved = this.resolveFieldSqlType(rightFieldDef);
+
+        // Fast path for comparing a column with a @db.* native type against a bound value (e.g.
+        // `userId == auth().id`). Casting the column would defeat index usage, so the value side is
+        // handled instead: PostgreSQL infers the parameter type from the column, and for uuid the
+        // value is validated up front so a malformed one yields a constant result rather than an
+        // "invalid input syntax for type uuid" error.
+        const valueResult = this.tryBuildNativeTypeValueComparison(left, leftResolved, op, right, rightResolved);
+        if (valueResult) {
+            return valueResult;
+        }
+
         // If the resolved SQL types differ and at least one side carries a @db.* native type override,
         // cast that side back to its base ZModel SQL type so PostgreSQL doesn't reject the comparison
         // (e.g. "operator does not exist: uuid = text").
@@ -546,6 +559,65 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
             }
         }
         return super.buildComparison(left, leftFieldDef, op, right, rightFieldDef);
+    }
+
+    // native SQL types that accept any text input, so a bound string value never fails to parse
+    private static readonly textLikeSqlTypes = new Set(['text', 'varchar', 'bpchar', 'citext']);
+
+    // uuid input formats accepted by PostgreSQL (canonical 8-4-4-4-12 or 32 hex digits). This is a
+    // pure format check: unlike RFC 4122 validators it doesn't require specific version/variant bits,
+    // since PostgreSQL stores any 128-bit value (e.g. `00000000-0000-0000-0000-000000000001`).
+    private static readonly uuidFormatRegex =
+        /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{32})$/i;
+
+    private tryBuildNativeTypeValueComparison(
+        left: Expression<unknown>,
+        leftResolved: ReturnType<typeof this.resolveFieldSqlType>,
+        op: string,
+        right: Expression<unknown>,
+        rightResolved: ReturnType<typeof this.resolveFieldSqlType>,
+    ): Expression<SqlBool> | undefined {
+        let valueNode: OperationNode;
+        let columnResolved: typeof leftResolved;
+        const leftNode = left.toOperationNode();
+        const rightNode = right.toOperationNode();
+        if (ValueNode.is(rightNode) && !ValueNode.is(leftNode)) {
+            valueNode = rightNode;
+            columnResolved = leftResolved;
+        } else if (ValueNode.is(leftNode) && !ValueNode.is(rightNode)) {
+            valueNode = leftNode;
+            columnResolved = rightResolved;
+        } else {
+            return undefined;
+        }
+
+        if (!columnResolved.hasDbOverride || !columnResolved.sqlType) {
+            return undefined;
+        }
+
+        if (PostgresCrudDialect.textLikeSqlTypes.has(columnResolved.sqlType)) {
+            // text-like column, any string value is valid input
+            return this.eb(left, op as any, right) as Expression<SqlBool>;
+        }
+
+        if (columnResolved.sqlType === 'uuid' && (op === '=' || op === '!=')) {
+            const value = (valueNode as ValueNode).value;
+            if (typeof value === 'string' && PostgresCrudDialect.uuidFormatRegex.test(value)) {
+                // well-formed uuid, compare natively without casting the column
+                return this.eb(left, op as any, right) as Expression<SqlBool>;
+            } else if (op === '=') {
+                // malformed uuid can never equal a uuid column
+                return this.eb.lit(false) as unknown as Expression<SqlBool>;
+            } else {
+                // malformed uuid differs from every non-null uuid; a null column must not match, matching
+                // the SQL semantics of `col != value` (null when col is null)
+                const column = valueNode === rightNode ? left : right;
+                return this.eb(column, 'is not', null) as Expression<SqlBool>;
+            }
+        }
+
+        // other native types fall back to casting the column
+        return undefined;
     }
 
     override getStringCasingBehavior() {

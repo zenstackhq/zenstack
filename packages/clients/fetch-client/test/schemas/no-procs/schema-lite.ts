@@ -5,7 +5,7 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
         type: "sqlite"
@@ -18,6 +18,7 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "String",
                     id: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("cuid") as FieldDefault
                 }
             },

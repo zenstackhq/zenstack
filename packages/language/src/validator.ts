@@ -9,6 +9,7 @@ import type {
     GeneratorDecl,
     InvocationExpr,
     Model,
+    Plugin,
     Procedure,
     TypeDef,
     ZModelAstType,
@@ -17,6 +18,7 @@ import type { ZModelServices } from './module';
 import AttributeValidator from './validators/attribute-validator';
 import DataModelValidator from './validators/datamodel-validator';
 import DataSourceValidator from './validators/datasource-validator';
+import PluginValidator from './validators/plugin-validator';
 import EnumValidator from './validators/enum-validator';
 import ExpressionValidator from './validators/expression-validator';
 import FunctionDeclValidator from './validators/function-decl-validator';
@@ -34,6 +36,7 @@ export function registerValidationChecks(services: ZModelServices) {
     const checks: ValidationChecks<ZModelAstType> = {
         Model: validator.checkModel,
         DataSource: validator.checkDataSource,
+        Plugin: validator.checkPlugin,
         GeneratorDecl: validator.checkGenerator,
         DataModel: validator.checkDataModel,
         TypeDef: validator.checkTypeDef,
@@ -95,5 +98,9 @@ export class ZModelValidator {
 
     checkProcedure(node: Procedure, accept: ValidationAcceptor): void {
         new ProcedureValidator().validate(node, accept);
+    }
+
+    checkPlugin(node: Plugin, accept: ValidationAcceptor): void {
+        new PluginValidator().validate(node, accept);
     }
 }

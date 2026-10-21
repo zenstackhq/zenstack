@@ -1,0 +1,13 @@
+diff --git a/lib/validator.js b/lib/validator.js
+index cca5e9c2216fd72d5da7eb63a38cebdf025e366e..ed6b2cf5376286dec39977c5823143766ae43080 100644
+--- a/lib/validator.js
++++ b/lib/validator.js
+@@ -260,7 +260,7 @@ Validator.prototype.resolve = function resolve (schema, switchSchema, ctx) {
+     return {subschema: ctx.schemas[switchSchema], switchSchema: switchSchema};
+   }
+   // Else try walking the property pointer
+-  let parsed = new URL(switchSchema,'thismessage::/');
++  let parsed = new URL(switchSchema,'thismessage:/');
+   let fragment = parsed.hash;
+   var document = fragment && fragment.length && switchSchema.substr(0, switchSchema.length - fragment.length);
+   if (!document || !ctx.schemas[document]) {

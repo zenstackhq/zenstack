@@ -32,6 +32,12 @@ export class SchemaType implements SchemaDef {
                     type: "Role",
                     attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("USER") }] }] as readonly AttributeApplication[],
                     default: "USER" as FieldDefault
+                },
+                profile: {
+                    name: "profile",
+                    type: "Profile",
+                    optional: true,
+                    attributes: [{ name: "@json" }] as readonly AttributeApplication[]
                 }
             },
             idFields: ["id"],
@@ -65,6 +71,19 @@ export class SchemaType implements SchemaDef {
                     optional: true
                 }
             }
+        },
+        Profile: {
+            name: "Profile",
+            fields: {
+                bio: {
+                    name: "bio",
+                    type: "String"
+                }
+            },
+            attributes: [
+                { name: "@@strict" }
+            ] as readonly AttributeApplication[],
+            strict: true
         }
     } as const;
     enums = {
@@ -114,6 +133,14 @@ export class SchemaType implements SchemaDef {
             },
             returnType: "User",
             returnArray: true,
+            mutation: true
+        },
+        updateProfile: {
+            params: {
+                userId: { name: "userId", type: "Int" },
+                profile: { name: "profile", type: "Profile" }
+            },
+            returnType: "Void",
             mutation: true
         }
     } as const;

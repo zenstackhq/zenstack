@@ -445,7 +445,7 @@ model User {
         });
     });
 
-    it('supports lite schema generation', async () => {
+    it('strips non-lite attributes from lite schemas', async () => {
         const { schemaLite } = await generateTsSchema(
             `
 model User {
@@ -455,6 +455,10 @@ model User {
 
     @@map('users')
 }
+
+type Profile {
+    id String @id
+}
         `,
             undefined,
             undefined,
@@ -463,8 +467,119 @@ model User {
         );
 
         expect(schemaLite!.models['User']!.attributes).toBeUndefined();
-        expect(schemaLite!.models['User']!.fields['id']!.attributes).toBeUndefined();
+
+        expect(schemaLite!.models['User']!.fields['id']!.attributes).toMatchObject([
+            {
+                name: '@default',
+                args: [
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'call',
+                            function: 'uuid',
+                            args: undefined,
+                        },
+                    },
+                ],
+            },
+        ]);
+
         expect(schemaLite!.models['User']!.fields['email']!.attributes).toBeUndefined();
+        expect(schemaLite!.typeDefs!['Profile']!.fields['id']!.attributes).toBeUndefined();
+    });
+
+    it('does not strip lite attributes from lite schemas', async () => {
+        const { schemaLite } = await generateTsSchema(
+            `
+model User {
+    id String @id @default(uuid())
+    name String
+    email String @unique @email @meta('description', 'HTML email address.')
+
+    @@map('users')
+    @@meta('description', 'A registered user.')
+}
+
+type Profile {
+    bio String
+
+    @@meta('description', 'The profile of a user.')
+}
+        `,
+            undefined,
+            undefined,
+            undefined,
+            true,
+        );
+
+        expect(schemaLite!.models['User']!.fields['email']?.attributes).toMatchObject([
+            {
+                name: '@email',
+            },
+            {
+                name: '@meta',
+                args: [
+                    {
+                        name: 'name',
+                        value: {
+                            kind: 'literal',
+                            value: 'description',
+                        },
+                    },
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'literal',
+                            value: 'HTML email address.',
+                        },
+                    },
+                ],
+            },
+        ]);
+
+        expect(schemaLite!.models['User']!.attributes).toMatchObject([
+            {
+                name: '@@meta',
+                args: [
+                    {
+                        name: 'name',
+                        value: {
+                            kind: 'literal',
+                            value: 'description',
+                        },
+                    },
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'literal',
+                            value: 'A registered user.',
+                        },
+                    },
+                ],
+            },
+        ]);
+
+        expect(schemaLite!.typeDefs!['Profile']!.attributes).toMatchObject([
+            {
+                name: '@@meta',
+                args: [
+                    {
+                        name: 'name',
+                        value: {
+                            kind: 'literal',
+                            value: 'description',
+                        },
+                    },
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'literal',
+                            value: 'The profile of a user.',
+                        },
+                    },
+                ],
+            },
+        ]);
     });
 
     it('supports ignorable fields for @updatedAt', async () => {
@@ -734,6 +849,170 @@ model Post {
             },
             authType: 'User',
             plugins: {},
+        });
+    });
+
+    it('supports implicit conversions from enums to arrays', async () => {
+        const { schema } = await generateTsSchema(`
+enum PostStatus {
+    DRAFT
+    ACTIVE
+    CANCELLED
+}
+
+model User {
+    id Int @id @default(autoincrement())
+}
+
+model Post {
+    id     String @id
+    status String
+
+    @@validate(status in PostStatus)
+}
+            `);
+
+        expect(schema.models['Post']?.attributes).toMatchObject([
+            {
+                name: '@@validate',
+                args: [
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'binary',
+                            op: 'in',
+                            left: {
+                                kind: 'field',
+                                field: 'status',
+                            },
+                            right: {
+                                kind: 'array',
+                                type: 'PostStatus',
+                                items: [
+                                    {
+                                        kind: 'literal',
+                                        value: 'DRAFT',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'ACTIVE',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'CANCELLED',
+                                    },
+                                ],
+                            },
+                            binding: undefined,
+                        },
+                    },
+                ],
+            },
+        ]);
+    });
+
+    it('emits enum names (not @map values) when converting enums to arrays', async () => {
+        // enum values are represented by their names at runtime (TS values, auth(), Zod);
+        // the ORM's name mapper translates them to `@map`-ed values at SQL execution time
+        const { schema } = await generateTsSchema(`
+enum PostStatus {
+    DRAFT @map('draft')
+    ACTIVE @map('active')
+    CANCELLED @map('cancelled')
+}
+
+model User {
+    id Int @id @default(autoincrement())
+}
+
+model Post {
+    id     String @id
+    status String
+
+    @@validate(status in PostStatus)
+}
+            `);
+
+        expect(schema.models['Post']?.attributes).toMatchObject([
+            {
+                name: '@@validate',
+                args: [
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'binary',
+                            op: 'in',
+                            left: {
+                                kind: 'field',
+                                field: 'status',
+                            },
+                            right: {
+                                kind: 'array',
+                                type: 'PostStatus',
+                                items: [
+                                    {
+                                        kind: 'literal',
+                                        value: 'DRAFT',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'ACTIVE',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'CANCELLED',
+                                    },
+                                ],
+                            },
+                            binding: undefined,
+                        },
+                    },
+                ],
+            },
+        ]);
+    });
+
+    it('supports @@strict for type defs', async () => {
+        const { schema } = await generateTsSchema(`
+model User {
+    id      String   @id @default(uuid())
+    profile Profile? @json
+}
+
+type Profile {
+    bio String
+
+    @@strict
+}
+            `);
+
+        expect(schema.typeDefs).toMatchObject({
+            Profile: {
+                strict: true,
+            },
+        });
+    });
+
+    it('supports @@strict inherited from mixins', async () => {
+        const { schema } = await generateTsSchema(`
+model User {
+    id      String   @id @default(uuid())
+    profile Profile? @json
+}
+
+type Strict {
+    @@strict
+}
+
+type Profile with Strict {
+    bio String
+}
+            `);
+
+        expect(schema.typeDefs).toMatchObject({
+            Profile: {
+                strict: true,
+            },
         });
     });
 });

@@ -366,7 +366,200 @@ describe('Attribute application validation tests', () => {
                     @@allow('all', true)
                 }
                 `,
-                `Field-level policies are not allowed for relation fields`,
+                `Field-level policies are only allowed for implicit many-to-many relation fields`,
+            );
+        });
+
+        it('accepts update field-level policy on many-to-many relation fields', async () => {
+            await loadSchema(`
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id   Int  @id @default(autoincrement())
+                    bars Bar[]
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int    @id @default(autoincrement())
+                    foos Foo[] @allow('update', true)
+                    @@allow('all', true)
+                }
+            `);
+        });
+
+        it('accepts deny update field-level policy on many-to-many relation fields', async () => {
+            await loadSchema(`
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id   Int  @id @default(autoincrement())
+                    bars Bar[]
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int    @id @default(autoincrement())
+                    foos Foo[] @deny('update', false)
+                    @@allow('all', true)
+                }
+            `);
+        });
+
+        it('rejects read field-level policy on many-to-many relation fields', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id   Int  @id @default(autoincrement())
+                    bars Bar[]
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int    @id @default(autoincrement())
+                    foos Foo[] @allow('read', true)
+                    @@allow('all', true)
+                }
+                `,
+                `Only 'update' policies are allowed on many-to-many relation fields`,
+            );
+        });
+
+        it('rejects all field-level policy on many-to-many relation fields', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id   Int  @id @default(autoincrement())
+                    bars Bar[]
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int    @id @default(autoincrement())
+                    foos Foo[] @allow('all', true)
+                    @@allow('all', true)
+                }
+                `,
+                `Only 'update' policies are allowed on many-to-many relation fields`,
+            );
+        });
+
+        it('rejects comma-separated kinds including non-update on many-to-many relation fields', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id   Int  @id @default(autoincrement())
+                    bars Bar[]
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int    @id @default(autoincrement())
+                    foos Foo[] @allow('read, update', true)
+                    @@allow('all', true)
+                }
+                `,
+                `Only 'update' policies are allowed on many-to-many relation fields`,
+            );
+        });
+
+        it('rejects update field-level policy on one-to-many relation fields', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id Int @id @default(autoincrement())
+                    bar Bar @relation(fields: [barId], references: [id])
+                    barId Int
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id   Int    @id @default(autoincrement())
+                    foos Foo[] @allow('update', true)
+                    @@allow('all', true)
+                }
+                `,
+                `Field-level policies are only allowed for implicit many-to-many relation fields`,
+            );
+        });
+
+        it('rejects update field-level policy on one-to-many relation fields when a separate m2m relation exists', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id    Int  @id @default(autoincrement())
+                    bar   Bar  @relation("one-to-many", fields: [barId], references: [id]) @allow('update', true)
+                    barId Int
+                    bars  Bar[] @relation("m2m")
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id   Int  @id @default(autoincrement())
+                    foos Foo[] @relation("m2m")
+                    @@allow('all', true)
+                }
+                `,
+                `Field-level policies are only allowed for implicit many-to-many relation fields`,
+            );
+        });
+
+        it('rejects update field-level policy on a one-to-many field that is not many-to-many when a differently-named relation exists on the opposite model', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id     Int   @id @default(autoincrement())
+                    bars   Bar[] @allow('update', true)
+                    bar2   Bar   @relation("other", fields: [bar2Id], references: [id])
+                    bar2Id Int
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int @id @default(autoincrement())
+                    foo   Foo   @relation(fields: [fooId], references: [id])
+                    fooId Int
+                    foos  Foo[] @relation("other")
+                    @@allow('all', true)
+                }
+                `,
+                `Field-level policies are only allowed for implicit many-to-many relation fields`,
             );
         });
 
@@ -584,6 +777,125 @@ describe('Attribute application validation tests', () => {
                 }
                 `,
                 /Attribute "@softDelete" can only be applied to one field per model/,
+            );
+        });
+    });
+
+    describe('Field-level @uuid attribute', () => {
+        it('does not require a version arg', async () => {
+            await loadSchema(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid
+                }
+                `,
+            );
+        });
+
+        it('accepts supported version args', async () => {
+            await loadSchema(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(4)
+                }
+                `,
+            );
+
+            await loadSchema(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(7)
+                }
+                `,
+            );
+        });
+
+        it('rejects unsupported version args', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(1)
+                }
+                `,
+                /`@uuid` version must be `4` or `7`/,
+            );
+
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(2)
+                }
+                `,
+                /`@uuid` version must be `4` or `7`/,
+            );
+        });
+
+        it('resolves the version arg by name regardless of argument order', async () => {
+            await loadSchema(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(message: 'invalid uuid', version: 7)
+                }
+                `,
+            );
+
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(message: 'invalid uuid', version: 1)
+                }
+                `,
+                /`@uuid` version must be `4` or `7`/,
+            );
+        });
+
+        it('does not treat a message-only arg as a version', async () => {
+            await loadSchema(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(message: 'invalid uuid')
+                }
+                `,
             );
         });
     });
@@ -815,5 +1127,61 @@ describe('Attribute application validation tests', () => {
             `,
             /relation "bar" is not optional/,
         );
+    });
+
+    describe('@@strict attribute', () => {
+        it('accepts type defs', async () => {
+            await loadSchema(`
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                type Profile {
+                    name String
+                    
+                    @@strict
+                }
+            `);
+        });
+
+        it('rejects non-type defs', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id   String @id
+                    name String
+                    
+                    @@strict
+                }
+            `,
+                /attribute "@@strict" can only be used on type definitions/,
+            );
+
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id   String @id
+                }
+                
+                enum Enum {
+                    TEST
+                    
+                    @@strict
+                }
+            `,
+                /attribute "@@strict" can only be used on type definitions/,
+            );
+        });
     });
 });

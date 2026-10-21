@@ -29,6 +29,7 @@ import {
     getAttributeArg,
     getContainingDataModel,
     getDataSourceProvider,
+    getNumberLiteral,
     getStringLiteral,
     hasAttribute,
     isAuthOrAuthMemberAccess,
@@ -37,6 +38,7 @@ import {
     isComputedField,
     isDataFieldReference,
     isDelegateModel,
+    isManyToManyField,
     isNativeTypeMappingAttribute,
     isRelationshipField,
     mapBuiltinTypeToExpressionType,
@@ -347,18 +349,28 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
             });
             return;
         }
-        this.validatePolicyKinds(kind, ['read', 'update', 'all'], attr, accept);
+        const kinds = this.validatePolicyKinds(kind, ['read', 'update', 'all'], attr, accept);
 
         const expr = attr.args[1]?.value;
         if (expr && AstUtils.streamAst(expr).some((node) => isBeforeInvocation(node))) {
             accept('error', `"before()" is not allowed in field-level policies`, { node: expr });
         }
 
-        // relation fields are not allowed
+        // relation fields are not allowed, except for many-to-many fields which only support 'update'
         const field = attr.$container as DataField;
 
         if (isRelationshipField(field)) {
-            accept('error', `Field-level policies are not allowed for relation fields.`, { node: attr });
+            if (isManyToManyField(field)) {
+                if (kinds.some((k) => k !== 'update')) {
+                    accept('error', `Only 'update' policies are allowed on many-to-many relation fields`, {
+                        node: attr,
+                    });
+                }
+            } else {
+                accept('error', `Field-level policies are only allowed for implicit many-to-many relation fields`, {
+                    node: attr,
+                });
+            }
         }
 
         if (isComputedField(field)) {
@@ -460,6 +472,18 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
         }
     }
 
+    @check('@uuid')
+    private _checkUuid(attr: AttributeApplication, accept: ValidationAcceptor) {
+        const versionArg = attr.args.find((arg) => arg.$resolvedParam?.name === 'version');
+        if (!versionArg) {
+            return;
+        }
+        const version = getNumberLiteral(versionArg.value);
+        if (version !== undefined && version !== 4 && version !== 7) {
+            accept('error', `\`@uuid\` version must be \`4\` or \`7\``, { node: versionArg });
+        }
+    }
+
     @check('@@schema')
     private _checkSchema(attr: AttributeApplication, accept: ValidationAcceptor) {
         const schemaName = getStringLiteral(attr.args[0]?.value);
@@ -479,6 +503,15 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
                     node: attr,
                 });
             }
+        }
+    }
+
+    @check('@@strict')
+    private _checkStrict(attr: AttributeApplication, accept: ValidationAcceptor) {
+        if (!isTypeDef(attr.$container)) {
+            accept('error', `attribute "@@strict" can only be used on type definitions`, {
+                node: attr,
+            });
         }
     }
 
