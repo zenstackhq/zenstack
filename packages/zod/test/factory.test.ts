@@ -1786,6 +1786,27 @@ describe.each([
                 expect(result.success).toBe(false);
             });
 
+            it('does not apply string lengths to lists', () => {
+                const holderSchema = factory.makeModelSchema('Holder');
+                let result = holderSchema.safeParse({
+                    id: 0,
+                    labels: [],
+                });
+                expect(result.success).toBe(true);
+
+                result = holderSchema.safeParse({
+                    id: 0,
+                    labels: [''],
+                });
+                expect(result.success).toBe(false);
+
+                result = holderSchema.safeParse({
+                    id: 0,
+                    labels: ['a'],
+                });
+                expect(result.success).toBe(true);
+            });
+
             it('applies typedef attributes to each item', () => {
                 const postSchema = factory.makeModelSchema('Post');
                 const result = postSchema.safeParse({ ...validPost, tags: ['A', 'B'] });
