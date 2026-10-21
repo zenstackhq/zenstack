@@ -19,7 +19,6 @@ import {
 } from '../generated/ast';
 import {
     getAllAttributes,
-    getAllFieldAttributes,
     getAllFields,
     getAttribute,
     getAttributeArg,
@@ -163,7 +162,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         // group field attributes carrying `@@@onceInModel` by their attribute declaration
         const occurrences = new Map<Attribute, DataFieldAttribute[]>();
         for (const field of getAllFields(dm)) {
-            for (const attr of getAllFieldAttributes(field)) {
+            for (const attr of field.attributes) {
                 const decl = attr.decl.ref;
                 if (decl && hasAttribute(decl, '@@@onceInModel')) {
                     const list = occurrences.get(decl) ?? [];

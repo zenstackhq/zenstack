@@ -39,7 +39,6 @@ import {
 } from '@zenstackhq/language/ast';
 import {
     getAllAttributes,
-    getAllFieldAttributes,
     getAllFields,
     getAttributeArg,
     getRelationName,
@@ -657,8 +656,7 @@ export class TsSchemaGenerator {
             objectFields.push(ts.factory.createPropertyAssignment('isDiscriminator', ts.factory.createTrue()));
         }
 
-        const fieldAttributes = getAllFieldAttributes(field);
-        const attributes = lite ? fieldAttributes.filter((attr) => isLiteAttribute(attr.decl.ref!)) : fieldAttributes;
+        const attributes = lite ? field.attributes.filter((attr) => isLiteAttribute(attr.decl.ref!)) : field.attributes;
 
         if (attributes.length > 0) {
             objectFields.push(

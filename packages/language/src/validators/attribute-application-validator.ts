@@ -26,7 +26,6 @@ import {
 } from '../generated/ast';
 import {
     getAllAttributes,
-    getAllFieldAttributes,
     getAttributeArg,
     getContainingDataModel,
     getDataSourceProvider,
@@ -253,11 +252,7 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
             return;
         }
 
-        const allAttributes = contextDataModel
-            ? getAllAttributes(contextDataModel)
-            : isDataField(attr.$container)
-              ? getAllFieldAttributes(attr.$container)
-              : attr.$container.attributes;
+        const allAttributes = contextDataModel ? getAllAttributes(contextDataModel) : attr.$container.attributes;
         const duplicates = allAttributes.filter((a) => a.decl.ref === attrDecl && a !== attr);
         if (duplicates.length > 0) {
             accept('error', `Attribute "${attrDecl.name}" can only be applied once`, { node: attr });

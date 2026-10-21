@@ -744,15 +744,6 @@ export function getAllFields(
     return fields;
 }
 
-export function getAllFieldAttributes(field: DataField) {
-    const attributes: DataFieldAttribute[] = [...field.attributes];
-    if (field.type?.reference?.ref && isPrimitiveTypeDef(field.type.reference.ref)) {
-        const thisField = getPrimitiveTypeDefThisField(field.type.reference.ref);
-        attributes.push(...(thisField?.attributes ?? []));
-    }
-    return attributes;
-}
-
 export function getPrimitiveTypeDefThisField(td: TypeDef) {
     return td.fields.find((f) => f.name === 'this');
 }
