@@ -19,7 +19,7 @@ catalog:
     langium: 3.5.0
     langium-cli: 3.5.0
     next: 16.1.6
-    nuxt: 4.3.1
+    nuxt: 4.6.0
     '@sveltejs/kit': 2.53.2
     pg: ^8.13.1
     mysql2: ^3.16.1
