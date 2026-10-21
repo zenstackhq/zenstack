@@ -28,7 +28,7 @@ interface ParsedRequest {
     requestBody: unknown;
 }
 
-const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
+const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 function jsonResponse(body: unknown, status: number) {
     return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });

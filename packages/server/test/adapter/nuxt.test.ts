@@ -40,6 +40,12 @@ describe('Nuxt adapter tests - portable event', () => {
             makePortableEvent('GET', makeUrl('/api/model/user/findMany', { where: { email: 'user1@abc.com' } })),
         );
         expect((await r.json()).data).toHaveLength(1);
+
+        r = await handler(
+            makePortableEvent('DELETE', makeUrl('/api/model/user/deleteMany', { where: { email: 'user1@abc.com' } })),
+        );
+        expect(r.status).toBe(200);
+        expect((await r.json()).data).toMatchObject({ count: 1 });
     });
 
     it('rejects invalid json and missing client', async () => {
@@ -58,6 +64,27 @@ describe('Nuxt adapter tests - portable event', () => {
 
         const r2 = await createEventHandler({ getClient: () => undefined as never, apiHandler })(event);
         expect(r2.status).toBe(500);
+    });
+});
+
+describe('Nuxt adapter tests - DELETE request body', () => {
+    const echoApiHandler = {
+        handleRequest: async ({ requestBody }: { requestBody: unknown }) => ({ status: 200, body: { requestBody } }),
+    };
+    const payload = { data: [{ type: 'post', id: '1' }] };
+
+    it('passes the body on the portable event path', async () => {
+        const handler = createEventHandler({ getClient: () => ({}) as never, apiHandler: echoApiHandler as never });
+        const r = await handler(makePortableEvent('DELETE', '/api/model/user/1/relationships/posts', payload));
+        expect((await r.json()).requestBody).toEqual(payload);
+    });
+
+    it('passes the body on the h3 event path', async () => {
+        const handler = createEventHandler({ getClient: () => ({}) as never, apiHandler: echoApiHandler as never });
+        const router = createRouter().use('/api/model/**', defineEventHandler(handler as never));
+        const request = supertest(toNodeListener(createApp().use(router)));
+        const r = await request.delete('/api/model/user/1/relationships/posts').send(payload);
+        expect(r.body.requestBody).toEqual(payload);
     });
 });
 
@@ -82,6 +109,10 @@ describe('Nuxt adapter tests - h3 event', () => {
 
         r = await request.get(makeUrl('/api/model/user/findMany', { where: { email: 'user1@abc.com' } }));
         expect(r.body.data).toHaveLength(1);
+
+        r = await request.delete(makeUrl('/api/model/user/deleteMany', { where: { email: 'user1@abc.com' } }));
+        expect(r.status).toBe(200);
+        expect(r.body.data).toMatchObject({ count: 1 });
 
         r = await request.post('/api/model/user/create').set('content-type', 'application/json').send('{bad');
         expect(r.status).toBe(400);
