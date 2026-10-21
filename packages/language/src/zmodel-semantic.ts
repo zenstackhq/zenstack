@@ -67,6 +67,12 @@ export class ZModelSemanticTokenProvider extends AbstractSemanticTokenProvider {
                 property: 'mixins',
                 type: SemanticTokenTypes.type,
             });
+
+            acceptor({
+                node,
+                property: 'base',
+                type: SemanticTokenTypes.type,
+            });
         } else if (isDataSource(node) || isGeneratorDecl(node) || isPlugin(node)) {
             acceptor({
                 node,
