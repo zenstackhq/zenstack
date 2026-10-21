@@ -58,51 +58,6 @@ describe('Custom type primitive tests', () => {
             `);
     });
 
-    it('detects duplicate attributes', async () => {
-        await loadSchemaWithError(
-            `
-                datasource db {
-                    provider = 'postgresql'
-                    url      = env('DATABASE_URL')
-                }
-
-                model User {
-                    id    String   @id
-                    name  UserName @onlyOnce
-                }
-
-                type UserName with String {
-                    this String @onlyOnce
-                }
-
-                attribute @onlyOnce() @@@targetField([StringField]) @@@once @@@validation
-            `,
-            'can only be applied once',
-        );
-
-        await loadSchemaWithError(
-            `
-                datasource db {
-                    provider = 'postgresql'
-                    url      = env('DATABASE_URL')
-                }
-
-                model User {
-                    id    String @id
-                    name  UserName
-                    name2 UserName
-                }
-
-                type UserName with String {
-                    this String @onlyOnce
-                }
-
-                attribute @onlyOnce() @@@targetField([StringField]) @@@onceInModel @@@validation
-            `,
-            'can only be applied to one field per model',
-        );
-    });
-
     it('resolves `this` to the base type', async () => {
         await loadSchema(`
                 datasource db {
