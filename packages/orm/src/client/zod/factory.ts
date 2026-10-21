@@ -85,6 +85,26 @@ export function createQuerySchemaFactory(clientOrSchema: any, options?: any) {
 }
 
 /**
+ * Whether two client options produce the same query-args schemas, i.e. a `ZodSchemaFactory`
+ * built for one can serve the other. Only `omit`, `slicing`, `allowQueryTimeOmitOverride` and
+ * the plugins that extend query args or results shape the schemas; dialect, auth, hooks and
+ * validation flags do not.
+ */
+export function haveSameSchemaInputs(a: ClientOptions<SchemaDef>, b: ClientOptions<SchemaDef>): boolean {
+    if (a === b) {
+        return true;
+    }
+    if (a.omit !== b.omit || a.slicing !== b.slicing || a.allowQueryTimeOmitOverride !== b.allowQueryTimeOmitOverride) {
+        return false;
+    }
+    const shaping = (options: ClientOptions<SchemaDef>) =>
+        (options.plugins ?? []).filter((plugin) => plugin.queryArgs || plugin.result);
+    const pa = shaping(a);
+    const pb = shaping(b);
+    return pa.length === pb.length && pa.every((plugin, index) => plugin === pb[index]);
+}
+
+/**
  * Builds a `DateTime` value schema that accepts a `Date` object or any string
  * the JS `Date` constructor parses, and coerces it to a `Date`. ISO datetime,
  * ISO date, and time-only strings (e.g. `"09:00:00"` for `@db.Time` fields,
