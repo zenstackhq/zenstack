@@ -57,6 +57,7 @@ import {
     getAllLoadedAndReachableDataModelsAndTypeDefs,
     getAuthDecl,
     getContainingDataModel,
+    getPrimitiveTypeDefThisField,
     isAuthInvocation,
     isBeforeInvocation,
     isMemberContainer,
@@ -375,7 +376,10 @@ export class ZModelLinker extends DefaultLinker {
 
         while (decl) {
             if (isPrimitiveTypeDef(decl)) {
-                this.resolveToBuiltinTypeOrDecl(node, decl.base!);
+                const thisField = getPrimitiveTypeDefThisField(decl);
+                if (thisField?.type.type) {
+                    this.resolveToBuiltinTypeOrDecl(node, thisField.type.type);
+                }
                 return;
             }
 

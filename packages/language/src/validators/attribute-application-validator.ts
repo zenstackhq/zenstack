@@ -22,6 +22,7 @@ import {
     isModel,
     isReferenceExpr,
     isStringLiteral,
+    isThisExpr,
     isTypeDef,
 } from '../generated/ast';
 import {
@@ -30,6 +31,7 @@ import {
     getContainingDataModel,
     getDataSourceProvider,
     getNumberLiteral,
+    getPrimitiveTypeDefThisField,
     getStringLiteral,
     hasAttribute,
     isAuthOrAuthMemberAccess,
@@ -390,13 +392,24 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
     @check('@@validate')
     private _checkValidate(attr: AttributeApplication, accept: ValidationAcceptor) {
         const condition = attr.args[0]?.value;
-        if (
-            condition &&
-            AstUtils.streamAst(condition).some(
-                (node) => isDataFieldReference(node) && isDataModel(node.$resolvedType?.decl),
-            )
-        ) {
-            accept('error', `\`@@validate\` condition cannot use relation fields`, { node: condition });
+        if (condition) {
+            if (
+                AstUtils.streamAst(condition).some(
+                    (node) => isDataFieldReference(node) && isDataModel(node.$resolvedType?.decl),
+                )
+            ) {
+                accept('error', `\`@@validate\` condition cannot use relation fields`, { node: condition });
+                return;
+            }
+
+            if (isPrimitiveTypeDef(attr.$container) && AstUtils.streamAst(condition).some((node) => isThisExpr(node))) {
+                const thisField = getPrimitiveTypeDefThisField(attr.$container);
+                if (!thisField) {
+                    accept('error', 'primitive type def cannot reference `this` field without declaring it', {
+                        node: condition,
+                    });
+                }
+            }
         }
     }
 

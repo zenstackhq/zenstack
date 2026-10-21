@@ -337,4 +337,44 @@ describe('Custom type primitive tests', () => {
             'model "User" cannot use a primitive type as a mixin',
         );
     });
+
+    it('rejects when using `this` field without declaring it', async () => {
+        await loadSchemaWithError(
+            `
+                datasource db {
+                    provider = 'postgresql'
+                    url      = env('DATABASE_URL')
+                }
+
+                model User {
+                    id    String @id
+                    email Email
+                }
+
+                type Email with String {
+                    @@validate(isEmail(this))
+                }
+            `,
+            'primitive type def cannot reference `this` field without declaring it',
+        );
+
+        await loadSchemaWithError(
+            `
+                datasource db {
+                    provider = 'postgresql'
+                    url      = env('DATABASE_URL')
+                }
+
+                model User {
+                    id    String @id
+                    score Score
+                }
+
+                type Score with Int {
+                    @@validate(this >= 0)
+                }
+            `,
+            'primitive type def cannot reference `this` field without declaring it',
+        );
+    });
 });
