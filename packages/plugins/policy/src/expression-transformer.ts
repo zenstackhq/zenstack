@@ -1130,6 +1130,17 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         const tableName = context.alias ?? context.modelOrType;
 
         const fieldDef = QueryUtils.requireField(this.schema, context.modelOrType, column);
+
+        if (fieldDef.computed) {
+            // `@computed` fields don't physically exist as columns — inline the
+            // computed expression the same way every other query path does via
+            // `dialect.fieldRef()`, instead of emitting a bare (nonexistent) column ref.
+            if (fieldDef.params) {
+                throw new Error(`parameterized computed field "${column}" cannot be used in a policy expression`);
+            }
+            return this.dialect.fieldRef(context.modelOrType, column, tableName).toOperationNode();
+        }
+
         if (!fieldDef.originModel || fieldDef.originModel === context.modelOrType) {
             return ReferenceNode.create(ColumnNode.create(column), TableNode.create(tableName));
         }
