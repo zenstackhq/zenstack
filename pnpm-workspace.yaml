@@ -28,7 +28,7 @@ catalog:
     react-dom: 19.2.0
     sql.js: ^1.13.0
     svelte: 5.53.5
-    tmp: ^0.2.4
+    tmp: ^0.2.6
     ts-pattern: ^5.7.1
     typescript: ^6.0.3
     vue: 3.5.22
