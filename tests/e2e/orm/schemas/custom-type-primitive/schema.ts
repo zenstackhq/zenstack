@@ -23,21 +23,60 @@ export class SchemaType implements SchemaDef {
                 },
                 name: {
                     name: "name",
-                    type: "UserName",
-                    attributes: [{ name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(2) }, { name: "max", value: ExpressionUtils.literal(16) }] }] as readonly AttributeApplication[]
+                    type: "UserName"
                 },
                 contacts: {
                     name: "contacts",
                     type: "Contact",
-                    array: true,
-                    attributes: [{ name: "@phone" }] as readonly AttributeApplication[]
+                    array: true
                 },
                 age: {
                     name: "age",
                     type: "Age",
                     optional: true,
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(18) }] }, { name: "@gte", args: [{ name: "value", value: ExpressionUtils.literal(18) }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(18) }] }] as readonly AttributeApplication[],
                     default: 18 as FieldDefault
+                },
+                posts: {
+                    name: "posts",
+                    type: "Post",
+                    array: true,
+                    relation: { opposite: "author" }
+                }
+            },
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "String" }
+            }
+        },
+        Post: {
+            name: "Post",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "String",
+                    id: true,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("nanoid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("nanoid") as FieldDefault
+                },
+                authorId: {
+                    name: "authorId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "author"
+                    ] as readonly string[]
+                },
+                author: {
+                    name: "author",
+                    type: "User",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "posts", fields: ["authorId"], references: ["id"] }
+                },
+                tags: {
+                    name: "tags",
+                    type: "PostTag",
+                    array: true,
+                    attributes: [{ name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(2) }, { name: "max", value: ExpressionUtils.literal(3) }] }] as readonly AttributeApplication[]
                 }
             },
             idFields: ["id"],
@@ -77,6 +116,17 @@ export class SchemaType implements SchemaDef {
                     name: "this",
                     type: "Int",
                     attributes: [{ name: "@gte", args: [{ name: "value", value: ExpressionUtils.literal(18) }] }] as readonly AttributeApplication[]
+                }
+            }
+        },
+        PostTag: {
+            name: "PostTag",
+            base: "String",
+            fields: {
+                this: {
+                    name: "this",
+                    type: "String",
+                    attributes: [{ name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(1) }, { name: "max", value: ExpressionUtils.literal(12) }] }] as readonly AttributeApplication[]
                 }
             }
         }

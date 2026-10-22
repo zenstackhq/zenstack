@@ -43,7 +43,7 @@ export class SchemaType implements SchemaDef {
                     name: "age",
                     type: "Age",
                     optional: true,
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(18) }] }, { name: "@gte", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(18) }] }] as readonly AttributeApplication[],
                     default: 18 as FieldDefault
                 }
             },

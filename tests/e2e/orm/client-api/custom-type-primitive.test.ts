@@ -66,5 +66,107 @@ describe('Custom type primitive tests', () => {
                 },
             }),
         ).rejects.toThrow(/Invalid E.164/);
+
+        await expect(
+            client.user.create({
+                data: {
+                    name: 'test',
+                    posts: {
+                        create: {
+                            tags: ['abc', '123'],
+                        },
+                    },
+                },
+
+                include: {
+                    posts: true,
+                },
+            }),
+        ).resolves.toMatchObject({
+            name: 'test',
+            posts: [
+                {
+                    tags: ['abc', '123'],
+                },
+            ],
+        });
+
+        await expect(
+            client.user.create({
+                data: {
+                    name: 'test',
+                    posts: {
+                        create: {
+                            tags: [''],
+                        },
+                    },
+                },
+            }),
+        ).rejects.toThrow(/Too small/);
+
+        await expect(
+            client.user.create({
+                data: {
+                    name: 'test',
+                    posts: {
+                        create: {
+                            tags: ['', ''],
+                        },
+                    },
+                },
+            }),
+        ).rejects.toThrow(/Too small/);
+
+        await expect(
+            client.user.create({
+                data: {
+                    name: 'test',
+                    posts: {
+                        create: {
+                            tags: ['a'],
+                        },
+                    },
+                },
+            }),
+        ).rejects.toThrow(/Too small/);
+
+        await expect(
+            client.user.create({
+                data: {
+                    name: 'test',
+                    posts: {
+                        create: {
+                            tags: [],
+                        },
+                    },
+                },
+            }),
+        ).rejects.toThrow(/Too small/);
+
+        await expect(
+            client.user.create({
+                data: {
+                    name: 'test',
+                    posts: {
+                        create: {
+                            tags: ['abc', '123', 'xyz', 'def'],
+                        },
+                    },
+                },
+            }),
+        ).rejects.toThrow(/Too big/);
+
+        await expect(
+            client.user.create({
+                data: {
+                    name: 'test',
+                    posts: {
+                        create: {
+                            tags: ['abcdefghijklm'],
+                        },
+                    },
+                },
+            }),
+        ).rejects.toThrow(/Too big/);
     });
 });
