@@ -188,7 +188,7 @@ fragment ExtendsClause:
 
 DataField:
     (comments+=TRIPLE_SLASH_COMMENT)*
-    name=RegularIDWithTypeNames ('(' params+=DataFieldParam (',' params+=DataFieldParam)* ')')? type=DataFieldType (attributes+=DataFieldAttribute)*;
+    name=DataFieldName ('(' params+=DataFieldParam (',' params+=DataFieldParam)* ')')? type=DataFieldType (attributes+=DataFieldAttribute)*;
 
 // Parameters of a parameterized field (only meaningful on `@computed` fields).
 // Shares the shape of FunctionParam/ProcedureParam.
@@ -242,7 +242,12 @@ Procedure:
 // https://github.com/langium/langium/discussions/1012
 RegularID returns string:
     // include keywords that we'd like to work as ID in most places
-    ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'view' | 'import' | 'type' | 'this';
+    ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'view' | 'import' | 'type';
+
+// `this` is only allowed as a field name (for primitive type defs' `this` field); keeping it out of
+// `RegularID` avoids ambiguity with `ThisExpr` in expressions
+DataFieldName returns string:
+    RegularIDWithTypeNames | 'this';
 
 RegularIDWithTypeNames returns string:
     RegularID | 'String' | 'Boolean' | 'Int' | 'BigInt' | 'Float' | 'Decimal' | 'DateTime' | 'Json' | 'Bytes' | 'Null' | 'Object' | 'Any' | 'Void' | 'Unsupported';
