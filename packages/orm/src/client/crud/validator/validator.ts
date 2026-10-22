@@ -25,11 +25,17 @@ import { ZodSchemaFactory } from '../../zod/factory';
 
 type GetSchemaFunc<Schema extends SchemaDef> = (model: GetModels<Schema>) => ZodType;
 
-export type InputValidatorOptions = {
+export type InputValidatorOptions<Schema extends SchemaDef> = {
     /**
      * Whether validation is enabled. Defaults to `true`.
      */
     enabled?: boolean;
+
+    /**
+     * Schema factory to validate with. Defaults to a new factory (and so a new schema cache) bound
+     * to the client.
+     */
+    zodFactory?: ZodSchemaFactory<Schema>;
 };
 
 export class InputValidator<Schema extends SchemaDef> {
@@ -38,9 +44,9 @@ export class InputValidator<Schema extends SchemaDef> {
 
     constructor(
         private readonly client: ClientContract<Schema>,
-        options?: InputValidatorOptions,
+        options?: InputValidatorOptions<Schema>,
     ) {
-        this.zodFactory = new ZodSchemaFactory(client);
+        this.zodFactory = options?.zodFactory ?? new ZodSchemaFactory(client);
         this.enabled = options?.enabled !== false;
     }
 

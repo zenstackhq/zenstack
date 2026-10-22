@@ -33,6 +33,7 @@ import { FindOperationHandler } from './crud/operations/find';
 import { GroupByOperationHandler } from './crud/operations/group-by';
 import { UpdateOperationHandler } from './crud/operations/update';
 import { InputValidator } from './crud/validator';
+import { haveSameSchemaInputs } from './zod/factory';
 import type { Diagnostics, QueryInfo } from './diagnostics';
 import { createConfigError, createNotFoundError, createNotSupportedError } from './errors';
 import { ZenStackDriver } from './executor/zenstack-driver';
@@ -518,11 +519,7 @@ export class ClientImpl {
             plugins: newPlugins,
         };
         const newClient = new ClientImpl(this.schema, newOptions, this);
-        // create a new validator to have a fresh schema cache, because plugins may extend the
-        // query args schemas
-        newClient.inputValidator = new InputValidator(newClient as any, {
-            enabled: newOptions.validateInput !== false,
-        });
+        newClient.inputValidator = this.deriveInputValidator(newClient);
         return newClient;
     }
 
@@ -539,11 +536,7 @@ export class ClientImpl {
             plugins: newPlugins,
         };
         const newClient = new ClientImpl(this.schema, newOptions, this);
-        // create a new validator to have a fresh schema cache, because plugins may
-        // extend the query args schemas
-        newClient.inputValidator = new InputValidator(newClient as any, {
-            enabled: newClient.$options.validateInput !== false,
-        });
+        newClient.inputValidator = this.deriveInputValidator(newClient);
         return newClient;
     }
 
@@ -554,12 +547,24 @@ export class ClientImpl {
             plugins: [] as AnyPlugin[],
         };
         const newClient = new ClientImpl(this.schema, newOptions, this);
-        // create a new validator to have a fresh schema cache, because plugins may
-        // extend the query args schemas
-        newClient.inputValidator = new InputValidator(newClient as any, {
-            enabled: newOptions.validateInput !== false,
-        });
+        newClient.inputValidator = this.deriveInputValidator(newClient);
         return newClient;
+    }
+
+    /**
+     * Validator for a client derived from this one. The derived client reuses this client's Zod
+     * schema factory, and so its schema cache, whenever its options shape the same query-args
+     * schemas; it only gets a fresh factory when a plugin that extends query args or results was
+     * added or removed, or `omit`/`slicing` changed. The validator itself is always new because
+     * `validateInput` may differ.
+     */
+    private deriveInputValidator(newClient: ClientImpl) {
+        return new InputValidator(newClient as any, {
+            enabled: newClient.$options.validateInput !== false,
+            zodFactory: haveSameSchemaInputs(this.$options, newClient.$options)
+                ? this.inputValidator.zodFactory
+                : undefined,
+        });
     }
 
     $setAuth(auth: AuthType<SchemaDef> | undefined) {
@@ -588,10 +593,7 @@ export class ClientImpl {
 
     $setOptions<Options extends ClientOptions<SchemaDef>>(options: Options): ClientContract<SchemaDef, Options> {
         const newClient = new ClientImpl(this.schema, options as ClientOptions<SchemaDef>, this);
-        // create a new validator to have a fresh schema cache, because options may change validation settings
-        newClient.inputValidator = new InputValidator(newClient as any, {
-            enabled: newClient.$options.validateInput !== false,
-        });
+        newClient.inputValidator = this.deriveInputValidator(newClient);
         return newClient as unknown as ClientContract<SchemaDef, Options>;
     }
 
