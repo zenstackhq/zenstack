@@ -1,7 +1,7 @@
 import { createTestClient } from '@zenstackhq/testtools';
 import { describe, expect, it } from 'vitest';
 
-describe('Regression for issue 2886', () => {
+describe('Regression for issue 2884', () => {
     it('zero-match updateMany on MySQL does not throw when an afterEntityMutation hook is registered', async () => {
         const db = await createTestClient(
             `
