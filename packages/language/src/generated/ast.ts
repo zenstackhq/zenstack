@@ -354,7 +354,7 @@ export interface DataField extends langium.AstNode {
     readonly $type: 'DataField';
     attributes: Array<DataFieldAttribute>;
     comments: Array<string>;
-    name: RegularIDWithTypeNames;
+    name: DataFieldName;
     params: Array<DataFieldParam>;
     type: DataFieldType;
 }
@@ -387,6 +387,12 @@ export const DataFieldAttribute = {
 
 export function isDataFieldAttribute(item: unknown): item is DataFieldAttribute {
     return reflection.isInstance(item, DataFieldAttribute.$type);
+}
+
+export type DataFieldName = 'this' | RegularIDWithTypeNames;
+
+export function isDataFieldName(item: unknown): item is DataFieldName {
+    return isRegularIDWithTypeNames(item) || item === 'this';
 }
 
 export interface DataFieldParam extends langium.AstNode {
@@ -914,10 +920,10 @@ export function isReferenceTarget(item: unknown): item is ReferenceTarget {
     return reflection.isInstance(item, ReferenceTarget.$type);
 }
 
-export type RegularID = 'abstract' | 'attribute' | 'datasource' | 'enum' | 'import' | 'in' | 'model' | 'plugin' | 'this' | 'type' | 'view' | string;
+export type RegularID = 'abstract' | 'attribute' | 'datasource' | 'enum' | 'import' | 'in' | 'model' | 'plugin' | 'type' | 'view' | string;
 
 export function isRegularID(item: unknown): item is RegularID {
-    return item === 'model' || item === 'enum' || item === 'attribute' || item === 'datasource' || item === 'plugin' || item === 'abstract' || item === 'in' || item === 'view' || item === 'import' || item === 'type' || item === 'this' || (typeof item === 'string' && (/[_a-zA-Z][\w_]*/.test(item)));
+    return item === 'model' || item === 'enum' || item === 'attribute' || item === 'datasource' || item === 'plugin' || item === 'abstract' || item === 'in' || item === 'view' || item === 'import' || item === 'type' || (typeof item === 'string' && (/[_a-zA-Z][\w_]*/.test(item)));
 }
 
 export type RegularIDWithTypeNames = 'Any' | 'BigInt' | 'Boolean' | 'Bytes' | 'DateTime' | 'Decimal' | 'Float' | 'Int' | 'Json' | 'Null' | 'Object' | 'String' | 'Unsupported' | 'Void' | RegularID;
