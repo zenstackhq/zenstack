@@ -17,6 +17,7 @@ import type {
     GetModelFieldType,
     GetModels,
     GetSubModels,
+    GetTypeDef,
     GetTypeDefField,
     GetTypeDefFields,
     GetTypeDefFieldType,
@@ -32,6 +33,7 @@ import type {
     SchemaDef,
     TypeDefFieldIsArray,
     TypeDefFieldIsOptional,
+    TypeDefIsPrimitive,
     UpdatedAtInfo,
 } from '@zenstackhq/schema';
 import type { ExpressionBuilder, OperandExpression, SqlBool } from 'kysely';
@@ -318,27 +320,36 @@ export type TypeDefResult<
     Schema extends SchemaDef,
     TypeDef extends GetTypeDefs<Schema>,
     Partial extends boolean = false,
-> = PartialIf<
-    Optional<
-        {
-            [Key in GetTypeDefFields<Schema, TypeDef>]: MapFieldDefType<
-                Schema,
-                GetTypeDefField<Schema, TypeDef, Key>,
-                Partial
-            >;
-        },
-        // optionality
-        Partial extends true
-            ? never
-            : keyof {
-                  [Key in GetTypeDefFields<Schema, TypeDef> as TypeDefFieldIsOptional<Schema, TypeDef, Key> extends true
-                      ? Key
-                      : never]: true;
-              }
-    >,
-    Partial
-> &
-    (IsTypeDefStrict<Schema, TypeDef> extends true ? {} : Record<string, unknown>);
+> =
+    Schema['typeDefs'] extends Record<string, unknown>
+        ? Schema['typeDefs'][TypeDef]['base'] extends string
+            ? TypeMap[Schema['typeDefs'][TypeDef]['base']]
+            : PartialIf<
+                  Optional<
+                      {
+                          [Key in GetTypeDefFields<Schema, TypeDef>]: MapFieldDefType<
+                              Schema,
+                              GetTypeDefField<Schema, TypeDef, Key>,
+                              Partial
+                          >;
+                      },
+                      // optionality
+                      Partial extends true
+                          ? never
+                          : keyof {
+                                [Key in GetTypeDefFields<Schema, TypeDef> as TypeDefFieldIsOptional<
+                                    Schema,
+                                    TypeDef,
+                                    Key
+                                > extends true
+                                    ? Key
+                                    : never]: true;
+                            }
+                  >,
+                  Partial
+              > &
+                  (IsTypeDefStrict<Schema, TypeDef> extends true ? {} : Record<string, unknown>)
+        : never;
 
 export type IsTypeDefStrict<Schema extends SchemaDef, TypeDef extends GetTypeDefs<Schema>> =
     Schema['typeDefs'] extends Record<string, unknown>
@@ -401,14 +412,22 @@ type FieldFilter<
                   AllowedKinds
               >
             : GetModelFieldType<Schema, Model, Field> extends GetTypeDefs<Schema>
-              ? // typedef
-                TypedJsonFilter<
-                    Schema,
-                    GetModelFieldType<Schema, Model, Field>,
-                    FieldIsArray<Schema, Model, Field>,
-                    ModelFieldIsOptional<Schema, Model, Field>,
-                    AllowedKinds
-                >
+              ? TypeDefIsPrimitive<Schema, GetModelFieldType<Schema, Model, Field>> extends true
+                  ? // primitive typedef — filter like its base type
+                    PrimitiveFilter<
+                        TypeDefBaseType<Schema, GetModelFieldType<Schema, Model, Field>>,
+                        ModelFieldIsOptional<Schema, Model, Field>,
+                        WithAggregations,
+                        AllowedKinds
+                    >
+                  : // JSON typedef
+                    TypedJsonFilter<
+                        Schema,
+                        GetModelFieldType<Schema, Model, Field>,
+                        FieldIsArray<Schema, Model, Field>,
+                        ModelFieldIsOptional<Schema, Model, Field>,
+                        AllowedKinds
+                    >
               : // primitive
                 GetModelFieldType<Schema, Model, Field> extends 'String'
                 ? // string — additionally consider fuzzy / full-text augmentations
@@ -584,9 +603,23 @@ type ArrayFilter<
           }
         : {});
 
+// the base builtin type of a primitive typedef (e.g. `Int` for `type Age with Int`)
+type TypeDefBaseType<Schema extends SchemaDef, TypeDef extends GetTypeDefs<Schema>> = GetTypeDef<
+    Schema,
+    TypeDef
+>['base'] extends infer B extends string
+    ? B
+    : never;
+
 // map a scalar type (primitive and enum) to TS type
 type MapScalarType<Schema extends SchemaDef, Type extends string> =
-    Type extends GetEnums<Schema> ? keyof GetEnum<Schema, Type> : MapBaseType<Type>;
+    Type extends GetEnums<Schema>
+        ? keyof GetEnum<Schema, Type>
+        : Type extends GetTypeDefs<Schema>
+          ? TypeDefIsPrimitive<Schema, Type> extends true
+              ? MapBaseType<TypeDefBaseType<Schema, Type>>
+              : MapBaseType<Type>
+          : MapBaseType<Type>;
 
 type PrimitiveFilter<
     T extends string,
@@ -973,14 +1006,24 @@ type TypedJsonFieldsFilter<
         TypeDefName,
         Key
     > extends GetTypeDefs<Schema>
-        ? // nested typedef - recurse
-          TypedJsonFilter<
-              Schema,
-              GetTypeDefFieldType<Schema, TypeDefName, Key>,
-              TypeDefFieldIsArray<Schema, TypeDefName, Key>,
-              TypeDefFieldIsOptional<Schema, TypeDefName, Key>,
-              AllowedKinds
-          >
+        ? TypeDefIsPrimitive<Schema, GetTypeDefFieldType<Schema, TypeDefName, Key>> extends true
+            ? // primitive typedef — filter like its base type
+              TypeDefFieldIsArray<Schema, TypeDefName, Key> extends true
+                ? ArrayFilter<Schema, GetTypeDefFieldType<Schema, TypeDefName, Key>, AllowedKinds>
+                : PrimitiveFilter<
+                      TypeDefBaseType<Schema, GetTypeDefFieldType<Schema, TypeDefName, Key>>,
+                      TypeDefFieldIsOptional<Schema, TypeDefName, Key>,
+                      false,
+                      AllowedKinds
+                  >
+            : // nested JSON typedef - recurse
+              TypedJsonFilter<
+                  Schema,
+                  GetTypeDefFieldType<Schema, TypeDefName, Key>,
+                  TypeDefFieldIsArray<Schema, TypeDefName, Key>,
+                  TypeDefFieldIsOptional<Schema, TypeDefName, Key>,
+                  AllowedKinds
+              >
         : // array
           TypeDefFieldIsArray<Schema, TypeDefName, Key> extends true
           ? ArrayFilter<Schema, GetTypeDefFieldType<Schema, TypeDefName, Key>, AllowedKinds>
@@ -1485,8 +1528,10 @@ type MapFieldDefType<
     T['type'] extends GetEnums<Schema>
         ? keyof GetEnum<Schema, T['type']>
         : T['type'] extends GetTypeDefs<Schema>
-          ? TypeDefResult<Schema, T['type'], Partial> &
-                (IsTypeDefStrict<Schema, T['type']> extends true ? {} : Record<string, unknown>)
+          ? TypeDefIsPrimitive<Schema, T['type']> extends true
+              ? TypeDefResult<Schema, T['type']>
+              : TypeDefResult<Schema, T['type'], Partial> &
+                    (IsTypeDefStrict<Schema, T['type']> extends true ? {} : Record<string, unknown>)
           : MapBaseType<T['type']>,
     T['optional'],
     T['array']

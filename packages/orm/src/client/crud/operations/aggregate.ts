@@ -1,7 +1,7 @@
 import type { SchemaDef } from '@zenstackhq/schema';
 import { match } from 'ts-pattern';
 import { createInvalidInputError } from '../../errors';
-import { getField } from '../../query-utils';
+import { getField, isPrimitiveTypeDef } from '../../query-utils';
 import { BaseOperationHandler } from './base';
 
 // stable key for comparing two `args` payloads (bigint-safe)
@@ -162,7 +162,9 @@ export class AggregateOperationHandler<Schema extends SchemaDef> extends BaseOpe
             if (typeof value === 'string') {
                 const fieldDef = getField(this.schema, this.model, field);
                 if (fieldDef) {
-                    const type = fieldDef.type;
+                    const type = isPrimitiveTypeDef(this.schema, fieldDef.type)
+                        ? this.schema.typeDefs![fieldDef.type]!.base!
+                        : fieldDef.type;
                     if (op === '_avg') {
                         val = parseFloat(val);
                     } else {

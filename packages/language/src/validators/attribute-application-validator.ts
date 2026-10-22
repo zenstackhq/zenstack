@@ -22,6 +22,7 @@ import {
     isModel,
     isReferenceExpr,
     isStringLiteral,
+    isThisExpr,
     isTypeDef,
 } from '../generated/ast';
 import {
@@ -30,6 +31,7 @@ import {
     getContainingDataModel,
     getDataSourceProvider,
     getNumberLiteral,
+    getPrimitiveTypeDefThisField,
     getStringLiteral,
     hasAttribute,
     isAuthOrAuthMemberAccess,
@@ -40,6 +42,7 @@ import {
     isDelegateModel,
     isManyToManyField,
     isNativeTypeMappingAttribute,
+    isPrimitiveTypeDef,
     isRelationshipField,
     mapBuiltinTypeToExpressionType,
     resolved,
@@ -142,6 +145,14 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
         }
 
         const targetDecl = attr.$container;
+        if (
+            (isPrimitiveTypeDef(targetDecl) || isPrimitiveTypeDef(targetDecl.$container)) &&
+            !hasAttribute(attr.decl.ref!, '@@@validation')
+        ) {
+            accept('error', `attribute "${decl.name}" cannot be used with primitive type defs`, { node: attr });
+            return;
+        }
+
         if (decl.name === '@@@targetField' && !isAttribute(targetDecl)) {
             accept('error', `attribute "${decl.name}" can only be used on attribute declarations`, { node: attr });
             return;
@@ -381,13 +392,24 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
     @check('@@validate')
     private _checkValidate(attr: AttributeApplication, accept: ValidationAcceptor) {
         const condition = attr.args[0]?.value;
-        if (
-            condition &&
-            AstUtils.streamAst(condition).some(
-                (node) => isDataFieldReference(node) && isDataModel(node.$resolvedType?.decl),
-            )
-        ) {
-            accept('error', `\`@@validate\` condition cannot use relation fields`, { node: condition });
+        if (condition) {
+            if (
+                AstUtils.streamAst(condition).some(
+                    (node) => isDataFieldReference(node) && isDataModel(node.$resolvedType?.decl),
+                )
+            ) {
+                accept('error', `\`@@validate\` condition cannot use relation fields`, { node: condition });
+                return;
+            }
+
+            if (isPrimitiveTypeDef(attr.$container) && AstUtils.streamAst(condition).some((node) => isThisExpr(node))) {
+                const thisField = getPrimitiveTypeDefThisField(attr.$container);
+                if (!thisField) {
+                    accept('error', 'primitive type def cannot reference `this` field without declaring it', {
+                        node: condition,
+                    });
+                }
+            }
         }
     }
 
@@ -664,10 +686,16 @@ function assignableToAttributeParam(
             // attribute parameter type is ContextType, need to infer type from
             // the attribute's container
             if (isDataField(attr.$container)) {
-                if (!attr.$container?.type?.type) {
-                    return genericError;
+                if (attr.$container.type.reference?.ref && isPrimitiveTypeDef(attr.$container.type.reference.ref)) {
+                    dstType = mapBuiltinTypeToExpressionType(attr.$container.type.reference.ref.base!);
+                } else {
+                    if (!attr.$container?.type?.type) {
+                        return genericError;
+                    }
+
+                    dstType = mapBuiltinTypeToExpressionType(attr.$container.type.type);
                 }
-                dstType = mapBuiltinTypeToExpressionType(attr.$container.type.type);
+
                 dstIsArray = attr.$container.type.array;
             } else {
                 dstType = 'Any';
@@ -708,34 +736,35 @@ function isValidAttributeTarget(attrDecl: Attribute, targetDecl: DataField) {
         .filter((name): name is string => !!name);
 
     let allowed = false;
+    const targetDeclType = targetDecl.$resolvedType?.decl ?? targetDecl.type.type;
     for (const allowedType of fieldTypes) {
         switch (allowedType) {
             case 'StringField':
-                allowed = allowed || targetDecl.type.type === 'String';
+                allowed = allowed || targetDeclType === 'String';
                 break;
             case 'IntField':
-                allowed = allowed || targetDecl.type.type === 'Int';
+                allowed = allowed || targetDeclType === 'Int';
                 break;
             case 'BigIntField':
-                allowed = allowed || targetDecl.type.type === 'BigInt';
+                allowed = allowed || targetDeclType === 'BigInt';
                 break;
             case 'FloatField':
-                allowed = allowed || targetDecl.type.type === 'Float';
+                allowed = allowed || targetDeclType === 'Float';
                 break;
             case 'DecimalField':
-                allowed = allowed || targetDecl.type.type === 'Decimal';
+                allowed = allowed || targetDeclType === 'Decimal';
                 break;
             case 'BooleanField':
-                allowed = allowed || targetDecl.type.type === 'Boolean';
+                allowed = allowed || targetDeclType === 'Boolean';
                 break;
             case 'DateTimeField':
-                allowed = allowed || targetDecl.type.type === 'DateTime';
+                allowed = allowed || targetDeclType === 'DateTime';
                 break;
             case 'JsonField':
-                allowed = allowed || targetDecl.type.type === 'Json';
+                allowed = allowed || targetDeclType === 'Json';
                 break;
             case 'BytesField':
-                allowed = allowed || targetDecl.type.type === 'Bytes';
+                allowed = allowed || targetDeclType === 'Bytes';
                 break;
             case 'ModelField':
                 allowed = allowed || isDataModel(targetDecl.type.reference?.ref);

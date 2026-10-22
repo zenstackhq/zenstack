@@ -179,7 +179,9 @@ DataModel:
     '}';
 
 fragment WithClause:
-    'with' mixins+=[TypeDef] (','? mixins+=[TypeDef])*;
+    'with' 
+    (mixins+=[TypeDef] | base=BuiltinType) 
+    (','? mixins+=[TypeDef])*;
 
 fragment ExtendsClause:
     'extends' baseModel=[DataModel];
@@ -240,7 +242,7 @@ Procedure:
 // https://github.com/langium/langium/discussions/1012
 RegularID returns string:
     // include keywords that we'd like to work as ID in most places
-    ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'view' | 'import' | 'type';
+    ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'view' | 'import' | 'type' | 'this';
 
 RegularIDWithTypeNames returns string:
     RegularID | 'String' | 'Boolean' | 'Int' | 'BigInt' | 'Float' | 'Decimal' | 'DateTime' | 'Json' | 'Bytes' | 'Null' | 'Object' | 'Any' | 'Void' | 'Unsupported';

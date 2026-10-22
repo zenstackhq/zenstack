@@ -250,6 +250,13 @@ export function isLiteAttribute(node: AstNode): node is Attribute {
 }
 
 /**
+ * Returns if the given node is primitive type def.
+ */
+export function isPrimitiveTypeDef(node: AstNode): node is TypeDef {
+    return isTypeDef(node) && !!node.base;
+}
+
+/**
  * Returns the datasource provider literal (e.g. `'postgresql'`) declared in the schema, or undefined
  * if no datasource is found or its provider is not a literal.
  */
@@ -735,6 +742,10 @@ export function getAllFields(
 
     fields.push(...decl.fields.filter((f) => includeIgnored || !hasAttribute(f, '@ignore')));
     return fields;
+}
+
+export function getPrimitiveTypeDefThisField(td: TypeDef) {
+    return td.fields.find((f) => f.name === 'this');
 }
 
 /**

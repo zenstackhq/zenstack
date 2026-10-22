@@ -57,9 +57,11 @@ import {
     getAllLoadedAndReachableDataModelsAndTypeDefs,
     getAuthDecl,
     getContainingDataModel,
+    getPrimitiveTypeDefThisField,
     isAuthInvocation,
     isBeforeInvocation,
     isMemberContainer,
+    isPrimitiveTypeDef,
     mapBuiltinTypeToExpressionType,
 } from './utils';
 
@@ -372,12 +374,21 @@ export class ZModelLinker extends DefaultLinker {
 
         let decl: AstNode | undefined = node.$container;
 
-        while (decl && !isDataModel(decl)) {
-            decl = decl.$container;
-        }
+        while (decl) {
+            if (isPrimitiveTypeDef(decl)) {
+                const thisField = getPrimitiveTypeDefThisField(decl);
+                if (thisField?.type.type) {
+                    this.resolveToBuiltinTypeOrDecl(node, thisField.type.type);
+                }
+                return;
+            }
 
-        if (decl) {
-            this.resolveToBuiltinTypeOrDecl(node, decl);
+            if (isDataModel(decl)) {
+                this.resolveToBuiltinTypeOrDecl(node, decl);
+                return;
+            }
+
+            decl = decl.$container;
         }
     }
 
@@ -497,11 +508,19 @@ export class ZModelLinker extends DefaultLinker {
 
         let scopes = extraScopes;
 
-        // if the field has enum declaration type, resolve the rest with that enum's fields on top of the scopes
-        if (node.type.reference?.ref && isEnum(node.type.reference.ref)) {
-            const contextEnum = node.type.reference.ref as Enum;
-            const enumScope: ScopeProvider = (name) => contextEnum.fields.find((f) => f.name === name);
-            scopes = [enumScope, ...scopes];
+        if (node.type.reference?.ref) {
+            // if the field has enum declaration type, resolve the rest with that enum's fields on top of the scopes
+            if (isEnum(node.type.reference.ref)) {
+                const contextEnum = node.type.reference.ref as Enum;
+                const enumScope: ScopeProvider = (name) => contextEnum.fields.find((f) => f.name === name);
+                scopes = [enumScope, ...scopes];
+            } else if (isPrimitiveTypeDef(node.type.reference.ref)) {
+                node.$resolvedType = {
+                    decl: node.type.reference.ref.base,
+                    array: node.type.array,
+                    nullable: node.type.optional,
+                };
+            }
         }
 
         this.resolveDefault(node, document, scopes);
@@ -543,6 +562,12 @@ export class ZModelLinker extends DefaultLinker {
             const mappedType = mapBuiltinTypeToExpressionType(type.type);
             node.$resolvedType = {
                 decl: mappedType,
+                array: type.array,
+                nullable: nullable,
+            };
+        } else if (type.reference?.ref && isPrimitiveTypeDef(type.reference.ref)) {
+            node.$resolvedType = {
+                decl: type.reference.ref.base,
                 array: type.array,
                 nullable: nullable,
             };

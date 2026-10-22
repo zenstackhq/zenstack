@@ -2013,17 +2013,34 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "value": "with"
           },
           {
-            "$type": "Assignment",
-            "feature": "mixins",
-            "operator": "+=",
-            "terminal": {
-              "$type": "CrossReference",
-              "type": {
-                "$ref": "#/rules@44"
+            "$type": "Alternatives",
+            "elements": [
+              {
+                "$type": "Assignment",
+                "feature": "mixins",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "CrossReference",
+                  "type": {
+                    "$ref": "#/rules@44"
+                  },
+                  "deprecatedSyntax": false,
+                  "isMulti": false
+                }
               },
-              "deprecatedSyntax": false,
-              "isMulti": false
-            }
+              {
+                "$type": "Assignment",
+                "feature": "base",
+                "operator": "=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@64"
+                  },
+                  "arguments": []
+                }
+              }
+            ]
           },
           {
             "$type": "Group",
@@ -3087,6 +3104,10 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
           {
             "$type": "Keyword",
             "value": "type"
+          },
+          {
+            "$type": "Keyword",
+            "value": "this"
           }
         ]
       },
