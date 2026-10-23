@@ -64,8 +64,9 @@ model Post {
 }
 
 model Holder {
-    id     Int     @id @default(autoincrement())
+    id     HolderId @id
     labels Label[]
+    assets Asset[]
 }
 
 // --- Computed fields ---
@@ -82,6 +83,9 @@ model Asset {
     id        Int      @id @default(autoincrement())
     createdAt DateTime @default(now())
     assetType String
+
+    holderId  HolderId
+    holder    Holder   @relation(fields: [holderId], references: [id])
 
     @@delegate(assetType)
 }
@@ -120,4 +124,11 @@ type Contact with String {
 
 type PostTag with String {
     this String @lower @length(1, 12)
+}
+
+type HolderId with String {
+    this String
+
+    @@validate(startsWith(this, 'holder_'))
+    @@branded
 }

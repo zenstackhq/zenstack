@@ -1,0 +1,45 @@
+datasource db {
+    provider = 'sqlite'
+}
+
+model User {
+    id    UserId  @id
+    email Email   @unique
+    age   Age?
+    posts Post[]
+}
+
+model Post {
+    id       PostId @id
+    title    String
+    author   User   @relation(fields: [authorId], references: [id])
+    authorId UserId
+}
+
+type UserId with String {
+    this String
+
+    @@validate(startsWith(this, 'user_'))
+    @@branded
+}
+
+type PostId with String {
+    this String
+
+    @@validate(startsWith(this, 'post_'))
+    @@branded
+}
+
+type Email with String {
+    this String @email
+    @@branded
+}
+
+type Age with Int {
+    this Int @gte(0)
+    @@branded
+}
+
+procedure getUserEmail(id: UserId): Email
+
+mutation procedure setUserAge(id: UserId, age: Age): Age
