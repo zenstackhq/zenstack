@@ -779,6 +779,14 @@ export type StringFilter<
                 }
               : {}));
 
+// operand type of a number filter: a branded field only accepts its own branded type (e.g. `bigint & { __brand }`
+// for a branded `BigInt`), an unbranded field accepts `Unbranded`
+type NumberFilterOperand<T extends 'Int' | 'Float' | 'Decimal' | 'BigInt', Unbranded, Brand extends string> = [
+    Brand,
+] extends [never]
+    ? Unbranded
+    : Branded<MapBaseType<T>, Brand>;
+
 export type NumberFilter<
     T extends 'Int' | 'Float' | 'Decimal' | 'BigInt',
     Nullable extends boolean,
@@ -786,8 +794,15 @@ export type NumberFilter<
     AllowedKinds extends FilterKind = FilterKind,
     Brand extends string = never,
 > =
-    | ('Equality' extends AllowedKinds ? NullableIf<Branded<number | bigint, Brand>, Nullable> : never)
-    | (CommonPrimitiveFilter<Branded<number, Brand>, T, Nullable, WithAggregations, AllowedKinds, Brand> &
+    | ('Equality' extends AllowedKinds ? NullableIf<NumberFilterOperand<T, number | bigint, Brand>, Nullable> : never)
+    | (CommonPrimitiveFilter<
+          NumberFilterOperand<T, number, Brand>,
+          T,
+          Nullable,
+          WithAggregations,
+          AllowedKinds,
+          Brand
+      > &
           (WithAggregations extends true
               ? {
                     /**
