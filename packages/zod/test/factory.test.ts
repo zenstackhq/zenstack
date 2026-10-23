@@ -1828,7 +1828,9 @@ describe.each([
             it('infers correct types when branded', () => {
                 const _holderSchema = factory.makeModelSchema('Holder');
                 type Holder = z.infer<typeof _holderSchema>;
+                type HolderInput = z.input<typeof _holderSchema>;
 
+                expectTypeOf<HolderInput['id']>().toEqualTypeOf<string>();
                 expectTypeOf<Holder['id']>().toEqualTypeOf<
                     string & {
                         __brand: 'HolderId';
@@ -1837,7 +1839,9 @@ describe.each([
 
                 const _assetSchema = factory.makeModelSchema('Asset');
                 type Asset = z.infer<typeof _assetSchema>;
+                type AssetInput = z.input<typeof _assetSchema>;
 
+                expectTypeOf<AssetInput['holderId']>().toEqualTypeOf<string>();
                 expectTypeOf<Asset['holderId']>().toEqualTypeOf<
                     string & {
                         __brand: 'HolderId';
