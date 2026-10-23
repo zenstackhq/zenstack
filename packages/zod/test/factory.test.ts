@@ -1814,5 +1814,42 @@ describe.each([
                 expect(result.data?.tags).toEqual(['a', 'b']);
             });
         });
+
+        describe('branding', () => {
+            it('infers correct types when branded', () => {
+                const _holderSchema = factory.makeModelSchema('Holder');
+                type Holder = z.infer<typeof _holderSchema>;
+
+                expectTypeOf<Holder['id']>().toEqualTypeOf<
+                    string & {
+                        __brand: 'HolderId';
+                    }
+                >();
+
+                const _assetSchema = factory.makeModelSchema('Asset');
+                type Asset = z.infer<typeof _assetSchema>;
+
+                expectTypeOf<Asset['holderId']>().toEqualTypeOf<
+                    string & {
+                        __brand: 'HolderId';
+                    }
+                >();
+            });
+
+            it('retains the validation rules of the primitive', () => {
+                const holderSchema = factory.makeModelSchema('Holder');
+                let result = holderSchema.safeParse({
+                    id: 'holder_test',
+                    labels: [],
+                });
+                expect(result.success).toBe(true);
+
+                result = holderSchema.safeParse({
+                    id: 'test',
+                    labels: [],
+                });
+                expect(result.success).toBe(false);
+            });
+        });
     });
 });
