@@ -1198,7 +1198,9 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         if (!ExpressionUtils.isMember(expr) || !isBeforeInvocation(expr.receiver)) {
             return false;
         }
-        const fieldDef = QueryUtils.getField(this.schema, context.modelOrType, expr.members[0]!);
+        // `before()` always refers to the model being updated (`thisType`), even inside
+        // collection predicates where `modelOrType` is the related model
+        const fieldDef = QueryUtils.getField(this.schema, context.thisType, expr.members[0]!);
         return !!fieldDef && QueryUtils.isEnum(this.schema, fieldDef.type);
     }
 
