@@ -460,6 +460,13 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
                 ? this.getInsertIds(mutationInfo.model, queryNode, queryResult)
                 : preUpdateIds;
 
+            if (mutatedIds && mutatedIds.length === 0) {
+                // zero rows matched (e.g. a policy-denied or genuinely empty
+                // updateMany/deleteMany) — nothing to reload, and NOT the "can't
+                // determine ids at all" case below, so don't warn.
+                return [];
+            }
+
             if (mutatedIds) {
                 const idFields = requireIdFields(this.client.$schema, mutationInfo.model);
                 const eb = expressionBuilder<any, any>();
