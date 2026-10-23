@@ -36,6 +36,16 @@ export class SchemaType implements SchemaDef {
                     type: "Age",
                     optional: true
                 },
+                credits: {
+                    name: "credits",
+                    type: "Credits",
+                    optional: true
+                },
+                balance: {
+                    name: "balance",
+                    type: "Balance",
+                    optional: true
+                },
                 posts: {
                     name: "posts",
                     type: "Post",
@@ -136,6 +146,35 @@ export class SchemaType implements SchemaDef {
                     name: "this",
                     type: "Int",
                     attributes: [{ name: "@gte", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[]
+                }
+            },
+            attributes: [
+                { name: "@@branded" }
+            ] as readonly AttributeApplication[],
+            branded: true
+        },
+        Credits: {
+            name: "Credits",
+            base: "BigInt",
+            fields: {
+                this: {
+                    name: "this",
+                    type: "BigInt",
+                    attributes: [{ name: "@gte", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[]
+                }
+            },
+            attributes: [
+                { name: "@@branded" }
+            ] as readonly AttributeApplication[],
+            branded: true
+        },
+        Balance: {
+            name: "Balance",
+            base: "Decimal",
+            fields: {
+                this: {
+                    name: "this",
+                    type: "Decimal"
                 }
             },
             attributes: [

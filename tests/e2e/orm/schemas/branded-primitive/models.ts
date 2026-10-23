@@ -13,3 +13,5 @@ export type UserId = $TypeDefResult<$Schema, "UserId">;
 export type PostId = $TypeDefResult<$Schema, "PostId">;
 export type Email = $TypeDefResult<$Schema, "Email">;
 export type Age = $TypeDefResult<$Schema, "Age">;
+export type Credits = $TypeDefResult<$Schema, "Credits">;
+export type Balance = $TypeDefResult<$Schema, "Balance">;

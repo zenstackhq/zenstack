@@ -4,11 +4,13 @@ datasource db {
 }
 
 model User {
-    id    UserId  @id
-    email Email   @unique
-    name  String?
-    age   Age?
-    posts Post[]
+    id      UserId   @id
+    email   Email    @unique
+    name    String?
+    age     Age?
+    credits Credits?
+    balance Balance?
+    posts   Post[]
 }
 
 model Post {
@@ -39,5 +41,15 @@ type Email with String {
 
 type Age with Int {
     this Int @gte(0)
+    @@branded
+}
+
+type Credits with BigInt {
+    this BigInt @gte(0)
+    @@branded
+}
+
+type Balance with Decimal {
+    this Decimal
     @@branded
 }
