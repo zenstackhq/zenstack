@@ -967,6 +967,7 @@ describe.each([
         id: 1,
         createdAt: new Date(),
         assetType: 'Video',
+        holderId: 'holder_1',
         duration: 120,
         url: 'https://example.com/video.mp4',
     };
@@ -975,6 +976,7 @@ describe.each([
         id: 2,
         createdAt: new Date(),
         assetType: 'Image',
+        holderId: 'holder_1',
         format: 'png',
         width: 800,
     };
@@ -983,7 +985,10 @@ describe.each([
         describe('makeModelSchema for delegate base model', () => {
             it('accepts a valid Asset', () => {
                 const assetSchema = factory.makeModelSchema('Asset');
-                expect(assetSchema.safeParse({ id: 1, createdAt: new Date(), assetType: 'Video' }).success).toBe(true);
+                expect(
+                    assetSchema.safeParse({ id: 1, createdAt: new Date(), assetType: 'Video', holderId: 'holder_1' })
+                        .success,
+                ).toBe(true);
             });
 
             it('includes discriminator field in model schema type', () => {
@@ -1027,9 +1032,13 @@ describe.each([
             it('accepts Video create without discriminator and inherited fields', () => {
                 const createSchema = factory.makeModelCreateSchema('Video');
                 // Only own non-inherited, non-discriminator fields should be required
-                expect(createSchema.safeParse({ duration: 120, url: 'https://example.com/video.mp4' }).success).toBe(
-                    true,
-                );
+                expect(
+                    createSchema.safeParse({
+                        duration: 120,
+                        url: 'https://example.com/video.mp4',
+                        holderId: 'holder_1',
+                    }).success,
+                ).toBe(true);
             });
 
             it('rejects Video create with discriminator field (strict)', () => {
@@ -1058,9 +1067,9 @@ describe.each([
             it('excludes discriminator from base delegate create schema', () => {
                 const createSchema = factory.makeModelCreateSchema('Asset');
                 // discriminator should not be included
-                expect(createSchema.safeParse({ assetType: 'Video' }).success).toBe(false);
-                // empty create (id has default, createdAt has default, assetType is discriminator)
-                expect(createSchema.safeParse({}).success).toBe(true);
+                expect(createSchema.safeParse({ assetType: 'Video', holderId: 'holder_1' }).success).toBe(false);
+                // only the foreign key is required (id has default, createdAt has default, assetType is discriminator)
+                expect(createSchema.safeParse({ holderId: 'holder_1' }).success).toBe(true);
             });
 
             it('does not include discriminator in base delegate create schema type', () => {
@@ -1605,10 +1614,10 @@ describe.each([
 
                 it('makes @default(autoincrement) and @default(now) fields optional on Asset', () => {
                     const schema = factory.makeModelSchema('Asset', { optionality: 'defaults' });
-                    // assetType has no default — must be provided
-                    expect(schema.safeParse({ assetType: 'Video' }).success).toBe(true);
+                    // assetType and holderId have no default — must be provided
+                    expect(schema.safeParse({ assetType: 'Video', holderId: 'holder_1' }).success).toBe(true);
                     // omitting assetType fails
-                    expect(schema.safeParse({}).success).toBe(false);
+                    expect(schema.safeParse({ holderId: 'holder_1' }).success).toBe(false);
                 });
             });
 
@@ -1789,19 +1798,19 @@ describe.each([
             it('does not apply string lengths to lists', () => {
                 const holderSchema = factory.makeModelSchema('Holder');
                 let result = holderSchema.safeParse({
-                    id: 0,
+                    id: 'holder_1',
                     labels: [],
                 });
                 expect(result.success).toBe(true);
 
                 result = holderSchema.safeParse({
-                    id: 0,
+                    id: 'holder_1',
                     labels: [''],
                 });
                 expect(result.success).toBe(false);
 
                 result = holderSchema.safeParse({
-                    id: 0,
+                    id: 'holder_1',
                     labels: ['a'],
                 });
                 expect(result.success).toBe(true);
