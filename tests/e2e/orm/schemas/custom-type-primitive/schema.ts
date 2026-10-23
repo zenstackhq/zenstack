@@ -37,6 +37,11 @@ export class SchemaType implements SchemaDef {
                     attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(18) }] }] as readonly AttributeApplication[],
                     default: 18 as FieldDefault
                 },
+                scores: {
+                    name: "scores",
+                    type: "Score",
+                    array: true
+                },
                 posts: {
                     name: "posts",
                     type: "Post",
@@ -127,6 +132,16 @@ export class SchemaType implements SchemaDef {
                     name: "this",
                     type: "String",
                     attributes: [{ name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(1) }, { name: "max", value: ExpressionUtils.literal(12) }] }] as readonly AttributeApplication[]
+                }
+            }
+        },
+        Score: {
+            name: "Score",
+            base: "BigInt",
+            fields: {
+                this: {
+                    name: "this",
+                    type: "BigInt"
                 }
             }
         }

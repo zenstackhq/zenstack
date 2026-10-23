@@ -120,9 +120,13 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
         }
     }
 
-    override transformOutput(value: unknown, type: BuiltinType, array: boolean) {
+    override transformOutput(value: unknown, type: BuiltinType, array: boolean): unknown {
         if (value === null || value === undefined) {
             return value;
+        }
+
+        if (isPrimitiveTypeDef(this.schema, type)) {
+            return this.transformOutput(value, this.schema.typeDefs![type]!.base!, array);
         }
 
         switch (type) {
@@ -185,7 +189,17 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
     }
 
     private transformOutputBytes(value: unknown) {
-        return Buffer.isBuffer(value) ? Uint8Array.from(value) : value;
+        if (Buffer.isBuffer(value)) {
+            return Uint8Array.from(value);
+        }
+        // MySQL encodes binary values embedded in JSON as `base64:type<N>:<data>`
+        if (typeof value === 'string') {
+            const match = /^base64:type\d+:(.*)$/s.exec(value);
+            if (match) {
+                return Uint8Array.from(Buffer.from(match[1]!, 'base64'));
+            }
+        }
+        return value;
     }
 
     // #endregion
