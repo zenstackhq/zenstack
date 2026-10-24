@@ -436,6 +436,26 @@ describe.each([
             });
         });
 
+        describe('bytes validation attributes', () => {
+            it('rejects avatar too short for @length(3, 5)', () => {
+                const userSchema = factory.makeModelSchema('User');
+                const result = userSchema.safeParse({ ...validUser, avatar: new Uint8Array([1, 2]) });
+                expect(result.success).toBe(false);
+            });
+
+            it('rejects avatar too long for @length(3, 5)', () => {
+                const userSchema = factory.makeModelSchema('User');
+                const result = userSchema.safeParse({ ...validUser, avatar: new Uint8Array([1, 2, 3, 4, 5, 6]) });
+                expect(result.success).toBe(false);
+            });
+
+            it('accepts avatar within @length bounds', () => {
+                const userSchema = factory.makeModelSchema('User');
+                const result = userSchema.safeParse({ ...validUser, avatar: new Uint8Array([1, 2, 3, 4]) });
+                expect(result.success).toBe(true);
+            });
+        });
+
         describe('enum fields', () => {
             it('accepts valid enum values', () => {
                 const userSchema = factory.makeModelSchema('User');
