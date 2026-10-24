@@ -96,7 +96,8 @@ export class SchemaType implements SchemaDef {
                 avatar: {
                     name: "avatar",
                     type: "Bytes",
-                    optional: true
+                    optional: true,
+                    attributes: [{ name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(3) }, { name: "max", value: ExpressionUtils.literal(5) }] }] as readonly AttributeApplication[]
                 },
                 metadata: {
                     name: "metadata",

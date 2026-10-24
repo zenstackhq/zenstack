@@ -43,7 +43,7 @@ model User {
     localTime String?   @time
     extId     String?   @uuid
     createdAt DateTime?
-    avatar    Bytes?
+    avatar    Bytes?    @length(3, 5)
     metadata  Json?
     status    Status
     address   Address?  @json
