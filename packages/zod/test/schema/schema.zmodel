@@ -68,6 +68,12 @@ model Holder {
     labels Label[]
 }
 
+model Upload {
+    id     Int     @id @default(autoincrement())
+    chunks Chunk[] @length(2, 3)
+    blobs  Chunk[]
+}
+
 // --- Computed fields ---
 model Product {
     id         String @id @default(cuid())
@@ -120,4 +126,8 @@ type Contact with String {
 
 type PostTag with String {
     this String @lower @length(1, 12)
+}
+
+type Chunk with Bytes {
+    this Bytes @length(1, 4)
 }
