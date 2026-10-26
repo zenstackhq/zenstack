@@ -207,7 +207,7 @@ class SoftDeleteHandler<Schema extends SchemaDef> extends OperationNodeTransform
     // Resolve the single `@deletedAt` column to filter when reading a table. `@@@onceInModel` allows
     // at most one marker per inheritance hierarchy, so it's either declared on the model itself or
     // inherited from exactly one delegate base — where the column physically lives on the base's
-    // table (LEFT-joined under its own model name, see buildDelegateJoin), so the filter must key off
+    // table (LEFT-joined under `delegateJoinAlias`, see buildDelegateJoin), so the filter must key off
     // that base rather than the queried table.
     private getSoftDeleteTarget(info: TableInfo): { table: string; column: string } | undefined {
         const own = this.getDeletedAtField(info.model);
@@ -218,7 +218,10 @@ class SoftDeleteHandler<Schema extends SchemaDef> extends OperationNodeTransform
         while (base) {
             const marker = this.getDeletedAtField(base);
             if (marker) {
-                return { table: base, column: marker.name };
+                return {
+                    table: this.dialect.delegateJoinAlias(info.model, info.alias ?? info.model, base),
+                    column: marker.name,
+                };
             }
             base = QueryUtils.getModel(this.client.$schema, base)?.baseModel;
         }
