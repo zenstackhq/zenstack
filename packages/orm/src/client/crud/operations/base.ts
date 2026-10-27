@@ -1588,6 +1588,12 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         // fill in automatically updated fields
         const { data: finalData } = this.fillUpdatedAtFields(modelDef, data);
 
+        // NOTE: besides naming the model the filter is built against, `filterModel` also tells
+        // entry calls apart from recursive ones: it's `undefined` only when called from an
+        // operation handler or a nested relation update, while the recursive calls made by
+        // `updateManyByIds` and `processBaseModelUpdateMany` always pass it. Only entry calls
+        // need the id-resolution step below; the recursive ones already filter by ids or
+        // are walking up the delegate hierarchy. (Could be refactored into an explicit flag.)
         if (modelDef.baseModel && filterModel === undefined) {
             // the base model's table is written before this model's table, so a filter that
             // reads a field changed by that write (an `@updatedAt` field, for example) would
