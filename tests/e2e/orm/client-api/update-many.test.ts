@@ -127,4 +127,76 @@ describe('Client updateMany tests', () => {
         // @ts-expect-error
         expect(r1[0]!.email).toBeUndefined();
     });
+
+    describe('@updatedAt', () => {
+        const OLD = new Date('2020-01-01T00:00:00.000Z');
+
+        async function createUserWithOldUpdatedAt(id: string) {
+            await client.user.create({ data: { id, email: `${id}@test.com`, name: id } });
+            // an explicit value is kept by `update`
+            await client.user.update({ where: { id }, data: { updatedAt: OLD } });
+        }
+
+        async function updatedAtOf(id: string) {
+            const user = await client.user.findUniqueOrThrow({ where: { id } });
+            return user.updatedAt.getTime();
+        }
+
+        it('sets updatedAt on the matched rows only', async () => {
+            await createUserWithOldUpdatedAt('1');
+            await createUserWithOldUpdatedAt('2');
+
+            await expect(client.user.updateMany({ where: { id: '1' }, data: { name: 'Foo' } })).resolves.toMatchObject({
+                count: 1,
+            });
+
+            expect(await updatedAtOf('1')).toBeGreaterThan(OLD.getTime());
+            expect(await updatedAtOf('2')).toEqual(OLD.getTime());
+        });
+
+        it('keeps an explicit updatedAt', async () => {
+            await createUserWithOldUpdatedAt('1');
+            const explicit = new Date('2021-06-01T00:00:00.000Z');
+
+            await client.user.updateMany({ data: { name: 'Foo', updatedAt: explicit } });
+
+            expect(await updatedAtOf('1')).toEqual(explicit.getTime());
+        });
+
+        it('does not set updatedAt if only ignored fields are present', async () => {
+            await createUserWithOldUpdatedAt('1');
+
+            await client.user.updateMany({ data: { createdAt: new Date() } });
+
+            expect(await updatedAtOf('1')).toEqual(OLD.getTime());
+        });
+
+        it('sets updatedAt with updateManyAndReturn', async () => {
+            if (client.$schema.provider.type === ('mysql' as any)) {
+                // skip for mysql as it does not support returning
+                return;
+            }
+            await createUserWithOldUpdatedAt('1');
+
+            const [user] = await client.user.updateManyAndReturn({ data: { name: 'Foo' } });
+
+            expect(user!.updatedAt.getTime()).toBeGreaterThan(OLD.getTime());
+            expect(await updatedAtOf('1')).toEqual(user!.updatedAt.getTime());
+        });
+
+        it('sets updatedAt with nested updateMany', async () => {
+            await createUserWithOldUpdatedAt('1');
+            const post = await client.post.create({ data: { title: 'Post1', authorId: '1' } });
+            await client.post.update({ where: { id: post.id }, data: { updatedAt: OLD } });
+
+            await client.user.update({
+                where: { id: '1' },
+                data: { posts: { updateMany: { where: {}, data: { title: 'Post2' } } } },
+            });
+
+            const updatedPost = await client.post.findUniqueOrThrow({ where: { id: post.id } });
+            expect(updatedPost.title).toBe('Post2');
+            expect(updatedPost.updatedAt.getTime()).toBeGreaterThan(OLD.getTime());
+        });
+    });
 });

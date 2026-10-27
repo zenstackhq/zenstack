@@ -813,6 +813,77 @@ describe('Delegate model tests ', () => {
             ).rejects.toThrow('Updating with a limit is not supported for polymorphic models');
         });
 
+        it('sets base model updatedAt with updateMany', async () => {
+            const OLD = new Date('2020-01-01T00:00:00.000Z');
+            await client.asset.update({ where: { id: 1 }, data: { updatedAt: OLD } });
+
+            // only sub model fields change
+            await expect(client.ratedVideo.updateMany({ where: { id: 1 }, data: { rating: 3 } })).resolves.toEqual({
+                count: 1,
+            });
+
+            const video = await client.ratedVideo.findUniqueOrThrow({ where: { id: 1 } });
+            expect(video.rating).toBe(3);
+            expect(video.updatedAt.getTime()).toBeGreaterThan(OLD.getTime());
+        });
+
+        it('updateMany on a sub model matches rows before the base model is written', async () => {
+            const OLD = new Date('2020-01-01T00:00:00.000Z');
+            await client.asset.update({ where: { id: 1 }, data: { updatedAt: OLD } });
+
+            // the filter reads the base model's updatedAt, which the base write changes
+            await expect(
+                client.ratedVideo.updateMany({
+                    where: { updatedAt: { lt: new Date('2021-01-01T00:00:00.000Z') } },
+                    data: { rating: 3 },
+                }),
+            ).resolves.toEqual({ count: 1 });
+            await expect(client.ratedVideo.findUniqueOrThrow({ where: { id: 1 } })).resolves.toMatchObject({
+                rating: 3,
+            });
+
+            // the filter reads a base model field that the update changes
+            await expect(
+                client.ratedVideo.updateMany({
+                    where: { duration: 100 },
+                    data: { duration: 200, rating: 4 },
+                }),
+            ).resolves.toEqual({ count: 1 });
+            await expect(client.ratedVideo.findUniqueOrThrow({ where: { id: 1 } })).resolves.toMatchObject({
+                duration: 200,
+                rating: 4,
+            });
+        });
+
+        it('nested updateMany on a sub model matches rows before the base model is written', async () => {
+            const OLD = new Date('2020-01-01T00:00:00.000Z');
+            await client.ratedVideo.create({
+                data: { id: 2, duration: 100, url: 'v2', rating: 5 },
+            });
+            await client.asset.updateMany({ data: { updatedAt: OLD } });
+
+            await client.user.update({
+                where: { id: 1 },
+                data: {
+                    ratedVideos: {
+                        updateMany: {
+                            where: { updatedAt: { lt: new Date('2021-01-01T00:00:00.000Z') } },
+                            data: { rating: 3 },
+                        },
+                    },
+                },
+            });
+
+            const video1 = await client.ratedVideo.findUniqueOrThrow({ where: { id: 1 } });
+            expect(video1.rating).toBe(3);
+            expect(video1.updatedAt.getTime()).toBeGreaterThan(OLD.getTime());
+
+            // not related to the user, so not updated
+            const video2 = await client.ratedVideo.findUniqueOrThrow({ where: { id: 2 } });
+            expect(video2.rating).toBe(5);
+            expect(video2.updatedAt.getTime()).toEqual(OLD.getTime());
+        });
+
         it('works with updateManyAndReturn', async () => {
             if (client.$schema.provider.type === ('mysql' as any)) {
                 return;
