@@ -245,9 +245,13 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         }
     }
 
-    override transformOutput(value: unknown, type: BuiltinType, array: boolean) {
+    override transformOutput(value: unknown, type: BuiltinType, array: boolean): unknown {
         if (value === null || value === undefined) {
             return value;
+        }
+
+        if (isPrimitiveTypeDef(this.schema, type)) {
+            return this.transformOutput(value, this.schema.typeDefs![type]!.base!, array);
         }
 
         switch (type) {
