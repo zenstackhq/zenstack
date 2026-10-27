@@ -316,6 +316,17 @@ export type SimplifiedPlainResult<
     ExtResult extends ExtResultBase<Schema> = {},
 > = Simplify<ModelResult<Schema, Model, Args, Options, false, false, ExtResult>>;
 
+// brands a primitive type with the given type def name, or leaves it as-is when `Brand` is `never`
+export type Branded<T, Brand extends string> = [Brand] extends [never] ? T : T & { __brand: Brand };
+
+// the brand of a primitive typedef marked with `@@branded`, or `never` if it's not branded
+type TypeDefBrand<Schema extends SchemaDef, TypeDef extends GetTypeDefs<Schema>> = GetTypeDef<
+    Schema,
+    TypeDef
+>['branded'] extends true
+    ? TypeDef
+    : never;
+
 export type TypeDefResult<
     Schema extends SchemaDef,
     TypeDef extends GetTypeDefs<Schema>,
@@ -323,7 +334,7 @@ export type TypeDefResult<
 > =
     Schema['typeDefs'] extends Record<string, unknown>
         ? Schema['typeDefs'][TypeDef]['base'] extends string
-            ? TypeMap[Schema['typeDefs'][TypeDef]['base']]
+            ? Branded<TypeMap[Schema['typeDefs'][TypeDef]['base']], TypeDefBrand<Schema, TypeDef>>
             : PartialIf<
                   Optional<
                       {
@@ -430,12 +441,13 @@ type FieldFilter<
               >
             : GetModelFieldType<Schema, Model, Field> extends GetTypeDefs<Schema>
               ? TypeDefIsPrimitive<Schema, GetModelFieldType<Schema, Model, Field>> extends true
-                  ? // primitive typedef — filter like its base type
+                  ? // primitive typedef — filter like its base type, carrying over its brand
                     PrimitiveFilter<
                         TypeDefBaseType<Schema, GetModelFieldType<Schema, Model, Field>>,
                         ModelFieldIsOptional<Schema, Model, Field>,
                         WithAggregations,
-                        AllowedKinds
+                        AllowedKinds,
+                        TypeDefBrand<Schema, GetModelFieldType<Schema, Model, Field>>
                     >
                   : // JSON typedef
                     TypedJsonFilter<
@@ -634,7 +646,7 @@ type MapScalarType<Schema extends SchemaDef, Type extends string> =
         ? keyof GetEnum<Schema, Type>
         : Type extends GetTypeDefs<Schema>
           ? TypeDefIsPrimitive<Schema, Type> extends true
-              ? MapBaseType<TypeDefBaseType<Schema, Type>>
+              ? Branded<MapBaseType<TypeDefBaseType<Schema, Type>>, TypeDefBrand<Schema, Type>>
               : MapBaseType<Type>
           : MapBaseType<Type>;
 
@@ -643,16 +655,17 @@ type PrimitiveFilter<
     Nullable extends boolean,
     WithAggregations extends boolean,
     AllowedKinds extends FilterKind,
+    Brand extends string = never,
 > = T extends 'String'
-    ? StringFilter<Nullable, WithAggregations, AllowedKinds>
+    ? StringFilter<Nullable, WithAggregations, AllowedKinds, Brand>
     : T extends 'Int' | 'Float' | 'Decimal' | 'BigInt'
-      ? NumberFilter<T, Nullable, WithAggregations, AllowedKinds>
+      ? NumberFilter<T, Nullable, WithAggregations, AllowedKinds, Brand>
       : T extends 'Boolean'
-        ? BooleanFilter<Nullable, WithAggregations, AllowedKinds>
+        ? BooleanFilter<Nullable, WithAggregations, AllowedKinds, Brand>
         : T extends 'DateTime'
-          ? DateTimeFilter<Nullable, WithAggregations, AllowedKinds>
+          ? DateTimeFilter<Nullable, WithAggregations, AllowedKinds, Brand>
           : T extends 'Bytes'
-            ? BytesFilter<Nullable, WithAggregations, AllowedKinds>
+            ? BytesFilter<Nullable, WithAggregations, AllowedKinds, Brand>
             : T extends 'Json'
               ? JsonFilter<AllowedKinds>
               : never;
@@ -663,6 +676,7 @@ type CommonPrimitiveFilter<
     Nullable extends boolean,
     WithAggregations extends boolean,
     AllowedKinds extends FilterKind,
+    Brand extends string,
 > = ('Equality' extends AllowedKinds
     ? {
           /**
@@ -712,16 +726,17 @@ type CommonPrimitiveFilter<
         /**
          * Builds a negated filter.
          */
-        not?: PrimitiveFilter<T, Nullable, WithAggregations, AllowedKinds>;
+        not?: PrimitiveFilter<T, Nullable, WithAggregations, AllowedKinds, Brand>;
     };
 
 export type StringFilter<
     Nullable extends boolean,
     WithAggregations extends boolean,
     AllowedKinds extends FilterKind = FilterKind,
+    Brand extends string = never,
 > =
-    | ('Equality' extends AllowedKinds ? NullableIf<string, Nullable> : never)
-    | (CommonPrimitiveFilter<string, 'String', Nullable, WithAggregations, AllowedKinds> &
+    | ('Equality' extends AllowedKinds ? NullableIf<Branded<string, Brand>, Nullable> : never)
+    | (CommonPrimitiveFilter<Branded<string, Brand>, 'String', Nullable, WithAggregations, AllowedKinds, Brand> &
           ('Like' extends AllowedKinds
               ? {
                     /**
@@ -755,23 +770,39 @@ export type StringFilter<
                     /**
                      * Filters against the minimum value.
                      */
-                    _min?: StringFilter<false, false, AllowedKinds>;
+                    _min?: StringFilter<false, false, AllowedKinds, Brand>;
 
                     /**
                      * Filters against the maximum value.
                      */
-                    _max?: StringFilter<false, false, AllowedKinds>;
+                    _max?: StringFilter<false, false, AllowedKinds, Brand>;
                 }
               : {}));
+
+// operand type of a number filter: a branded field only accepts its own branded type (e.g. `bigint & { __brand }`
+// for a branded `BigInt`), an unbranded field accepts `Unbranded`
+type NumberFilterOperand<T extends 'Int' | 'Float' | 'Decimal' | 'BigInt', Unbranded, Brand extends string> = [
+    Brand,
+] extends [never]
+    ? Unbranded
+    : Branded<MapBaseType<T>, Brand>;
 
 export type NumberFilter<
     T extends 'Int' | 'Float' | 'Decimal' | 'BigInt',
     Nullable extends boolean,
     WithAggregations extends boolean,
     AllowedKinds extends FilterKind = FilterKind,
+    Brand extends string = never,
 > =
-    | ('Equality' extends AllowedKinds ? NullableIf<number | bigint, Nullable> : never)
-    | (CommonPrimitiveFilter<number, T, Nullable, WithAggregations, AllowedKinds> &
+    | ('Equality' extends AllowedKinds ? NullableIf<NumberFilterOperand<T, number | bigint, Brand>, Nullable> : never)
+    | (CommonPrimitiveFilter<
+          NumberFilterOperand<T, number, Brand>,
+          T,
+          Nullable,
+          WithAggregations,
+          AllowedKinds,
+          Brand
+      > &
           (WithAggregations extends true
               ? {
                     /**
@@ -792,12 +823,12 @@ export type NumberFilter<
                     /**
                      * Filters against the minimum value.
                      */
-                    _min?: NumberFilter<T, false, false, AllowedKinds>;
+                    _min?: NumberFilter<T, false, false, AllowedKinds, Brand>;
 
                     /**
                      * Filters against the maximum value.
                      */
-                    _max?: NumberFilter<T, false, false, AllowedKinds>;
+                    _max?: NumberFilter<T, false, false, AllowedKinds, Brand>;
                 }
               : {}));
 
@@ -805,9 +836,17 @@ export type DateTimeFilter<
     Nullable extends boolean,
     WithAggregations extends boolean,
     AllowedKinds extends FilterKind = FilterKind,
+    Brand extends string = never,
 > =
-    | ('Equality' extends AllowedKinds ? NullableIf<Date | string, Nullable> : never)
-    | (CommonPrimitiveFilter<Date | string, 'DateTime', Nullable, WithAggregations, AllowedKinds> &
+    | ('Equality' extends AllowedKinds ? NullableIf<Branded<Date | string, Brand>, Nullable> : never)
+    | (CommonPrimitiveFilter<
+          Branded<Date | string, Brand>,
+          'DateTime',
+          Nullable,
+          WithAggregations,
+          AllowedKinds,
+          Brand
+      > &
           (WithAggregations extends true
               ? {
                     /**
@@ -818,12 +857,12 @@ export type DateTimeFilter<
                     /**
                      * Filters against the minimum value.
                      */
-                    _min?: DateTimeFilter<false, false, AllowedKinds>;
+                    _min?: DateTimeFilter<false, false, AllowedKinds, Brand>;
 
                     /**
                      * Filters against the maximum value.
                      */
-                    _max?: DateTimeFilter<false, false, AllowedKinds>;
+                    _max?: DateTimeFilter<false, false, AllowedKinds, Brand>;
                 }
               : {}));
 
@@ -831,30 +870,31 @@ export type BytesFilter<
     Nullable extends boolean,
     WithAggregations extends boolean,
     AllowedKinds extends FilterKind = FilterKind,
+    Brand extends string = never,
 > =
-    | ('Equality' extends AllowedKinds ? NullableIf<Uint8Array | Buffer, Nullable> : never)
+    | ('Equality' extends AllowedKinds ? NullableIf<Branded<Uint8Array | Buffer, Brand>, Nullable> : never)
     | (('Equality' extends AllowedKinds
           ? {
                 /**
                  * Checks for equality with the specified value.
                  */
-                equals?: NullableIf<Uint8Array, Nullable>;
+                equals?: NullableIf<Branded<Uint8Array, Brand>, Nullable>;
 
                 /**
                  * Checks if the value is in the specified list of values.
                  */
-                in?: Uint8Array[];
+                in?: Branded<Uint8Array, Brand>[];
 
                 /**
                  * Checks if the value is not in the specified list of values.
                  */
-                notIn?: Uint8Array[];
+                notIn?: Branded<Uint8Array, Brand>[];
             }
           : {}) & {
           /**
            * Builds a negated filter.
            */
-          not?: BytesFilter<Nullable, WithAggregations, AllowedKinds>;
+          not?: BytesFilter<Nullable, WithAggregations, AllowedKinds, Brand>;
       } & (WithAggregations extends true
               ? {
                     /**
@@ -865,12 +905,12 @@ export type BytesFilter<
                     /**
                      * Filters against the minimum value.
                      */
-                    _min?: BytesFilter<false, false, AllowedKinds>;
+                    _min?: BytesFilter<false, false, AllowedKinds, Brand>;
 
                     /**
                      * Filters against the maximum value.
                      */
-                    _max?: BytesFilter<false, false, AllowedKinds>;
+                    _max?: BytesFilter<false, false, AllowedKinds, Brand>;
                 }
               : {}));
 
@@ -878,20 +918,21 @@ export type BooleanFilter<
     Nullable extends boolean,
     WithAggregations extends boolean,
     AllowedKinds extends FilterKind = FilterKind,
+    Brand extends string = never,
 > =
-    | ('Equality' extends AllowedKinds ? NullableIf<boolean, Nullable> : never)
+    | ('Equality' extends AllowedKinds ? NullableIf<Branded<boolean, Brand>, Nullable> : never)
     | (('Equality' extends AllowedKinds
           ? {
                 /**
                  * Checks for equality with the specified value.
                  */
-                equals?: NullableIf<boolean, Nullable>;
+                equals?: NullableIf<Branded<boolean, Brand>, Nullable>;
             }
           : {}) & {
           /**
            * Builds a negated filter.
            */
-          not?: BooleanFilter<Nullable, WithAggregations, AllowedKinds>;
+          not?: BooleanFilter<Nullable, WithAggregations, AllowedKinds, Brand>;
       } & (WithAggregations extends true
               ? {
                     /**
@@ -902,12 +943,12 @@ export type BooleanFilter<
                     /**
                      * Filters against the minimum value.
                      */
-                    _min?: BooleanFilter<false, false, AllowedKinds>;
+                    _min?: BooleanFilter<false, false, AllowedKinds, Brand>;
 
                     /**
                      * Filters against the maximum value.
                      */
-                    _max?: BooleanFilter<false, false, AllowedKinds>;
+                    _max?: BooleanFilter<false, false, AllowedKinds, Brand>;
                 }
               : {}));
 
@@ -1024,14 +1065,15 @@ type TypedJsonFieldsFilter<
         Key
     > extends GetTypeDefs<Schema>
         ? TypeDefIsPrimitive<Schema, GetTypeDefFieldType<Schema, TypeDefName, Key>> extends true
-            ? // primitive typedef — filter like its base type
+            ? // primitive typedef — filter like its base type, carrying over its brand
               TypeDefFieldIsArray<Schema, TypeDefName, Key> extends true
                 ? ArrayFilter<Schema, GetTypeDefFieldType<Schema, TypeDefName, Key>, AllowedKinds>
                 : PrimitiveFilter<
                       TypeDefBaseType<Schema, GetTypeDefFieldType<Schema, TypeDefName, Key>>,
                       TypeDefFieldIsOptional<Schema, TypeDefName, Key>,
                       false,
-                      AllowedKinds
+                      AllowedKinds,
+                      TypeDefBrand<Schema, GetTypeDefFieldType<Schema, TypeDefName, Key>>
                   >
             : // nested JSON typedef - recurse
               TypedJsonFilter<
