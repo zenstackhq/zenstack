@@ -2379,30 +2379,12 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             return this.executeDelete(kysely, model, where, limit, filterModel, fieldsToReturn);
         }
 
-        if (!modelDef.isDelegate) {
-            if (limit !== undefined) {
-                throw createNotSupportedError('Deleting with a limit is not supported for polymorphic models');
-            }
-            for (const { fieldDef } of cascadeRelations) {
-                await this.delete(
-                    kysely,
-                    fieldDef.type,
-                    { [fieldDef.relation!.opposite!]: where },
-                    undefined,
-                    undefined,
-                    undefined,
-                    visited,
-                );
-            }
-            return this.executeDelete(kysely, model, where, limit, filterModel, fieldsToReturn);
-        }
-
-        // for a delegate model, resolve the rows being deleted first: `where` can filter on a sub model or on
-        // related rows, which the cascades below may delete
-        const discriminator = getDiscriminatorField(this.schema, model)!;
+        // resolve the rows being deleted first: `where` can filter on a sub model or on related rows, which
+        // the cascades below may delete
+        const discriminator = getDiscriminatorField(this.schema, model);
         const deletedRows = await this.read(kysely, filterModel, {
             where,
-            select: { ...this.makeIdSelect(filterModel), [discriminator]: true },
+            select: { ...this.makeIdSelect(filterModel), ...(discriminator ? { [discriminator]: true } : {}) },
             ...(limit !== undefined ? { take: limit } : {}),
         });
 
@@ -2413,7 +2395,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             const parentRows =
                 discriminatorValue === undefined
                     ? deletedRows
-                    : deletedRows.filter((row) => row[discriminator] === discriminatorValue);
+                    : deletedRows.filter((row) => row[discriminator!] === discriminatorValue);
             for (const batch of this.batchRows(model, parentRows)) {
                 const childModel = fieldDef.type;
                 const childRows = await this.read(kysely, childModel, {
