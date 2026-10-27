@@ -282,7 +282,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                 const fieldRef = this.fieldRef(
                     fieldDef.originModel ?? model,
                     key,
-                    fieldDef.originModel ?? modelAlias,
+                    this.delegateFieldAlias(model, modelAlias, fieldDef),
                     true,
                     computedArgs,
                 );
@@ -328,10 +328,10 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                 const _order = negateOrderBy ? (order === 'asc' ? 'desc' : 'asc') : order;
                 const op = j === i ? (_order === 'asc' ? '>=' : '<=') : '=';
                 // Fields inherited from a delegate base live on the base table, which is
-                // joined with its model name as alias. See buildSelectModel/buildDelegateJoin.
+                // joined under `delegateJoinAlias`. See buildSelectModel/buildDelegateJoin.
                 const fieldDef = requireField(this.schema, model, field);
-                const outerAlias = fieldDef.originModel ?? modelAlias;
-                const subSelectAlias = fieldDef.originModel ?? subQueryAlias;
+                const outerAlias = this.delegateFieldAlias(model, modelAlias, fieldDef);
+                const subSelectAlias = this.delegateFieldAlias(model, subQueryAlias, fieldDef);
                 andFilters.push(
                     this.eb(
                         this.eb.ref(`${outerAlias}.${field}`),
@@ -431,7 +431,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             this.schema,
             model,
             // if field is from a base, use the base model to join
-            fieldDef.originModel ?? modelAlias,
+            this.delegateFieldAlias(model, modelAlias, fieldDef),
             field,
             joinAlias,
         );
@@ -1184,7 +1184,13 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         const buildFieldRef = (model: string, field: string, modelAlias: string, computedArgs?: unknown) => {
             const fieldDef = requireField(this.schema, model, field);
             return fieldDef.originModel
-                ? this.fieldRef(fieldDef.originModel, field, fieldDef.originModel, true, computedArgs)
+                ? this.fieldRef(
+                      fieldDef.originModel,
+                      field,
+                      this.delegateJoinAlias(model, modelAlias, fieldDef.originModel),
+                      true,
+                      computedArgs,
+                  )
                 : this.fieldRef(model, field, modelAlias, true, computedArgs);
         };
 
@@ -1283,12 +1289,25 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
         // order by to-one relation
         const joinAlias = tmpAlias(`${modelAlias}$ob$${index}`);
-        const joined = query.leftJoin(`${relationModel} as ${joinAlias}`, (join) => {
-            const joinPairs = buildJoinPairs(this.schema, model, modelAlias, field, joinAlias);
+        let joined = query.leftJoin(`${relationModel} as ${joinAlias}`, (join) => {
+            const joinPairs = buildJoinPairs(
+                this.schema,
+                model,
+                // if field is from a base, use the base model to join
+                this.delegateFieldAlias(model, modelAlias, fieldDef),
+                field,
+                joinAlias,
+            );
             return join.on((eb) =>
                 this.and(...joinPairs.map(([left, right]) => eb(this.eb.ref(left), '=', this.eb.ref(right)))),
             );
         });
+        // join delegate bases so that the ordering can reference inherited fields
+        let joinBase = requireModel(this.schema, relationModel).baseModel;
+        while (joinBase) {
+            joined = this.buildDelegateJoin(relationModel, joinAlias, joinBase, joined);
+            joinBase = requireModel(this.schema, joinBase).baseModel;
+        }
         return this.buildOrderBy(joined, relationModel, joinAlias, value, negated, take);
     }
 
@@ -1475,6 +1494,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         const descendants = getDelegateDescendantModels(this.schema, model);
         for (const subModel of descendants) {
             result = this.buildDelegateJoin(model, modelAlias, subModel.name, result);
+            const subModelAlias = this.delegateJoinAlias(model, modelAlias, subModel.name);
             result = result.select(() => {
                 const jsonObject: Record<string, Expression<any>> = {};
                 for (const fieldDef of getModelFields(this.schema, subModel.name, { computed: true })) {
@@ -1485,7 +1505,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                     if (fieldDef.computed && fieldDef.params) {
                         continue;
                     }
-                    jsonObject[fieldDef.name] = this.fieldRef(subModel.name, fieldDef.name, subModel.name);
+                    jsonObject[fieldDef.name] = this.fieldRef(subModel.name, fieldDef.name, subModelAlias);
                 }
                 return this.buildJsonObject(jsonObject).as(`${DELEGATE_JOINED_FIELD_PREFIX}${subModel.name}`);
             });
@@ -1546,10 +1566,9 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
     ): SelectQueryBuilder<any, any, any> {
         const fieldDef = requireField(this.schema, model, field);
 
-        // if field is defined on a delegate base, the base model is joined with its
-        // model name from outer query, so we should use it directly as the alias
+        // if field is defined on a delegate base, it's selected from the joined base table
         const fieldModel = fieldDef.originModel ?? model;
-        const alias = fieldDef.originModel ?? modelAlias;
+        const alias = this.delegateFieldAlias(model, modelAlias, fieldDef);
 
         // `computedArgs` is set for a parameterized computed field selected via `select`/`include`
         return query.select(() => this.fieldRef(fieldModel, field, alias, true, computedArgs).as(field));
@@ -1558,17 +1577,37 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
     buildDelegateJoin(
         thisModel: string,
         thisModelAlias: string,
-        otherModelAlias: string,
+        otherModel: string,
         query: SelectQueryBuilder<any, any, any>,
     ) {
         const idFields = requireIdFields(this.schema, thisModel);
-        query = query.leftJoin(otherModelAlias, (qb) => {
+        const otherModelAlias = this.delegateJoinAlias(thisModel, thisModelAlias, otherModel);
+        const table = otherModelAlias === otherModel ? otherModel : `${otherModel} as ${otherModelAlias}`;
+        query = query.leftJoin(table, (qb) => {
             for (const idField of idFields) {
                 qb = qb.onRef(`${thisModelAlias}.${idField}`, '=', `${otherModelAlias}.${idField}`);
             }
             return qb;
         });
         return query;
+    }
+
+    /**
+     * Gets the alias under which a delegate base or sub model is joined to a model selected as `modelAlias`.
+     * A model selected under its own name (a top-level query) has them joined under their own model names.
+     * A model selected under another alias (a relation subquery) has them joined under aliases derived from
+     * it, so they never shadow a table of an enclosing query in the same delegate hierarchy.
+     */
+    delegateJoinAlias(model: string, modelAlias: string, joinedModel: string) {
+        return modelAlias === model ? joinedModel : tmpAlias(`${modelAlias}$${joinedModel}`);
+    }
+
+    /**
+     * Gets the alias of the table holding a field of a model selected as `modelAlias`: the joined base
+     * table for a field inherited from a delegate base, otherwise the model's own table.
+     */
+    delegateFieldAlias(model: string, modelAlias: string, fieldDef: FieldDef) {
+        return fieldDef.originModel ? this.delegateJoinAlias(model, modelAlias, fieldDef.originModel) : modelAlias;
     }
 
     buildCountJson(model: string, eb: ExpressionBuilder<any, any>, parentAlias: string, payload: any) {

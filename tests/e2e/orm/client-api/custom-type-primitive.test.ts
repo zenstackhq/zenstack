@@ -169,4 +169,20 @@ describe('Custom type primitive tests', () => {
             }),
         ).rejects.toThrow(/Too big/);
     });
+
+    it('converts array items to the base type', async () => {
+        const user = await client.user.create({
+            data: { name: 'test', scores: [1n, 12345678901234n] },
+        });
+        expect(user.scores).toEqual([1n, 12345678901234n]);
+
+        const found = await client.user.findUniqueOrThrow({ where: { id: user.id } });
+        expect(found.scores).toEqual([1n, 12345678901234n]);
+
+        const post = await client.post.create({
+            data: { tags: ['abc', '123'], author: { connect: { id: user.id } } },
+            include: { author: true },
+        });
+        expect(post.author.scores).toEqual([1n, 12345678901234n]);
+    });
 });

@@ -1,0 +1,61 @@
+datasource db {
+    provider = "sqlite"
+    url      = "file:./dev.db"
+}
+
+model Owner {
+    id    Int    @id @default(autoincrement())
+    items Item[]
+}
+
+model Item {
+    id       Int        @id @default(autoincrement())
+    ownerId  Int
+    owner    Owner      @relation(fields: [ownerId], references: [id])
+    label    Label
+    active   Flag
+    quantity Quantity
+    ratio    Ratio
+    views    ViewCount
+    price    Price
+    seenAt   Timestamp
+    payload  Blob
+    meta     Meta
+    note     Label?
+}
+
+type Label with String {
+    this String
+}
+
+type Flag with Boolean {
+    this Boolean
+}
+
+type Quantity with Int {
+    this Int
+}
+
+type Ratio with Float {
+    this Float
+}
+
+type ViewCount with BigInt {
+    this BigInt
+}
+
+type Price with Decimal {
+    this Decimal
+}
+
+type Timestamp with DateTime {
+    this DateTime
+}
+
+type Blob with Bytes {
+    this Bytes
+}
+
+type Meta with Json {
+    this Json
+}

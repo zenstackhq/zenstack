@@ -8,6 +8,7 @@ model User {
     name     UserName
     contacts Contact[]
     age      Age?      @default(18)
+    scores   Score[]
     posts    Post[]
 }
 
@@ -32,4 +33,8 @@ type Age with Int {
 
 type PostTag with String {
     this String @length(1, 12)
+}
+
+type Score with BigInt {
+    this BigInt
 }
