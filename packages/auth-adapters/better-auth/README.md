@@ -26,8 +26,8 @@ const auth = new BetterAuth({
 
 ## Schema generation
 
-You can use the `@better-auth/cli` to populate better-auth's data models into your ZModel schema.
+You can use the `auth` CLI (formerly `@better-auth/cli`) to populate better-auth's data models into your ZModel schema.
 
 ```bash
-npx @better-auth/cli generate
+npx auth generate
 ```

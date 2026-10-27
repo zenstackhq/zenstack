@@ -48,6 +48,7 @@ import {
     getTypeDef,
     getUniqueFields,
     isEnum,
+    isPrimitiveTypeDef,
     isTypeDef,
     requireField,
     requireModel,
@@ -367,7 +368,10 @@ export class ZodSchemaFactory<
 
     private makeScalarSchema(type: string, attributes?: readonly AttributeApplication[]) {
         if (this.schema.typeDefs && type in this.schema.typeDefs) {
-            return this.makeTypeDefSchema(type);
+            // attributes declared on the consuming field only apply to primitive typedefs
+            return this.schema.typeDefs[type]!.base
+                ? this.makeTypeDefSchema(type, attributes)
+                : this.makeTypeDefSchema(type);
         } else if (this.schema.enums && type in this.schema.enums) {
             return this.makeEnumSchema(type);
         } else {
@@ -458,10 +462,26 @@ export class ZodSchemaFactory<
         return schema;
     }
 
+    /**
+     * Attributes to validate each value of a scalar field against. For typedef list fields, the
+     * field's own attributes (e.g. `@length`) validate the list rather than its items.
+     */
+    private getItemAttributes(fieldDef: FieldDef) {
+        return fieldDef.array && isTypeDef(this.schema, fieldDef.type) ? undefined : fieldDef.attributes;
+    }
+
     @cache()
-    private makeTypeDefSchema(type: string): ZodType {
+    private makeTypeDefSchema(type: string, fieldAttributes?: readonly AttributeApplication[]): ZodType {
         const typeDef = getTypeDef(this.schema, type);
         invariant(typeDef, `Type definition "${type}" not found in schema`);
+        if (typeDef.base) {
+            // validate against both the typedef's own attributes and those of the consuming field
+            const schema = this.makeScalarSchema(typeDef.base, [
+                ...(typeDef.fields['this']?.attributes ?? []),
+                ...(fieldAttributes ?? []),
+            ]);
+            return this.extraValidationsEnabled ? ZodUtils.addCustomValidation(schema, typeDef.attributes) : schema;
+        }
         const func = typeDef.strict ? z.strictObject : z.looseObject;
         const schema = func(
             Object.fromEntries(
@@ -577,7 +597,7 @@ export class ZodSchemaFactory<
                 } else if (fieldDef.array) {
                     // array field
                     fieldSchema = this.makeArrayFilterSchema(fieldDef.type, allowedFilterKinds);
-                } else if (this.isTypeDefType(fieldDef.type)) {
+                } else if (this.isTypeDefType(fieldDef.type) && !isPrimitiveTypeDef(this.schema, fieldDef.type)) {
                     fieldSchema = this.makeTypedJsonFilterSchema(
                         fieldDef.type,
                         !!fieldDef.optional,
@@ -585,9 +605,9 @@ export class ZodSchemaFactory<
                         allowedFilterKinds,
                     );
                 } else {
-                    // primitive field
+                    // primitive field (or a primitive typedef, which filters like its base type)
                     fieldSchema = this.makePrimitiveFilterSchema(
-                        fieldDef.type as BuiltinType,
+                        this.getEffectiveFieldType(fieldDef.type) as BuiltinType,
                         !!fieldDef.optional,
                         withAggregations,
                         allowedFilterKinds,
@@ -714,7 +734,7 @@ export class ZodSchemaFactory<
             // fields filter — typedef sub-fields are not model fields, no slicing applies
             const fieldSchemas: Record<string, ZodType> = {};
             for (const [fieldName, fieldDef] of Object.entries(typeDef.fields)) {
-                if (this.isTypeDefType(fieldDef.type)) {
+                if (this.isTypeDefType(fieldDef.type) && !isPrimitiveTypeDef(this.schema, fieldDef.type)) {
                     fieldSchemas[fieldName] = this.makeTypedJsonFilterSchema(
                         fieldDef.type,
                         !!fieldDef.optional,
@@ -735,7 +755,7 @@ export class ZodSchemaFactory<
                         fieldSchemas[fieldName] = this.makeArrayFilterSchema(fieldDef.type, undefined).optional();
                     } else {
                         fieldSchemas[fieldName] = this.makePrimitiveFilterSchema(
-                            fieldDef.type as BuiltinType,
+                            this.getEffectiveFieldType(fieldDef.type) as BuiltinType,
                             !!fieldDef.optional,
                             false,
                             undefined,
@@ -813,6 +833,13 @@ export class ZodSchemaFactory<
 
     private isTypeDefType(type: string) {
         return this.schema.typeDefs && type in this.schema.typeDefs;
+    }
+
+    private getEffectiveFieldType(type: string): string {
+        if (isPrimitiveTypeDef(this.schema, type)) {
+            return this.schema.typeDefs![type]!.base!;
+        }
+        return type;
     }
 
     @cache()
@@ -1676,7 +1703,7 @@ export class ZodSchemaFactory<
                     uncheckedVariantFields[field] = fieldSchema;
                 }
             } else {
-                let fieldSchema = this.makeScalarSchema(fieldDef.type, fieldDef.attributes);
+                let fieldSchema = this.makeScalarSchema(fieldDef.type, this.getItemAttributes(fieldDef));
 
                 if (fieldDef.array) {
                     fieldSchema = ZodUtils.addListValidation(fieldSchema.array(), fieldDef.attributes);
@@ -2034,7 +2061,7 @@ export class ZodSchemaFactory<
                     uncheckedVariantFields[field] = fieldSchema;
                 }
             } else {
-                let fieldSchema = this.makeScalarSchema(fieldDef.type, fieldDef.attributes);
+                let fieldSchema = this.makeScalarSchema(fieldDef.type, this.getItemAttributes(fieldDef));
 
                 if (this.isNumericField(fieldDef)) {
                     fieldSchema = z.union([
@@ -2561,7 +2588,7 @@ export class ZodSchemaFactory<
     }
 
     private isNumericField(fieldDef: FieldDef) {
-        return NUMERIC_FIELD_TYPES.includes(fieldDef.type) && !fieldDef.array;
+        return NUMERIC_FIELD_TYPES.includes(this.getEffectiveFieldType(fieldDef.type)) && !fieldDef.array;
     }
 
     private get providerSupportsCaseSensitivity() {

@@ -366,7 +366,200 @@ describe('Attribute application validation tests', () => {
                     @@allow('all', true)
                 }
                 `,
-                `Field-level policies are not allowed for relation fields`,
+                `Field-level policies are only allowed for implicit many-to-many relation fields`,
+            );
+        });
+
+        it('accepts update field-level policy on many-to-many relation fields', async () => {
+            await loadSchema(`
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id   Int  @id @default(autoincrement())
+                    bars Bar[]
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int    @id @default(autoincrement())
+                    foos Foo[] @allow('update', true)
+                    @@allow('all', true)
+                }
+            `);
+        });
+
+        it('accepts deny update field-level policy on many-to-many relation fields', async () => {
+            await loadSchema(`
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id   Int  @id @default(autoincrement())
+                    bars Bar[]
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int    @id @default(autoincrement())
+                    foos Foo[] @deny('update', false)
+                    @@allow('all', true)
+                }
+            `);
+        });
+
+        it('rejects read field-level policy on many-to-many relation fields', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id   Int  @id @default(autoincrement())
+                    bars Bar[]
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int    @id @default(autoincrement())
+                    foos Foo[] @allow('read', true)
+                    @@allow('all', true)
+                }
+                `,
+                `Only 'update' policies are allowed on many-to-many relation fields`,
+            );
+        });
+
+        it('rejects all field-level policy on many-to-many relation fields', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id   Int  @id @default(autoincrement())
+                    bars Bar[]
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int    @id @default(autoincrement())
+                    foos Foo[] @allow('all', true)
+                    @@allow('all', true)
+                }
+                `,
+                `Only 'update' policies are allowed on many-to-many relation fields`,
+            );
+        });
+
+        it('rejects comma-separated kinds including non-update on many-to-many relation fields', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id   Int  @id @default(autoincrement())
+                    bars Bar[]
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int    @id @default(autoincrement())
+                    foos Foo[] @allow('read, update', true)
+                    @@allow('all', true)
+                }
+                `,
+                `Only 'update' policies are allowed on many-to-many relation fields`,
+            );
+        });
+
+        it('rejects update field-level policy on one-to-many relation fields', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id Int @id @default(autoincrement())
+                    bar Bar @relation(fields: [barId], references: [id])
+                    barId Int
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id   Int    @id @default(autoincrement())
+                    foos Foo[] @allow('update', true)
+                    @@allow('all', true)
+                }
+                `,
+                `Field-level policies are only allowed for implicit many-to-many relation fields`,
+            );
+        });
+
+        it('rejects update field-level policy on one-to-many relation fields when a separate m2m relation exists', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id    Int  @id @default(autoincrement())
+                    bar   Bar  @relation("one-to-many", fields: [barId], references: [id]) @allow('update', true)
+                    barId Int
+                    bars  Bar[] @relation("m2m")
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id   Int  @id @default(autoincrement())
+                    foos Foo[] @relation("m2m")
+                    @@allow('all', true)
+                }
+                `,
+                `Field-level policies are only allowed for implicit many-to-many relation fields`,
+            );
+        });
+
+        it('rejects update field-level policy on a one-to-many field that is not many-to-many when a differently-named relation exists on the opposite model', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id     Int   @id @default(autoincrement())
+                    bars   Bar[] @allow('update', true)
+                    bar2   Bar   @relation("other", fields: [bar2Id], references: [id])
+                    bar2Id Int
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int @id @default(autoincrement())
+                    foo   Foo   @relation(fields: [fooId], references: [id])
+                    fooId Int
+                    foos  Foo[] @relation("other")
+                    @@allow('all', true)
+                }
+                `,
+                `Field-level policies are only allowed for implicit many-to-many relation fields`,
             );
         });
 

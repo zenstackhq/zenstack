@@ -354,7 +354,7 @@ export interface DataField extends langium.AstNode {
     readonly $type: 'DataField';
     attributes: Array<DataFieldAttribute>;
     comments: Array<string>;
-    name: RegularIDWithTypeNames;
+    name: DataFieldName;
     params: Array<DataFieldParam>;
     type: DataFieldType;
 }
@@ -387,6 +387,12 @@ export const DataFieldAttribute = {
 
 export function isDataFieldAttribute(item: unknown): item is DataFieldAttribute {
     return reflection.isInstance(item, DataFieldAttribute.$type);
+}
+
+export type DataFieldName = 'this' | RegularIDWithTypeNames;
+
+export function isDataFieldName(item: unknown): item is DataFieldName {
+    return isRegularIDWithTypeNames(item) || item === 'this';
 }
 
 export interface DataFieldParam extends langium.AstNode {
@@ -435,6 +441,7 @@ export interface DataModel extends langium.AstNode {
     readonly $container: Model;
     readonly $type: 'DataModel';
     attributes: Array<DataModelAttribute>;
+    base?: BuiltinType;
     baseModel?: langium.Reference<DataModel>;
     comments: Array<string>;
     fields: Array<DataField>;
@@ -448,6 +455,7 @@ export interface DataModel extends langium.AstNode {
 export const DataModel = {
     $type: 'DataModel',
     attributes: 'attributes',
+    base: 'base',
     baseModel: 'baseModel',
     comments: 'comments',
     fields: 'fields',
@@ -902,7 +910,7 @@ export function isReferenceExpr(item: unknown): item is ReferenceExpr {
     return reflection.isInstance(item, ReferenceExpr.$type);
 }
 
-export type ReferenceTarget = CollectionPredicateBinding | DataField | EnumField | FunctionParam;
+export type ReferenceTarget = CollectionPredicateBinding | DataField | Enum | EnumField | FunctionParam;
 
 export const ReferenceTarget = {
     $type: 'ReferenceTarget'
@@ -968,6 +976,7 @@ export interface TypeDef extends langium.AstNode {
     readonly $container: Model;
     readonly $type: 'TypeDef';
     attributes: Array<DataModelAttribute>;
+    base?: BuiltinType;
     comments: Array<string>;
     fields: Array<DataField>;
     mixins: Array<langium.Reference<TypeDef>>;
@@ -977,6 +986,7 @@ export interface TypeDef extends langium.AstNode {
 export const TypeDef = {
     $type: 'TypeDef',
     attributes: 'attributes',
+    base: 'base',
     comments: 'comments',
     fields: 'fields',
     mixins: 'mixins',
@@ -1354,6 +1364,9 @@ export class ZModelAstReflection extends langium.AbstractAstReflection {
                     name: DataModel.attributes,
                     defaultValue: []
                 },
+                base: {
+                    name: DataModel.base
+                },
                 baseModel: {
                     name: DataModel.baseModel,
                     referenceType: DataModel.$type
@@ -1427,7 +1440,7 @@ export class ZModelAstReflection extends langium.AbstractAstReflection {
                     name: Enum.name
                 }
             },
-            superTypes: [AbstractDeclaration.$type, TypeDeclaration.$type]
+            superTypes: [AbstractDeclaration.$type, ReferenceTarget.$type, TypeDeclaration.$type]
         },
         EnumField: {
             name: EnumField.$type,
@@ -1764,6 +1777,9 @@ export class ZModelAstReflection extends langium.AbstractAstReflection {
                 attributes: {
                     name: TypeDef.attributes,
                     defaultValue: []
+                },
+                base: {
+                    name: TypeDef.base
                 },
                 comments: {
                     name: TypeDef.comments,

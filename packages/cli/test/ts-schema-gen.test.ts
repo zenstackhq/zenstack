@@ -852,6 +852,126 @@ model Post {
         });
     });
 
+    it('supports implicit conversions from enums to arrays', async () => {
+        const { schema } = await generateTsSchema(`
+enum PostStatus {
+    DRAFT
+    ACTIVE
+    CANCELLED
+}
+
+model User {
+    id Int @id @default(autoincrement())
+}
+
+model Post {
+    id     String @id
+    status String
+
+    @@validate(status in PostStatus)
+}
+            `);
+
+        expect(schema.models['Post']?.attributes).toMatchObject([
+            {
+                name: '@@validate',
+                args: [
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'binary',
+                            op: 'in',
+                            left: {
+                                kind: 'field',
+                                field: 'status',
+                            },
+                            right: {
+                                kind: 'array',
+                                type: 'PostStatus',
+                                items: [
+                                    {
+                                        kind: 'literal',
+                                        value: 'DRAFT',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'ACTIVE',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'CANCELLED',
+                                    },
+                                ],
+                            },
+                            binding: undefined,
+                        },
+                    },
+                ],
+            },
+        ]);
+    });
+
+    it('emits enum names (not @map values) when converting enums to arrays', async () => {
+        // enum values are represented by their names at runtime (TS values, auth(), Zod);
+        // the ORM's name mapper translates them to `@map`-ed values at SQL execution time
+        const { schema } = await generateTsSchema(`
+enum PostStatus {
+    DRAFT @map('draft')
+    ACTIVE @map('active')
+    CANCELLED @map('cancelled')
+}
+
+model User {
+    id Int @id @default(autoincrement())
+}
+
+model Post {
+    id     String @id
+    status String
+
+    @@validate(status in PostStatus)
+}
+            `);
+
+        expect(schema.models['Post']?.attributes).toMatchObject([
+            {
+                name: '@@validate',
+                args: [
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'binary',
+                            op: 'in',
+                            left: {
+                                kind: 'field',
+                                field: 'status',
+                            },
+                            right: {
+                                kind: 'array',
+                                type: 'PostStatus',
+                                items: [
+                                    {
+                                        kind: 'literal',
+                                        value: 'DRAFT',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'ACTIVE',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'CANCELLED',
+                                    },
+                                ],
+                            },
+                            binding: undefined,
+                        },
+                    },
+                ],
+            },
+        ]);
+    });
+
     it('supports @@strict for type defs', async () => {
         const { schema } = await generateTsSchema(`
 model User {
@@ -893,6 +1013,63 @@ type Profile with Strict {
             Profile: {
                 strict: true,
             },
+        });
+    });
+
+    it('supports primitive type defs', async () => {
+        const { schema } = await generateTsSchema(`
+            model User {
+                id   Int      @id
+                name UserName
+            }
+
+            type UserName with String {
+                this String
+            }
+            `);
+
+        expect(schema).toMatchObject({
+            models: {
+                User: {
+                    name: 'User',
+                    fields: {
+                        id: {
+                            name: 'id',
+                            type: 'Int',
+                            id: true,
+                            attributes: [
+                                {
+                                    name: '@id',
+                                },
+                            ],
+                        },
+                        name: {
+                            name: 'name',
+                            type: 'UserName',
+                        },
+                    },
+                    idFields: ['id'],
+                    uniqueFields: {
+                        id: {
+                            type: 'Int',
+                        },
+                    },
+                },
+            },
+            typeDefs: {
+                UserName: {
+                    name: 'UserName',
+                    base: 'String',
+                    fields: {
+                        this: {
+                            name: 'this',
+                            type: 'String',
+                        },
+                    },
+                },
+            },
+            authType: 'User',
+            plugins: {},
         });
     });
 });

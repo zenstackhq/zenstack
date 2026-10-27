@@ -45,6 +45,7 @@ import {
     getModel,
     getRelationForeignKeyFieldPairs,
     isForeignKeyField,
+    isPrimitiveTypeDef,
     isRelationField,
     isScalarField,
     requireField,
@@ -257,7 +258,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                         result,
                         fieldDef.originModel,
                         field,
-                        fieldDef.originModel,
+                        this.dialect.delegateJoinAlias(model, parentAlias, fieldDef.originModel),
                         payload,
                     );
                 } else {
@@ -1080,28 +1081,11 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         const origWhere = combinedWhere;
 
         const modelDef = this.requireModel(model);
-        let finalData = data;
 
         // fill in automatically updated fields
-        const autoUpdatedFields: string[] = [];
-        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
-            if (fieldDef.updatedAt && finalData[fieldName] === undefined) {
-                const ignoredFields = new Set(typeof fieldDef.updatedAt === 'boolean' ? [] : fieldDef.updatedAt.ignore);
-                const hasNonIgnoredFields = Object.keys(data).some(
-                    (field) =>
-                        (isScalarField(this.schema, modelDef.name, field) ||
-                            isForeignKeyField(this.schema, modelDef.name, field)) &&
-                        !ignoredFields.has(field),
-                );
-                if (hasNonIgnoredFields) {
-                    if (finalData === data) {
-                        finalData = clone(data);
-                    }
-                    finalData[fieldName] = this.dialect.transformInput(new Date(), 'DateTime', false, fieldDef);
-                    autoUpdatedFields.push(fieldName);
-                }
-            }
-        }
+        const filled = this.fillUpdatedAtFields(modelDef, data);
+        let finalData = filled.data;
+        const autoUpdatedFields = filled.autoUpdatedFields;
 
         // lazily load the entity to be updated
         let thisEntity: any;
@@ -1459,7 +1443,10 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
     }
 
     private isNumericField(fieldDef: FieldDef) {
-        return NUMERIC_FIELD_TYPES.includes(fieldDef.type) && !fieldDef.array;
+        const type = isPrimitiveTypeDef(this.schema, fieldDef.type)
+            ? this.schema.typeDefs![fieldDef.type]!.base!
+            : fieldDef.type;
+        return NUMERIC_FIELD_TYPES.includes(type) && !fieldDef.array;
     }
 
     private makeContextComment(_context: { model: string; operation: CRUD }) {
@@ -1500,14 +1487,30 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             combinedWhere = Object.keys(combinedWhere).length > 0 ? { AND: [parentWhere, combinedWhere] } : parentWhere;
         }
 
+        // fill in automatically updated fields
+        const { data: finalData } = this.fillUpdatedAtFields(modelDef, data);
+
+        // NOTE: besides naming the model the filter is built against, `filterModel` also tells
+        // entry calls apart from recursive ones: it's `undefined` only when called from an
+        // operation handler or a nested relation update, while the recursive calls made by
+        // `updateManyByIds` and `processBaseModelUpdateMany` always pass it. Only entry calls
+        // need the id-resolution step below; the recursive ones already filter by ids or
+        // are walking up the delegate hierarchy. (Could be refactored into an explicit flag.)
+        if (modelDef.baseModel && filterModel === undefined) {
+            // the base model's table is written before this model's table, so a filter that
+            // reads a field changed by that write (an `@updatedAt` field, for example) would
+            // no longer match; resolve the matching rows first and update them by id
+            return this.updateManyByIds(kysely, model, combinedWhere, finalData, returnData, fieldsToReturn);
+        }
+
         filterModel ??= model;
         let updateFields: any = {};
 
-        for (const field in data) {
+        for (const field in finalData) {
             if (isRelationField(this.schema, model, field)) {
                 continue;
             }
-            updateFields[field] = this.processScalarFieldUpdateData(model, field, data);
+            updateFields[field] = this.processScalarFieldUpdateData(model, field, finalData);
         }
 
         let resultFromBaseModel: any = undefined;
@@ -1647,6 +1650,84 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                 return result.rows as Result;
             }
         }
+    }
+
+    /**
+     * Runs `updateMany` on a delegate sub model by id. Reads the ids of the rows that match
+     * `where`, then updates them in batches with an id filter. Callers run this inside a
+     * transaction (`needsNestedUpdate` is true for every model with a base model).
+     */
+    private async updateManyByIds<ReturnData extends boolean, Result>(
+        kysely: AnyKysely,
+        model: string,
+        where: any,
+        data: any,
+        returnData: ReturnData,
+        fieldsToReturn?: readonly string[],
+    ): Promise<Result> {
+        const idFields = requireIdFields(this.schema, model);
+        const rows = await this.read(kysely, model, {
+            where,
+            select: Object.fromEntries(idFields.map((f) => [f, true])),
+        } as any);
+
+        // keep each statement within the database limits on parameters
+        const batchSize = idFields.length === 1 ? 1000 : 100;
+        let count = 0;
+        const returned: unknown[] = [];
+        for (let i = 0; i < rows.length; i += batchSize) {
+            const batch = rows.slice(i, i + batchSize);
+            const idWhere =
+                idFields.length === 1
+                    ? { [idFields[0]!]: { in: batch.map((row) => row[idFields[0]!]) } }
+                    : { OR: batch.map((row) => Object.fromEntries(idFields.map((f) => [f, row[f]]))) };
+            const result: any = await this.updateMany(
+                kysely,
+                model,
+                idWhere,
+                data,
+                undefined,
+                returnData,
+                model,
+                undefined,
+                fieldsToReturn,
+            );
+            if (returnData) {
+                returned.push(...result);
+            } else {
+                count += result.count;
+            }
+        }
+        return (returnData ? returned : { count }) as Result;
+    }
+
+    /**
+     * Sets `@updatedAt` fields to the current time when `data` changes a scalar or foreign key
+     * field that is not in the field's `ignore` list. A value given explicitly in `data` is kept.
+     * Returns the original `data` object when nothing is filled in, otherwise a clone.
+     */
+    private fillUpdatedAtFields(modelDef: ModelDef, data: any) {
+        let result = data;
+        const autoUpdatedFields: string[] = [];
+        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+            if (fieldDef.updatedAt && result[fieldName] === undefined) {
+                const ignoredFields = new Set(typeof fieldDef.updatedAt === 'boolean' ? [] : fieldDef.updatedAt.ignore);
+                const hasNonIgnoredFields = Object.keys(data).some(
+                    (field) =>
+                        (isScalarField(this.schema, modelDef.name, field) ||
+                            isForeignKeyField(this.schema, modelDef.name, field)) &&
+                        !ignoredFields.has(field),
+                );
+                if (hasNonIgnoredFields) {
+                    if (result === data) {
+                        result = clone(data);
+                    }
+                    result[fieldName] = this.dialect.transformInput(new Date(), 'DateTime', false, fieldDef);
+                    autoUpdatedFields.push(fieldName);
+                }
+            }
+        }
+        return { data: result, autoUpdatedFields };
     }
 
     private async processBaseModelUpdateMany(
@@ -1803,7 +1884,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                             item.data,
                             item.limit,
                             false,
-                            fieldModel,
+                            undefined,
                             fromRelationContext,
                         );
                     }
@@ -2298,30 +2379,12 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             return this.executeDelete(kysely, model, where, limit, filterModel, fieldsToReturn);
         }
 
-        if (!modelDef.isDelegate) {
-            if (limit !== undefined) {
-                throw createNotSupportedError('Deleting with a limit is not supported for polymorphic models');
-            }
-            for (const { fieldDef } of cascadeRelations) {
-                await this.delete(
-                    kysely,
-                    fieldDef.type,
-                    { [fieldDef.relation!.opposite!]: where },
-                    undefined,
-                    undefined,
-                    undefined,
-                    visited,
-                );
-            }
-            return this.executeDelete(kysely, model, where, limit, filterModel, fieldsToReturn);
-        }
-
-        // for a delegate model, resolve the rows being deleted first: `where` can filter on a sub model or on
-        // related rows, which the cascades below may delete
-        const discriminator = getDiscriminatorField(this.schema, model)!;
+        // resolve the rows being deleted first: `where` can filter on a sub model or on related rows, which
+        // the cascades below may delete
+        const discriminator = getDiscriminatorField(this.schema, model);
         const deletedRows = await this.read(kysely, filterModel, {
             where,
-            select: { ...this.makeIdSelect(filterModel), [discriminator]: true },
+            select: { ...this.makeIdSelect(filterModel), ...(discriminator ? { [discriminator]: true } : {}) },
             ...(limit !== undefined ? { take: limit } : {}),
         });
 
@@ -2332,7 +2395,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             const parentRows =
                 discriminatorValue === undefined
                     ? deletedRows
-                    : deletedRows.filter((row) => row[discriminator] === discriminatorValue);
+                    : deletedRows.filter((row) => row[discriminator!] === discriminatorValue);
             for (const batch of this.batchRows(model, parentRows)) {
                 const childModel = fieldDef.type;
                 const childRows = await this.read(kysely, childModel, {

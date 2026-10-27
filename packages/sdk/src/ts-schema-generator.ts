@@ -41,8 +41,10 @@ import {
     getAllAttributes,
     getAllFields,
     getAttributeArg,
+    getRelationName,
     isDataFieldReference,
     isLiteAttribute,
+    isPrimitiveTypeDef,
 } from '@zenstackhq/language/utils';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -507,6 +509,9 @@ export class TsSchemaGenerator {
             // name
             ts.factory.createPropertyAssignment('name', ts.factory.createStringLiteral(td.name)),
 
+            // base
+            ...(td.base ? [ts.factory.createPropertyAssignment('base', ts.factory.createStringLiteral(td.base))] : []),
+
             // fields
             ts.factory.createPropertyAssignment(
                 'fields',
@@ -812,9 +817,12 @@ export class TsSchemaGenerator {
     ): string | number | boolean | unknown[] | { call: string; args: any[] } | { authMember: string[] } | null {
         if (isLiteralExpr(expr)) {
             const lit = (expr as LiteralExpr).value;
-            return fieldType.type === 'Boolean'
+            // resolve the effective base type for primitive typedef references so that
+            // numeric/boolean defaults are emitted with the correct JS type
+            const effectiveType = this.getMappedValueBaseType(fieldType);
+            return effectiveType === 'Boolean'
                 ? (lit as boolean)
-                : ['Int', 'Float', 'Decimal', 'BigInt'].includes(fieldType.type!)
+                : ['Int', 'Float', 'Decimal', 'BigInt'].includes(effectiveType!)
                   ? Number(lit)
                   : lit;
         } else if (isArrayExpr(expr)) {
@@ -835,6 +843,19 @@ export class TsSchemaGenerator {
         } else {
             throw new Error(`Unsupported expression type: ${expr.$type}`);
         }
+    }
+
+    /**
+     * The primitive type used to map a literal default value to its JS representation. For a
+     * primitive typedef reference (e.g. `type Age with Int`), this resolves to the base type so
+     * that e.g. an `Int`-based typedef default is emitted as a number instead of a string.
+     */
+    private getMappedValueBaseType(fieldType: DataFieldType): string | undefined {
+        if (fieldType.type) {
+            return fieldType.type;
+        }
+        const ref = fieldType.reference?.ref;
+        return ref && isPrimitiveTypeDef(ref) ? ref.base : undefined;
     }
 
     private getMemberAccessChain(expr: MemberAccessExpr): string[] {
@@ -869,7 +890,7 @@ export class TsSchemaGenerator {
             );
         }
 
-        const relationName = this.getRelationName(field);
+        const relationName = getRelationName(field);
         if (relationName) {
             relationFields.push(
                 ts.factory.createPropertyAssignment('name', ts.factory.createStringLiteral(relationName)),
@@ -959,7 +980,7 @@ export class TsSchemaGenerator {
         const sourceModel = isTypeDef(field.$container) ? contextModel : (field.$container as DataModel);
 
         const targetModel = field.type.reference.ref as DataModel;
-        const relationName = this.getRelationName(field);
+        const relationName = getRelationName(field);
         for (const otherField of getAllFields(targetModel)) {
             if (otherField === field) {
                 // backlink field is never self
@@ -969,21 +990,9 @@ export class TsSchemaGenerator {
                 // relation names must match on both sides, including the case where neither side
                 // is named - otherwise an unnamed relation can be paired with a named one that
                 // happens to be declared first
-                if (this.getRelationName(otherField) === relationName) {
+                if (getRelationName(otherField) === relationName) {
                     return otherField;
                 }
-            }
-        }
-        return undefined;
-    }
-
-    private getRelationName(field: DataField) {
-        const relation = getAttribute(field, '@relation');
-        if (relation) {
-            const nameArg = relation.args.find((arg) => arg.$resolvedParam?.name === 'name');
-            if (nameArg) {
-                invariant(isLiteralExpr(nameArg.value), 'name must be a literal');
-                return nameArg.value.value as string;
             }
         }
         return undefined;
@@ -1087,8 +1096,7 @@ export class TsSchemaGenerator {
             ? ts.factory.createStringLiteral(field.type.type)
             : field.type.reference
               ? ts.factory.createStringLiteral(field.type.reference.$refText)
-              : // `Unsupported` type
-                ts.factory.createStringLiteral('Unsupported');
+              : ts.factory.createStringLiteral('Unsupported');
     }
 
     private createEnumObject(e: Enum) {
@@ -1367,6 +1375,16 @@ export class TsSchemaGenerator {
             .when(isEnumField, () => this.createLiteralExpression('StringLiteral', expr.target.$refText))
             .when(isCollectionPredicateBinding, () =>
                 this.createExpressionUtilsCall('binding', [this.createLiteralNode(expr.target.$refText)]),
+            )
+            .when(isEnum, () =>
+                this.createExpressionUtilsCall('array', [
+                    this.createLiteralNode(expr.target.$refText),
+                    ts.factory.createArrayLiteralExpression(
+                        (target as Enum).fields.map((field) =>
+                            this.createLiteralExpression('StringLiteral', field.name),
+                        ),
+                    ),
+                ]),
             )
             .otherwise(() => {
                 throw Error(`Unsupported reference type: ${expr.target.$refText}`);

@@ -33,6 +33,7 @@ describe.each([
         status: 'ACTIVE',
         address: null,
         extId: null,
+        contacts: [],
     };
 
     // A fully valid Post object (without relations)
@@ -92,6 +93,7 @@ describe.each([
                 expectTypeOf<Address['street']>().toEqualTypeOf<string>();
                 expectTypeOf<Address['city']>().toEqualTypeOf<string>();
                 expectTypeOf<Address['zip']>().toEqualTypeOf<string | null | undefined>();
+                expectTypeOf<Address['type']>().toEqualTypeOf<string>();
                 expectTypeOf<User['address']>().toEqualTypeOf<Address | null | undefined>();
 
                 // relation fields are NOT present by default — use include/select to opt in
@@ -460,7 +462,13 @@ describe.each([
                 const userSchema = factory.makeModelSchema('User');
                 const result = userSchema.safeParse({
                     ...validUser,
-                    address: { residents: [], street: '123 Main St', city: 'Springfield', zip: null },
+                    address: {
+                        residents: [],
+                        street: '123 Main St',
+                        city: 'Springfield',
+                        zip: null,
+                        type: 'RESIDENTIAL',
+                    },
                 });
                 expect(result.success).toBe(true);
             });
@@ -469,7 +477,13 @@ describe.each([
                 const userSchema = factory.makeModelSchema('User');
                 const result = userSchema.safeParse({
                     ...validUser,
-                    address: { residents: [], street: '123 Main St', city: 'Springfield', zip: '12345' },
+                    address: {
+                        residents: [],
+                        street: '123 Main St',
+                        city: 'Springfield',
+                        zip: '12345',
+                        type: 'RESIDENTIAL',
+                    },
                 });
                 expect(result.success).toBe(true);
             });
@@ -478,7 +492,14 @@ describe.each([
                 const userSchema = factory.makeModelSchema('User');
                 const result = userSchema.safeParse({
                     ...validUser,
-                    address: { residents: [], street: '123 Main St', city: 'Springfield', zip: null, extra: 'field' },
+                    address: {
+                        residents: [],
+                        street: '123 Main St',
+                        city: 'Springfield',
+                        zip: null,
+                        type: 'RESIDENTIAL',
+                        extra: 'field',
+                    },
                 });
                 expect(result.success).toBe(false);
             });
@@ -487,7 +508,7 @@ describe.each([
                 const userSchema = factory.makeModelSchema('User');
                 const result = userSchema.safeParse({
                     ...validUser,
-                    address: { residents: [], street: '123 Main St' },
+                    address: { residents: [], street: '123 Main St', type: 'RESIDENTIAL' },
                 });
                 expect(result.success).toBe(false);
             });
@@ -539,7 +560,13 @@ describe.each([
         it('generates schema for Address typedef', () => {
             const addressSchema = factory.makeTypeSchema('Address');
             expect(
-                addressSchema.safeParse({ residents: [], street: '123 Main', city: 'Springfield', zip: null }).success,
+                addressSchema.safeParse({
+                    residents: [],
+                    street: '123 Main',
+                    city: 'Springfield',
+                    zip: null,
+                    type: 'RESIDENTIAL',
+                }).success,
             ).toBe(true);
         });
 
@@ -557,6 +584,7 @@ describe.each([
                 city: 'Springfield',
                 zip: null,
                 extra: 'field',
+                type: 'RESIDENTIAL',
             });
             expect(result.success).toBe(false);
         });
@@ -564,15 +592,26 @@ describe.each([
         it('accepts Address with optional zip as null', () => {
             const addressSchema = factory.makeTypeSchema('Address');
             expect(
-                addressSchema.safeParse({ residents: [], street: '123 Main', city: 'Springfield', zip: null }).success,
+                addressSchema.safeParse({
+                    residents: [],
+                    street: '123 Main',
+                    city: 'Springfield',
+                    zip: null,
+                    type: 'RESIDENTIAL',
+                }).success,
             ).toBe(true);
         });
 
         it('accepts Address with optional zip as a string', () => {
             const addressSchema = factory.makeTypeSchema('Address');
             expect(
-                addressSchema.safeParse({ residents: [], street: '123 Main', city: 'Springfield', zip: '12345' })
-                    .success,
+                addressSchema.safeParse({
+                    residents: [],
+                    street: '123 Main',
+                    city: 'Springfield',
+                    zip: '12345',
+                    type: 'RESIDENTIAL',
+                }).success,
             ).toBe(true);
         });
 
@@ -580,23 +619,38 @@ describe.each([
             it('passes when zip is null', () => {
                 const addressSchema = factory.makeTypeSchema('Address');
                 expect(
-                    addressSchema.safeParse({ residents: [], street: '123 Main', city: 'Springfield', zip: null })
-                        .success,
+                    addressSchema.safeParse({
+                        residents: [],
+                        street: '123 Main',
+                        city: 'Springfield',
+                        zip: null,
+                        type: 'RESIDENTIAL',
+                    }).success,
                 ).toBe(true);
             });
 
             it('passes when zip is omitted', () => {
                 const addressSchema = factory.makeTypeSchema('Address');
                 expect(
-                    addressSchema.safeParse({ residents: [], street: '123 Main', city: 'Springfield' }).success,
+                    addressSchema.safeParse({
+                        residents: [],
+                        street: '123 Main',
+                        city: 'Springfield',
+                        type: 'RESIDENTIAL',
+                    }).success,
                 ).toBe(true);
             });
 
             it('passes when zip is exactly 5 characters', () => {
                 const addressSchema = factory.makeTypeSchema('Address');
                 expect(
-                    addressSchema.safeParse({ residents: [], street: '123 Main', city: 'Springfield', zip: '90210' })
-                        .success,
+                    addressSchema.safeParse({
+                        residents: [],
+                        street: '123 Main',
+                        city: 'Springfield',
+                        zip: '90210',
+                        type: 'RESIDENTIAL',
+                    }).success,
                 ).toBe(true);
             });
 
@@ -607,6 +661,7 @@ describe.each([
                     street: '123 Main',
                     city: 'Springfield',
                     zip: '123',
+                    type: 'RESIDENTIAL',
                 });
                 expect(result.success).toBe(false);
             });
@@ -618,6 +673,7 @@ describe.each([
                     street: '123 Main',
                     city: 'Springfield',
                     zip: '123456',
+                    type: 'RESIDENTIAL',
                 });
                 expect(result.success).toBe(false);
             });
@@ -629,6 +685,7 @@ describe.each([
                     street: '123 Main',
                     city: 'Springfield',
                     zip: '123',
+                    type: 'RESIDENTIAL',
                 });
                 expect(result.success).toBe(false);
                 if (!result.success) {
@@ -645,6 +702,7 @@ describe.each([
                     street: '123 Main',
                     city: 'Springfield',
                     zip: '123',
+                    type: 'RESIDENTIAL',
                 });
                 expect(result.success).toBe(false);
                 if (!result.success) {
@@ -654,7 +712,13 @@ describe.each([
 
             it('fails when city is too short', () => {
                 const addressSchema = factory.makeTypeSchema('Address');
-                const result = addressSchema.safeParse({ residents: [], street: '123 Main', city: '', zip: '12345' });
+                const result = addressSchema.safeParse({
+                    residents: [],
+                    street: '123 Main',
+                    city: '',
+                    zip: '12345',
+                    type: 'RESIDENTIAL',
+                });
                 expect(result.success).toBe(false);
             });
 
@@ -678,15 +742,61 @@ describe.each([
                     avatar: null,
                     metadata: null,
                     status: 'ACTIVE',
-                    address: { residents: [], street: '123 Main', city: 'Springfield', zip: '90210' },
+                    address: {
+                        residents: [],
+                        street: '123 Main',
+                        city: 'Springfield',
+                        zip: '90210',
+                        type: 'RESIDENTIAL',
+                    },
+                    contacts: [],
                 };
                 expect(userSchema.safeParse(validUser).success).toBe(true);
                 expect(
                     userSchema.safeParse({
                         ...validUser,
-                        address: { residents: ['Alice'], street: '123 Main', city: 'Springfield', zip: '123' },
+                        address: {
+                            residents: ['Alice'],
+                            street: '123 Main',
+                            city: 'Springfield',
+                            zip: '123',
+                            type: 'RESIDENTIAL',
+                        },
                     }).success,
                 ).toBe(false);
+            });
+
+            it('passes when field value matches implicitly converted enum', () => {
+                const addressSchema = factory.makeTypeSchema('Address');
+                let result = addressSchema.safeParse({
+                    residents: [],
+                    street: '123 Main',
+                    city: 'Springfield',
+                    zip: '12345',
+                    type: 'RESIDENTIAL',
+                });
+                expect(result.success).toBe(true);
+
+                result = addressSchema.safeParse({
+                    residents: [],
+                    street: '123 Main',
+                    city: 'Springfield',
+                    zip: '12345',
+                    type: 'COMMERCIAL',
+                });
+                expect(result.success).toBe(true);
+            });
+
+            it('fails when field value does not match implicitly converted enum', () => {
+                const addressSchema = factory.makeTypeSchema('Address');
+                const result = addressSchema.safeParse({
+                    residents: [],
+                    street: '123 Main',
+                    city: 'Springfield',
+                    zip: '12345',
+                    type: 'UNKNOWN',
+                });
+                expect(result.success).toBe(false);
             });
         });
     });
@@ -1569,6 +1679,139 @@ describe.each([
                 const schema = factory.makeModelSchema('User', { select: { email: true, age: true } });
                 expect(schema.safeParse({ email: 'valid@example.com', age: 16 }).success).toBe(false);
                 expect(schema.safeParse({ email: 'valid@example.com', age: 18 }).success).toBe(true);
+            });
+        });
+    });
+
+    describe('custom type primitives', () => {
+        it('supports model validation using `this` attributes', () => {
+            const postSchema = factory.makeModelSchema('Post');
+            const result = postSchema.safeParse({ ...validPost, tags: ['LOWERCASED', 'Other'] });
+            expect(result.success).toBe(true);
+            expect(result.data?.tags).toMatchObject(['lowercased', 'other']);
+        });
+
+        it('supports model validation using `@@validate`', () => {
+            const userSchema = factory.makeModelSchema('User');
+            let result = userSchema.safeParse({ ...validUser, score: 0 });
+            expect(result.success).toBe(true);
+
+            result = userSchema.safeParse({ ...validUser, score: 99.0 });
+            expect(result.success).toBe(true);
+
+            result = userSchema.safeParse({ ...validUser, score: 100.0 });
+            expect(result.success).toBe(false);
+
+            result = userSchema.safeParse({ ...validUser, score: -1.0 });
+            expect(result.success).toBe(false);
+        });
+
+        it('supports field validation using `this` attributes', () => {
+            const postTagSchema = factory.makeTypeSchema('PostTag');
+            const result = postTagSchema.safeParse('LOWERCASE');
+            expect(result.success).toBe(true);
+            expect(result.data).toBe('lowercase');
+        });
+
+        it('applies string `@length` on `this` field', () => {
+            const postTagSchema = factory.makeTypeSchema('PostTag');
+            expect(postTagSchema.safeParse('').success).toBe(false);
+            expect(postTagSchema.safeParse('a').success).toBe(true);
+            expect(postTagSchema.safeParse('abcdefghijkl').success).toBe(true);
+            expect(postTagSchema.safeParse('abcdefghijklm').success).toBe(false);
+        });
+
+        it('supports `@@validate` attributes', () => {
+            const contactSchema = factory.makeTypeSchema('Contact');
+            let result = contactSchema.safeParse('test@mail.com');
+            expect(result.success).toBe(true);
+            expect(result.data).toBe('test@mail.com');
+
+            result = contactSchema.safeParse('+15555555555');
+            expect(result.success).toBe(true);
+            expect(result.data).toBe('+15555555555');
+
+            result = contactSchema.safeParse('not-a-contact');
+            expect(result.success).toBe(false);
+        });
+
+        it('supports multiple `@@validate` attributes', () => {
+            const contactSchema = factory.makeTypeSchema('Score');
+            let result = contactSchema.safeParse(0);
+            expect(result.success).toBe(true);
+            expect(result.data).toBe(0);
+
+            result = contactSchema.safeParse(99.0);
+            expect(result.success).toBe(true);
+            expect(result.data).toBe(99.0);
+
+            result = contactSchema.safeParse(100.0);
+            expect(result.success).toBe(false);
+
+            result = contactSchema.safeParse(-1.0);
+            expect(result.success).toBe(false);
+        });
+
+        describe('lists', () => {
+            it('applies field attributes to the list', () => {
+                const postSchema = factory.makeModelSchema('Post');
+                let result = postSchema.safeParse({ ...validPost, tags: ['a', 'b'] });
+                expect(result.success).toBe(true);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a', 'b', 'c'] });
+                expect(result.success).toBe(true);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a'] });
+                expect(result.success).toBe(false);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a', 'b', 'c', 'd'] });
+                expect(result.success).toBe(false);
+            });
+
+            it('applies both the list length and the element string length', () => {
+                const postSchema = factory.makeModelSchema('Post');
+                let result = postSchema.safeParse({ ...validPost, tags: ['a', 'abcdefghijkl'] });
+                expect(result.success).toBe(true);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a', ''] });
+                expect(result.success).toBe(false);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a', 'abcdefghijklm'] });
+                expect(result.success).toBe(false);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a'] });
+                expect(result.success).toBe(false);
+
+                result = postSchema.safeParse({ ...validPost, tags: ['a', 'b', 'c', 'd'] });
+                expect(result.success).toBe(false);
+            });
+
+            it('does not apply string lengths to lists', () => {
+                const holderSchema = factory.makeModelSchema('Holder');
+                let result = holderSchema.safeParse({
+                    id: 0,
+                    labels: [],
+                });
+                expect(result.success).toBe(true);
+
+                result = holderSchema.safeParse({
+                    id: 0,
+                    labels: [''],
+                });
+                expect(result.success).toBe(false);
+
+                result = holderSchema.safeParse({
+                    id: 0,
+                    labels: ['a'],
+                });
+                expect(result.success).toBe(true);
+            });
+
+            it('applies typedef attributes to each item', () => {
+                const postSchema = factory.makeModelSchema('Post');
+                const result = postSchema.safeParse({ ...validPost, tags: ['A', 'B'] });
+                expect(result.success).toBe(true);
+                expect(result.data?.tags).toEqual(['a', 'b']);
             });
         });
     });

@@ -2,7 +2,7 @@
     "name": "@zenstackhq/cli",
     "displayName": "ZenStack CLI",
     "description": "FullStack database toolkit with built-in access control and automatic API generation.",
-    "version": "3.9.8",
+    "version": "3.10.0",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
@@ -61,7 +61,7 @@
         "@zenstackhq/plugin-policy": "workspace:*",
         "@zenstackhq/server": "workspace:*",
         "@hono/node-server": "^1.13.8",
-        "hono": "^4.11.10",
+        "hono": "^4.13.7",
         "chokidar": "^5.0.0",
         "colors": "1.4.0",
         "commander": "^8.3.0",

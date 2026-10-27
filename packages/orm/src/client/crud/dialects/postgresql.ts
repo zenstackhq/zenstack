@@ -15,7 +15,7 @@ import { parse as parsePostgresArray } from 'postgres-array';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
 import type { NullsOrder, SortOrder } from '../../crud-types';
 import { createInvalidInputError } from '../../errors';
-import { isEnum, isTypeDef } from '../../query-utils';
+import { isEnum, isPrimitiveTypeDef, isTypeDef } from '../../query-utils';
 import type { CrudDialectArgs, FuzzyFilterOptions } from './base-dialect';
 import { LateralJoinDialectBase } from './lateral-join-dialect-base';
 
@@ -187,15 +187,21 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         // https://github.com/brianc/node-postgres/issues/374
 
         if (isTypeDef(this.schema, type)) {
-            // type-def fields (regardless array or scalar) are stored as scalar `Json` and
-            // their input values need to be stringified if not already (i.e., provided in
-            // default values)
-            if (typeof value !== 'string') {
-                return JSON.stringify(value);
+            if (isPrimitiveTypeDef(this.schema, type)) {
+                type = this.schema['typeDefs']![type]!['base']!;
             } else {
-                return value;
+                // type-def fields (regardless array or scalar) are stored as scalar `Json` and
+                // their input values need to be stringified if not already (i.e., provided in
+                // default values)
+                if (typeof value !== 'string') {
+                    return JSON.stringify(value);
+                } else {
+                    return value;
+                }
             }
-        } else if (Array.isArray(value)) {
+        }
+
+        if (Array.isArray(value)) {
             if (type === 'Json' && !forArrayField) {
                 // scalar `Json` fields need their input stringified
                 return JSON.stringify(value);
@@ -239,9 +245,13 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         }
     }
 
-    override transformOutput(value: unknown, type: BuiltinType, array: boolean) {
+    override transformOutput(value: unknown, type: BuiltinType, array: boolean): unknown {
         if (value === null || value === undefined) {
             return value;
+        }
+
+        if (isPrimitiveTypeDef(this.schema, type)) {
+            return this.transformOutput(value, this.schema.typeDefs![type]!.base!, array);
         }
 
         switch (type) {
@@ -499,6 +509,10 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
                     return mapped;
                 }
             }
+        }
+        // a primitive typedef maps to its base type's SQL type
+        if (isPrimitiveTypeDef(this.schema, zmodelType)) {
+            zmodelType = this.schema.typeDefs![zmodelType]!.base!;
         }
         if (isEnum(this.schema, zmodelType)) {
             // reduce enum to text for type compatibility

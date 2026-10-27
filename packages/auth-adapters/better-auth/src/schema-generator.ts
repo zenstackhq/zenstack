@@ -97,15 +97,7 @@ async function updateSchema(
 
     const supportsArrays = getSupportsArrays(config);
     for (const [name, table] of Object.entries(tables)) {
-        const c = addOrUpdateModel(
-            name,
-            table,
-            zmodel,
-            tables,
-            toManyRelations,
-            supportsArrays,
-            !!options.advanced?.database?.useNumberId,
-        );
+        const c = addOrUpdateModel(name, table, zmodel, tables, toManyRelations, supportsArrays, useNumberId(options));
         changed = changed || c;
     }
 
@@ -582,4 +574,10 @@ function createStringAttributeArg(value: string) {
     };
     arg.value = expr;
     return arg;
+}
+
+function useNumberId(options: BetterAuthOptions) {
+    const dbOptions = options.advanced?.database as { useNumberId?: boolean; generateId?: unknown } | undefined;
+    // `useNumberId` was replaced by `generateId: 'serial'` in better-auth 1.7
+    return !!dbOptions?.useNumberId || dbOptions?.generateId === 'serial';
 }

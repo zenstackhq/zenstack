@@ -10,12 +10,19 @@ enum Status {
     @@meta("description", "User account status")
 }
 
+enum AddressType {
+    RESIDENTIAL
+    COMMERCIAL
+}
+
 type Address {
     residents String[]
     street    String   @meta("description", "Street address line")
     city      String   @length(2)
     zip       String?
+    type      String
 
+    @@validate(type in AddressType)
     @@validate(zip == null || length(zip) == 5, "Zip code must be exactly 5 characters", ["zip"])
     @@meta("description", "A mailing address")
 }
@@ -27,8 +34,8 @@ model User {
     username  String    @length(3, 50)
     website   String?   @url
     code      String    @startsWith("USR")
-    age       Int       @gt(0) @lte(150)
-    score     Float     @gte(0.0) @lt(100.0)
+    age       Age       @lte(150)
+    score     Score
     bigNum    BigInt    @gte(0)
     balance   Decimal   @gt(0)
     active    Boolean
@@ -41,18 +48,24 @@ model User {
     status    Status
     address   Address?  @json
     posts     Post[]
+    contacts  Contact[]
 
     @@validate(age >= 18, "Must be adult", ["age"])
     @@meta("description", "A user of the system")
 }
 
 model Post {
-    id        String   @id @default(cuid())
+    id        String    @id @default(cuid())
     title     String
     published Boolean
-    tags      String[]
-    author    User?    @relation(fields: [authorId], references: [id])
+    tags      PostTag[] @length(2, 3)
+    author    User?     @relation(fields: [authorId], references: [id])
     authorId  String?
+}
+
+model Holder {
+    id     Int     @id @default(autoincrement())
+    labels Label[]
 }
 
 // --- Computed fields ---
@@ -81,4 +94,30 @@ model Video extends Asset {
 model Image extends Asset {
     format String
     width  Int
+}
+
+// --- Primitives ---
+type Label with String {
+    this String @length(1, 12)
+}
+
+type Age with Int {
+    this Int @gt(0)
+}
+
+type Score with Float {
+    this Float
+
+    @@validate(this >= 0.0)
+    @@validate(this < 100.0)
+}
+
+type Contact with String {
+    this String
+
+    @@validate(isPhone(this) || isEmail(this))
+}
+
+type PostTag with String {
+    this String @lower @length(1, 12)
 }
