@@ -345,8 +345,9 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             // enums read from a VALUES table (`before()` rows, create input) are text, and pg can't
             // compare text to a native enum
             const asText =
-                this.isValuesTableEnumField(normalizedLeft, context) ||
-                this.isValuesTableEnumField(normalizedRight, context);
+                this.isBeforeEnumField(normalizedLeft, context) ||
+                this.isBeforeEnumField(normalizedRight, context) ||
+                this.isCreateInputEnumComparison(normalizedLeft, normalizedRight, context);
             const operand = (node: OperationNode) =>
                 asText ? this.dialect.castText(new ExpressionWrapper(node)) : new ExpressionWrapper(node);
             return this.dialect
@@ -1216,25 +1217,52 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         return !!fieldDef?.relation;
     }
 
-    private isValuesTableEnumField(expr: Expression, context: ExpressionTransformerContext) {
-        let field: string | undefined;
-        if (ExpressionUtils.isMember(expr) && isBeforeInvocation(expr.receiver)) {
-            // `before()` always refers to the model being updated (`thisType`), even inside
-            // collection predicates where `modelOrType` is the related model
-            field = expr.members[0];
-        } else if (context.operation === 'create') {
-            // create rules read the new entity's own fields from the input VALUES table
-            if (ExpressionUtils.isMember(expr) && ExpressionUtils.isThis(expr.receiver) && expr.members.length === 1) {
-                field = expr.members[0];
-            } else if (ExpressionUtils.isField(expr) && context.modelOrType === context.thisType) {
-                field = expr.field;
-            }
-        }
-        if (!field) {
+    private isBeforeEnumField(expr: Expression, context: ExpressionTransformerContext) {
+        if (!ExpressionUtils.isMember(expr) || !isBeforeInvocation(expr.receiver)) {
             return false;
         }
-        const fieldDef = QueryUtils.getField(this.schema, context.thisType, field);
+        // `before()` always refers to the model being updated (`thisType`), even inside
+        // collection predicates where `modelOrType` is the related model
+        const fieldDef = QueryUtils.getField(this.schema, context.thisType, expr.members[0]!);
         return !!fieldDef && QueryUtils.isEnum(this.schema, fieldDef.type);
+    }
+
+    // create rules read the new entity's fields from the input VALUES table, where enums are text;
+    // compare as text only against a stored column of the same enum. `@map`-ed enums are skipped:
+    // the input holds names but stored columns hold mapped values (#2867)
+    private isCreateInputEnumComparison(left: Expression, right: Expression, context: ExpressionTransformerContext) {
+        if (context.operation !== 'create') {
+            return false;
+        }
+        const leftInput = this.getCreateInputEnumField(left, context);
+        const rightInput = this.getCreateInputEnumField(right, context);
+        if (!leftInput === !rightInput) {
+            return false;
+        }
+        const inputDef = (leftInput ?? rightInput)!;
+        const storedDef = this.getFieldDefFromFieldRef(leftInput ? right : left, context);
+        return storedDef?.type === inputDef.type && !this.hasMappedEnumValues(inputDef.type);
+    }
+
+    private getCreateInputEnumField(expr: Expression, context: ExpressionTransformerContext) {
+        let field: string | undefined;
+        if (ExpressionUtils.isMember(expr) && ExpressionUtils.isThis(expr.receiver) && expr.members.length === 1) {
+            field = expr.members[0];
+        } else if (
+            ExpressionUtils.isField(expr) &&
+            context.modelOrType === context.thisType &&
+            // inside a collection predicate (incl. self-relations) a bare field is a stored row
+            context.alias === context.thisAlias
+        ) {
+            field = expr.field;
+        }
+        const fieldDef = field ? QueryUtils.getField(this.schema, context.thisType, field) : undefined;
+        return fieldDef && QueryUtils.isEnum(this.schema, fieldDef.type) ? fieldDef : undefined;
+    }
+
+    private hasMappedEnumValues(enumType: string) {
+        const enumDef = QueryUtils.getEnum(this.schema, enumType);
+        return Object.values(enumDef?.fields ?? {}).some((f) => f.attributes?.some((attr) => attr.name === '@map'));
     }
 
     private getFieldDefFromFieldRef(expr: Expression, context: ExpressionTransformerContext): FieldDef | undefined {

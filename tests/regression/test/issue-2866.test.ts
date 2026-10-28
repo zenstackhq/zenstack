@@ -99,4 +99,50 @@ model Grant {
         });
         await expect(db.grant.create({ data: { id: 3, anchorId: 1, permission: 'EDIT' } })).toBeRejectedByPolicy();
     });
+
+    it('treats self-relation rows as stored rows', async () => {
+        const db = await createPolicyTestClient(
+            `
+enum Status {
+  ACTIVE   @map("active")
+  INACTIVE @map("inactive")
+}
+
+enum Kind {
+  FILE
+  DIR
+}
+
+model Folder {
+  id       Int      @id
+  status   Status
+  kind     Kind
+  parentId Int?
+  parent   Folder?  @relation("tree", fields: [parentId], references: [id])
+  children Folder[] @relation("tree")
+  @@allow('read', true)
+  @@allow('create', parentId == null || parent.children?[status != ACTIVE] || parent.children?[kind == this.kind])
+}
+`,
+            { provider: 'postgresql', usePrismaPush: true },
+        );
+        const raw = db.$unuseAll();
+        await raw.folder.create({ data: { id: 1, status: 'INACTIVE', kind: 'DIR' } });
+        await raw.folder.create({ data: { id: 2, status: 'ACTIVE', kind: 'DIR', parentId: 1 } });
+        await raw.folder.create({ data: { id: 3, status: 'INACTIVE', kind: 'DIR' } });
+        await raw.folder.create({ data: { id: 4, status: 'INACTIVE', kind: 'DIR', parentId: 3 } });
+
+        // the only child is ACTIVE and of another kind
+        await expect(
+            db.folder.create({ data: { id: 10, status: 'INACTIVE', kind: 'FILE', parentId: 1 } }),
+        ).toBeRejectedByPolicy();
+        // a child that is not ACTIVE
+        await expect(
+            db.folder.create({ data: { id: 11, status: 'INACTIVE', kind: 'FILE', parentId: 3 } }),
+        ).resolves.toMatchObject({ id: 11 });
+        // a child of the same kind
+        await expect(
+            db.folder.create({ data: { id: 12, status: 'INACTIVE', kind: 'DIR', parentId: 1 } }),
+        ).resolves.toMatchObject({ id: 12 });
+    });
 });
