@@ -171,5 +171,8 @@
         "tsx": "catalog:",
         "zod": "^4.1.0"
     },
+    "engines": {
+        "node": ">=22"
+    },
     "funding": "https://github.com/sponsors/zenstackhq"
 }
