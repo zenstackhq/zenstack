@@ -408,7 +408,11 @@ export class ZodSchemaFactory<
                     ]);
                 })
                 .with('DateTime', () => this.makeDateTimeValueSchema())
-                .with('Bytes', () => z.instanceof(Uint8Array))
+                .with('Bytes', () =>
+                    this.extraValidationsEnabled
+                        ? ZodUtils.addBytesValidation(z.instanceof(Uint8Array), attributes)
+                        : z.instanceof(Uint8Array),
+                )
                 .with('Json', () => this.makeJsonValueSchema())
                 .otherwise(() => z.unknown());
         }

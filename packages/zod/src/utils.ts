@@ -282,6 +282,33 @@ export function addDecimalValidation(
     return result;
 }
 
+export function addBytesValidation(
+    schema: z.ZodType<Uint8Array>,
+    attributes: readonly AttributeApplication[] | undefined,
+): z.ZodSchema {
+    if (!attributes || attributes.length === 0) {
+        return schema;
+    }
+
+    let result = schema;
+    for (const attr of attributes) {
+        switch (attr.name) {
+            case '@length': {
+                const min = getArgValue<number>(attr.args?.find((a) => a.name === 'min')?.value);
+                if (min !== undefined) {
+                    result = result.refine((data) => data.length >= min);
+                }
+                const max = getArgValue<number>(attr.args?.find((a) => a.name === 'max')?.value);
+                if (max !== undefined) {
+                    result = result.refine((data) => data.length <= max);
+                }
+                break;
+            }
+        }
+    }
+    return result;
+}
+
 export function addListValidation(
     schema: z.ZodArray<any>,
     attributes: readonly AttributeApplication[] | undefined,

@@ -43,7 +43,7 @@ model User {
     localTime String?   @time
     extId     String?   @uuid
     createdAt DateTime?
-    avatar    Bytes?
+    avatar    Bytes?    @length(3, 5)
     metadata  Json?
     status    Status
     address   Address?  @json
@@ -66,6 +66,12 @@ model Post {
 model Holder {
     id     Int     @id @default(autoincrement())
     labels Label[]
+}
+
+model Upload {
+    id     Int     @id @default(autoincrement())
+    chunks Chunk[] @length(2, 3)
+    blobs  Chunk[]
 }
 
 // --- Computed fields ---
@@ -120,4 +126,8 @@ type Contact with String {
 
 type PostTag with String {
     this String @lower @length(1, 12)
+}
+
+type Chunk with Bytes {
+    this Bytes @length(1, 4)
 }
