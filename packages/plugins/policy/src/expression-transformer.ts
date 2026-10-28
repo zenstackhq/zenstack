@@ -342,9 +342,11 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             const rightFieldDef = this.getFieldDefFromFieldRef(normalizedRight, context);
             // Map ZModel operator to SQL operator string
             const sqlOp = op === '==' ? '=' : op;
-            // `before()` enums are text in the VALUES table and pg can't compare text to a native enum
+            // enums read from a VALUES table (`before()` rows, create input) are text, and pg can't
+            // compare text to a native enum
             const asText =
-                this.isBeforeEnumField(normalizedLeft, context) || this.isBeforeEnumField(normalizedRight, context);
+                this.isValuesTableEnumField(normalizedLeft, context) ||
+                this.isValuesTableEnumField(normalizedRight, context);
             const operand = (node: OperationNode) =>
                 asText ? this.dialect.castText(new ExpressionWrapper(node)) : new ExpressionWrapper(node);
             return this.dialect
@@ -1214,13 +1216,24 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         return !!fieldDef?.relation;
     }
 
-    private isBeforeEnumField(expr: Expression, context: ExpressionTransformerContext) {
-        if (!ExpressionUtils.isMember(expr) || !isBeforeInvocation(expr.receiver)) {
+    private isValuesTableEnumField(expr: Expression, context: ExpressionTransformerContext) {
+        let field: string | undefined;
+        if (ExpressionUtils.isMember(expr) && isBeforeInvocation(expr.receiver)) {
+            // `before()` always refers to the model being updated (`thisType`), even inside
+            // collection predicates where `modelOrType` is the related model
+            field = expr.members[0];
+        } else if (context.operation === 'create') {
+            // create rules read the new entity's own fields from the input VALUES table
+            if (ExpressionUtils.isMember(expr) && ExpressionUtils.isThis(expr.receiver) && expr.members.length === 1) {
+                field = expr.members[0];
+            } else if (ExpressionUtils.isField(expr) && context.modelOrType === context.thisType) {
+                field = expr.field;
+            }
+        }
+        if (!field) {
             return false;
         }
-        // `before()` always refers to the model being updated (`thisType`), even inside
-        // collection predicates where `modelOrType` is the related model
-        const fieldDef = QueryUtils.getField(this.schema, context.thisType, expr.members[0]!);
+        const fieldDef = QueryUtils.getField(this.schema, context.thisType, field);
         return !!fieldDef && QueryUtils.isEnum(this.schema, fieldDef.type);
     }
 
