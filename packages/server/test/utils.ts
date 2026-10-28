@@ -28,6 +28,8 @@ model Post {
 }
 `;
 
-export function makeUrl(path: string, q?: object, useSuperJson = false) {
-    return q ? `${path}?q=${encodeURIComponent(useSuperJson ? superjson.stringify(q) : JSON.stringify(q))}` : path;
+export function makeUrl(path: string, data?: object, useSuperJson = false) {
+    return data
+        ? `${path}?data=${encodeURIComponent(useSuperJson ? superjson.stringify(data) : JSON.stringify(data))}`
+        : path;
 }
