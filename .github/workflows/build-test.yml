@@ -47,7 +47,7 @@ jobs:
 
         strategy:
             matrix:
-                node-version: [24.x]
+                node-version: [22.x, 24.x]
                 provider: [sqlite, postgresql, mysql]
 
         steps:

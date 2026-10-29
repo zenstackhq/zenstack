@@ -92,5 +92,8 @@
         "langium-cli": "catalog:",
         "tmp": "catalog:"
     },
+    "engines": {
+        "node": ">=22"
+    },
     "funding": "https://github.com/sponsors/zenstackhq"
 }
