@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { ClientContract } from '@zenstackhq/orm';
+import { definePlugin, type ClientContract } from '@zenstackhq/orm';
 import { schema } from '../schemas/basic';
 import { PolicyPlugin } from '@zenstackhq/plugin-policy';
 import { createTestClient } from '@zenstackhq/testtools';
@@ -208,29 +208,43 @@ describe('Client raw query tests', () => {
 
         it('$use installs kysely-level and entity mutation hooks on the derived transaction client', async () => {
             const calls: string[] = [];
+            const recorder = definePlugin({
+                id: 'recorder',
+                onKyselyQuery: ({ query, proceed }) => {
+                    if (query.kind === 'InsertQueryNode') {
+                        calls.push(query.kind);
+                    }
+                    return proceed(query);
+                },
+                onEntityMutation: {
+                    $all: {
+                        beforeEntityMutation: ({ action }) => {
+                            calls.push(action);
+                        },
+                    },
+                },
+            });
             await client.$transaction(async (tx) => {
-                await tx
-                    .$use({
-                        id: 'recorder',
-                        onKyselyQuery: ({ query, proceed }) => {
-                            if (query.kind === 'InsertQueryNode') {
-                                calls.push(query.kind);
-                            }
-                            return proceed(query);
-                        },
-                        onEntityMutation: {
-                            $all: {
-                                beforeEntityMutation: ({ action }) => {
-                                    calls.push(action);
-                                },
-                            },
-                        },
-                    })
-                    .user.create({ data: { email: 'u1@test.com' } });
+                await (tx as any).$use(recorder).user.create({ data: { email: 'u1@test.com' } });
                 await tx.user.create({ data: { email: 'u2@test.com' } });
             });
 
             expect(calls).toEqual(['InsertQueryNode', 'create']);
+        });
+
+        it('a derived transaction client fails once the transaction has ended', async () => {
+            const committed = await client.$transaction(async (tx) => tx.$setAuth({ id: 'u1' }));
+            await expect(committed.user.count()).rejects.toThrow('Transaction is already committed');
+            await expect(committed.$unuseAll().user.count()).rejects.toThrow('Transaction is already committed');
+
+            const rolledBack: ClientContract<typeof schema>[] = [];
+            await expect(
+                client.$transaction(async (tx) => {
+                    rolledBack.push(tx.$unuseAll().$setAuth({ id: 'u1' }));
+                    throw new Error('rollback');
+                }),
+            ).rejects.toThrow('rollback');
+            await expect(rolledBack[0]!.user.count()).rejects.toThrow('Transaction is already rolled back');
         });
     });
 
