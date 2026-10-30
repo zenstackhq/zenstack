@@ -113,7 +113,9 @@ export class ClientImpl {
                         baseClient.kyselyProps.driver as ZenStackDriver,
                         baseClient.kyselyProps.dialect.createQueryCompiler(),
                         baseClient.kyselyProps.dialect.createAdapter(),
-                        new DefaultConnectionProvider(baseClient.kyselyProps.driver),
+                        baseClient.isTransaction
+                            ? baseClient.$qb.getExecutor()
+                            : new DefaultConnectionProvider(baseClient.kyselyProps.driver),
                         [],
                         false,
                         // A name mapper is derived purely from `$schema` and `$options`, so it can be
@@ -157,9 +159,10 @@ export class ClientImpl {
         }
 
         if (baseClient?.isTransaction && !executor) {
-            // if we're creating a derived client from a transaction client and not replacing
-            // the executor, reuse the current kysely instance to retain the transaction context
-            this.kysely = baseClient.$qb;
+            // A client derived from a transaction client runs on the transaction's connection, but
+            // with its own executor: the executor resolves Kysely-level and entity mutation hooks
+            // and `$auth` from the client it is bound to.
+            this.kysely = new Transaction(this.kyselyProps);
         } else {
             this.kysely = new Kysely(this.kyselyProps);
         }
