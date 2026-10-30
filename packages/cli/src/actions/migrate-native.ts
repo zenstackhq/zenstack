@@ -153,7 +153,11 @@ async function runStatus(options: CommonOptions) {
         return;
     }
     for (const m of status) {
-        const label = m.applied ? colors.green('applied') : colors.yellow('pending');
+        const label = m.applied
+            ? m.unverified
+                ? colors.yellow('applied (unverified)')
+                : colors.green('applied')
+            : colors.yellow('pending');
         logInfo(`  ${label}  ${m.name}`);
     }
 }
@@ -183,6 +187,16 @@ function reportDeploy(result: DeployResult) {
     if (result.error) {
         const message = result.error instanceof Error ? result.error.message : String(result.error);
         throw new CliError(`Migration failed: ${message}`);
+    }
+    if (result.unverified.length > 0) {
+        logWarning(
+            '\n⚠️  These migrations were applied by an earlier run that was interrupted before their checksums ' +
+                'were recorded. Their current content has been recorded as-is and cannot be verified against ' +
+                'what was actually applied:',
+        );
+        for (const name of result.unverified) {
+            logWarning(`  - ${name}`);
+        }
     }
     const applied = result.results?.filter((r) => r.status === 'Success') ?? [];
     if (applied.length === 0) {

@@ -1,10 +1,9 @@
+import { providerTraits } from './provider-traits';
 import { EMPTY_RENAME_PLAN, type RenameMapping, type RenamePlan } from './rename';
 import type { ColumnSnapshot, EnumSnapshot, ForeignKeySnapshot, IndexSnapshot, Snapshot, TableSnapshot } from './types';
 
 /**
- * A single schema change produced by diffing two snapshots. The first-draft engine
- * supports the additive/removal cases fully; more nuanced in-place alterations are
- * surfaced as {@link UnsupportedChange} so the developer can hand-author them.
+ * A single schema change produced by diffing two snapshots.
  */
 export type SchemaChange =
     | { kind: 'create-enum'; enum: EnumSnapshot }
@@ -16,10 +15,19 @@ export type SchemaChange =
     // old type. `columns` are the using columns as they exist *before* the migration (the
     // database state when this change applies). `enum` is the new definition.
     | { kind: 'recreate-enum'; enum: EnumSnapshot; columns: EnumColumnUsage[] }
+    // An enum (type) rename — preserves the type and its using columns (PostgreSQL
+    // `ALTER TYPE … RENAME TO`; columns follow automatically). Only emitted for providers
+    // with native enum types; inline/text providers don't materialize the enum name.
+    // `to` is the new enum def.
+    | { kind: 'rename-enum'; from: string; to: EnumSnapshot }
     | { kind: 'create-table'; table: TableSnapshot }
     | { kind: 'drop-table'; table: TableSnapshot }
     // A table (model) rename — preserves the table and its data. `to` is the new table def.
     | { kind: 'rename-table'; from: string; to: TableSnapshot }
+    // Renames the primary-key constraint after a table rename (PostgreSQL doesn't rename
+    // constraints with the table), keeping the `<table>_pkey` naming convention true —
+    // drop-primary-key relies on it. `from` is the old table name; `table` is the new def.
+    | { kind: 'rename-primary-key'; table: TableSnapshot; from: string }
     | { kind: 'add-column'; table: TableSnapshot; column: ColumnSnapshot; fk?: ForeignKeySnapshot }
     | { kind: 'drop-column'; table: TableSnapshot; column: ColumnSnapshot }
     // A column (field) rename — preserves the column and its data. `column` is the new def.
@@ -41,15 +49,17 @@ export type SchemaChange =
     | { kind: 'rebuild-table'; table: TableSnapshot; copyColumns: ColumnCopy[] }
     | { kind: 'unsupported'; description: string };
 
-/** A column carried over during a SQLite table rebuild: copy `source` (old) into `target` (new). */
+/** A column carried over during a table rebuild: copy `source` (old) into `target` (new). */
 export interface ColumnCopy {
     target: string;
+
     source: string;
 }
 
 /** A column typed with a given enum, identified by its physical table name. */
 export interface EnumColumnUsage {
     table: string;
+
     column: ColumnSnapshot;
 }
 
@@ -60,67 +70,93 @@ export interface EnumColumnUsage {
  * reverse order so foreign keys stay valid. An optional {@link RenamePlan} turns otherwise
  * drop + create pairs into data-preserving renames.
  */
-export function diffSnapshots(from: Snapshot, to: Snapshot, plan: RenamePlan = EMPTY_RENAME_PLAN): SchemaChange[] {
+export function diffSnapshots(
+    from: Snapshot,
+    to: Snapshot,
+    renamePlan: RenamePlan = EMPTY_RENAME_PLAN,
+): SchemaChange[] {
     const changes: SchemaChange[] = [];
-    const mysqlEnumsChanged: string[] = [];
+    const enumsRequiringAlterColumns: string[] = [];
+    const oldEnumOf = new Map(renamePlan.enums.map((m) => [m.to, m.from]));
+    const renamedFromEnums = new Set(renamePlan.enums.map((m) => m.from));
+    // old enum name -> new enum name, used to keep a renamed enum's using columns from
+    // registering as type changes when tables are diffed below
+    const newEnumOf = new Map(renamePlan.enums.map((m) => [m.from, m.to]));
 
     // enums
+    const enumStrategy = providerTraits(to.provider).enumStrategy;
     for (const [name, enumDef] of Object.entries(to.enums)) {
-        const before = from.enums[name];
+        const renamedFrom = oldEnumOf.get(name);
+        const before = from.enums[renamedFrom ?? name];
         if (!before) {
             changes.push({ kind: 'create-enum', enum: enumDef });
-        } else if (!arraysEqual(before.values, enumDef.values)) {
-            if (to.provider === 'postgresql') {
+            continue;
+        }
+        if (renamedFrom && enumStrategy === 'native') {
+            // rename the type first (using columns follow automatically); value changes are
+            // then reconciled against the renamed type below.
+            changes.push({ kind: 'rename-enum', from: renamedFrom, to: enumDef });
+        }
+        if (!arraysEqual(before.values, enumDef.values)) {
+            if (enumStrategy === 'native') {
                 // appended values can be added in place; a removal/reorder recreates the type
                 // and casts the using columns over
                 const added = appendedValues(before.values, enumDef.values);
                 if (added) {
                     changes.push({ kind: 'alter-enum-add-values', enum: enumDef, added });
                 } else {
-                    changes.push({ kind: 'recreate-enum', enum: enumDef, columns: enumUsages(from, name) });
+                    changes.push({
+                        kind: 'recreate-enum',
+                        enum: enumDef,
+                        columns: enumUsages(from, renamedFrom ?? name),
+                    });
                 }
-            } else if (to.provider === 'mysql') {
-                // MySQL enums are inline in the column type (`enum('A','B')`), so a value change
-                // is lowered to a MODIFY COLUMN per using column — emitted after the table loop
-                // below so any table/column renames have already run and the physical names
-                // match. SQLite stores enums as plain text, so a value change needs no DDL.
-                mysqlEnumsChanged.push(name);
+            } else if (enumStrategy === 'inline') {
+                // Enums for providers (like MySQL) are inline in the column type (`enum('A','B')`),
+                // so a value change is lowered to a MODIFY COLUMN per using column
+                enumsRequiringAlterColumns.push(name);
             }
         }
     }
     for (const [name, enumDef] of Object.entries(from.enums)) {
-        if (!to.enums[name]) {
+        if (!to.enums[name] && !renamedFromEnums.has(name)) {
             changes.push({ kind: 'drop-enum', enum: enumDef });
         }
     }
 
-    const oldTableOf = new Map(plan.tables.map((m) => [m.to, m.from]));
-    const renamedFromTables = new Set(plan.tables.map((m) => m.from));
+    const oldTableOf = new Map(renamePlan.tables.map((m) => [m.to, m.from]));
+    const renamedFromTables = new Set(renamePlan.tables.map((m) => m.from));
 
     // tables to create (in dependency order) and to alter
     const createOrder = topoSortTables(to);
     for (const table of createOrder) {
         const renamedFrom = oldTableOf.get(table.name);
-        const columnRenames = plan.columns[table.name] ?? [];
+        const columnRenames = renamePlan.columns[table.name] ?? [];
         if (renamedFrom) {
             // rename the table first, then reconcile its contents against the renamed table
             changes.push({ kind: 'rename-table', from: renamedFrom, to: table });
-            changes.push(...diffTable(from.tables[renamedFrom]!, table, to.provider, columnRenames));
+            // pg doesn't rename constraints with the table — restate the PK constraint name
+            // so the `<table>_pkey` convention stays true for this and later migrations
+            if (
+                providerTraits(to.provider).renamePkConstraintOnTableRename &&
+                effectivePrimaryKey(from.tables[renamedFrom]!).length > 0
+            ) {
+                changes.push({ kind: 'rename-primary-key', table, from: renamedFrom });
+            }
+            changes.push(...diffTable(from.tables[renamedFrom]!, table, to.provider, columnRenames, newEnumOf));
         } else {
             const before = from.tables[table.name];
             if (!before) {
                 changes.push({ kind: 'create-table', table });
             } else {
-                changes.push(...diffTable(before, table, to.provider, columnRenames));
+                changes.push(...diffTable(before, table, to.provider, columnRenames, newEnumOf));
             }
         }
     }
 
-    // MySQL enum value changes: restate every using column with the new enum(...) via
-    // MODIFY COLUMN (the alter-column path). Uses the `to` snapshot so names are post-rename
-    // and defaults/nullability are the desired ones; the new enum values render from the
-    // after snapshot at codegen/apply time. Skips columns diffTable already altered.
-    for (const name of mysqlEnumsChanged) {
+    // For providers that inline enum on columns (like MySQL), restate every using column with
+    // the new enum(...) via MODIFY COLUMN (the alter-column path).
+    for (const name of enumsRequiringAlterColumns) {
         for (const { table, column } of enumUsages(to, name)) {
             const alreadyAltered = changes.some(
                 (c) => c.kind === 'alter-column' && c.table.name === table && c.to.name === column.name,
@@ -147,6 +183,7 @@ function diffTable(
     to: TableSnapshot,
     provider: Snapshot['provider'],
     columnRenames: RenameMapping[] = [],
+    enumRenames: Map<string, string> = new Map(),
 ): SchemaChange[] {
     const oldColumnOf = new Map(columnRenames.map((m) => [m.to, m.from])); // new column -> old column
     const renamedFromColumns = new Set(columnRenames.map((m) => m.from));
@@ -155,6 +192,11 @@ function diffTable(
     const sourceOf = (name: string): string | undefined =>
         oldColumnOf.get(name) ?? (from.columns[name] ? name : undefined);
 
+    // restates a `from` column's enum type under its post-rename name, so a column whose enum
+    // was renamed doesn't register as a type change (the rename-enum / no-op handles it)
+    const followEnumRename = (column: ColumnSnapshot): ColumnSnapshot =>
+        column.isEnum && enumRenames.has(column.type) ? { ...column, type: enumRenames.get(column.type)! } : column;
+
     // classify columns (added = brand new, dropped = removed and not renamed)
     const addedColumns = new Set(Object.keys(to.columns).filter((n) => !oldColumnOf.has(n) && !from.columns[n]));
     const droppedColumns = new Set(
@@ -162,73 +204,78 @@ function diffTable(
     );
     const { adds: fkAdds, drops: fkDrops } = diffForeignKeys(from, to, addedColumns, droppedColumns, provider);
 
-    // SQLite can't alter/drop columns or add/drop constraints in place — rebuild the table
-    // instead. A rebuild recreates the table in its desired shape and copies the carried-over
-    // columns, so it also handles primary-key and foreign-key changes for free.
-    const droppedFkColumn = [...droppedColumns].some((name) =>
-        from.foreignKeys.some((fk) => fk.columns.includes(name)),
+    // SQLite's native DROP COLUMN refuses columns that participate in a foreign key or an index
+    const droppedConstrainedColumn = [...droppedColumns].some(
+        (name) =>
+            from.foreignKeys.some((fk) => fk.columns.includes(name)) ||
+            from.indexes.some((index) => index.columns.includes(name)),
     );
     const alteredColumn = Object.entries(to.columns).some(([name, column]) => {
         const source = sourceOf(name);
-        return source !== undefined && !columnsEqualIgnoringName(from.columns[source]!, column);
+        return source !== undefined && !columnsEqualIgnoringName(followEnumRename(from.columns[source]!), column);
     });
     // the effective primary key — composite `@@id` columns, or the single `@id` column
     const fromPk = effectivePrimaryKey(from);
     const toPk = effectivePrimaryKey(to);
     const pkChanged = !arraysEqual(fromPk, toPk);
     const fkChanged = fkAdds.length > 0 || fkDrops.length > 0;
-    if (provider === 'sqlite' && (droppedFkColumn || alteredColumn || pkChanged || fkChanged)) {
+
+    if (
+        providerTraits(provider).rebuildTableForAlters &&
+        (droppedConstrainedColumn || alteredColumn || pkChanged || fkChanged)
+    ) {
+        // for providers that don't support in-place column changes, rebuild the table instead
         return [{ kind: 'rebuild-table', table: to, copyColumns: rebuildCopyColumns(from, to, sourceOf) }];
     }
 
     const changes: SchemaChange[] = [];
 
-    // drop foreign keys first — MySQL requires dropping the FK before its column (pg cascades,
-    // and pg/sqlite exclude column-drop FKs from `fkDrops` anyway)
+    // drop foreign keys first
     for (const fk of fkDrops) {
         changes.push({ kind: 'drop-foreign-key', table: to, fk });
     }
 
-    for (const [name, column] of Object.entries(to.columns)) {
-        const renamedFrom = oldColumnOf.get(name);
-        if (renamedFrom) {
-            changes.push({ kind: 'rename-column', table: to, from: renamedFrom, column });
-            // a rename may also change the column's type/nullability/default
-            changes.push(...alterColumnChanges(from.columns[renamedFrom]!, column, to));
-            continue;
-        }
-        const before = from.columns[name];
-        if (!before) {
-            // a single-column FK is added inline with the column on pg/sqlite; MySQL ignores
-            // inline REFERENCES, so it gets a separate add-foreign-key below instead
-            const fk = provider === 'mysql' ? undefined : singleColumnFk(to, name);
-            changes.push({ kind: 'add-column', table: to, column, fk });
-        } else {
-            changes.push(...alterColumnChanges(before, column, to));
-        }
-    }
-    for (const name of droppedColumns) {
-        changes.push({ kind: 'drop-column', table: to, column: from.columns[name]! });
-    }
-
-    // indexes — compared by name (add/drop; a `map:` rename is a drop + create)
+    // indexes are compared by name (a `map:` rename is a drop + create)
     const fromIndexes = new Map(from.indexes.map((i) => [i.name, i]));
     const toIndexes = new Map(to.indexes.map((i) => [i.name, i]));
-    for (const [name, index] of toIndexes) {
-        if (!fromIndexes.has(name)) {
-            changes.push({ kind: 'create-index', table: to, index });
-        }
-    }
     for (const [name, index] of fromIndexes) {
         if (!toIndexes.has(name)) {
             changes.push({ kind: 'drop-index', table: to, index });
         }
     }
 
-    // primary-key changes (pg/mysql; sqlite handles them via the rebuild above). A composite
-    // `@@id` change or a single `@id` move is a drop + re-add of the constraint (like Prisma;
-    // we can name the constraint deterministically, so it needs no manual step). Adding or
-    // removing the primary key entirely is left manual.
+    for (const [name, column] of Object.entries(to.columns)) {
+        const renamedFrom = oldColumnOf.get(name);
+        if (renamedFrom) {
+            changes.push({ kind: 'rename-column', table: to, from: renamedFrom, column });
+            // a rename may happen together with other changes: type/nullability/default
+            changes.push(...alterColumnChanges(followEnumRename(from.columns[renamedFrom]!), column, to));
+            continue;
+        }
+        const before = from.columns[name];
+        if (!before) {
+            // if single-column foreign key can be inlined on column, include it in the add-column change
+            const fk = providerTraits(provider).inlineForeignKeys ? singleColumnFk(to, name) : undefined;
+            changes.push({ kind: 'add-column', table: to, column, fk });
+        } else {
+            changes.push(...alterColumnChanges(followEnumRename(before), column, to));
+        }
+    }
+    for (const name of droppedColumns) {
+        changes.push({ kind: 'drop-column', table: to, column: from.columns[name]! });
+    }
+
+    // create indexes after the column loop, so indexes on just-added columns have their
+    // columns in place (drops were emitted before the column changes, above)
+    for (const [name, index] of toIndexes) {
+        if (!fromIndexes.has(name)) {
+            changes.push({ kind: 'create-index', table: to, index });
+        }
+    }
+
+    // primary-key changes:
+    // - A composite `@@id` change or a single `@id` move is a drop + re-add of the constraint.
+    // - Adding or removing the primary key entirely is left manual.
     if (pkChanged) {
         if (fromPk.length > 0 && toPk.length > 0) {
             changes.push({ kind: 'drop-primary-key', table: to });
@@ -262,10 +309,7 @@ function diffForeignKeys(
     droppedColumns: Set<string>,
     provider: Snapshot['provider'],
 ): { adds: ForeignKeySnapshot[]; drops: ForeignKeySnapshot[] } {
-    // pg/sqlite add/drop a single-column FK together with its column (inline reference / cascade
-    // / rebuild); MySQL ignores inline references and blocks dropping an FK column, so those FKs
-    // must be added/dropped explicitly.
-    const inlineWithColumn = provider !== 'mysql';
+    const inlineWithColumn = providerTraits(provider).inlineForeignKeys;
     const fromByKey = new Map(from.foreignKeys.map((fk) => [fkKey(fk), fk]));
     const toByKey = new Map(to.foreignKeys.map((fk) => [fkKey(fk), fk]));
     const adds: ForeignKeySnapshot[] = [];
@@ -279,6 +323,7 @@ function diffForeignKeys(
         if (!before) {
             adds.push(fk);
         } else if (before.onDelete !== fk.onDelete || before.onUpdate !== fk.onUpdate) {
+            // when the onDelete/onUpdate action changes, drop the old FK and add the new one
             drops.push(before);
             adds.push(fk);
         }
@@ -330,7 +375,7 @@ function effectivePrimaryKey(table: TableSnapshot): string[] {
         .map((c) => c.name);
 }
 
-/** Columns to copy during a SQLite table rebuild, mapping each new column to its source (honoring renames). */
+/** Columns to copy during a table rebuild, mapping each new column to its source (honoring renames). */
 function rebuildCopyColumns(
     from: TableSnapshot,
     to: TableSnapshot,

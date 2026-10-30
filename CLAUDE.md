@@ -83,6 +83,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Never commit or push changes unless explicitly asked to do so
 
+## Code Style
+
+- Separate class/type/interface members with an empty line
+
 ## Development Notes
 
 - Always run `zenstack generate` after modifying ZModel schemas

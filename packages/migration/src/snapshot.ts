@@ -1,10 +1,4 @@
-import {
-    ExpressionUtils,
-    type EnumDef,
-    type FieldDef,
-    type ModelDef,
-    type SchemaDef,
-} from '@zenstackhq/schema';
+import { ExpressionUtils, type EnumDef, type FieldDef, type ModelDef, type SchemaDef } from '@zenstackhq/schema';
 import { foreignKeyName, indexName, uniqueIndexName } from './conventions';
 import {
     SNAPSHOT_VERSION,
@@ -125,14 +119,15 @@ function buildDelegateForeignKey(
 
 function buildColumn(schema: SchemaDef, modelDef: ModelDef, fieldDef: FieldDef): ColumnSnapshot {
     const name = mappedName(fieldDef.attributes, '@map') ?? fieldDef.name;
-    const isEnum = !!schema.enums?.[fieldDef.type];
-    const isJson = fieldDef.type === 'Json' || isTypeDef(schema, fieldDef.type);
+    const type = resolveColumnType(schema, fieldDef.type);
+    const isEnum = !!schema.enums?.[type];
+    const isJson = type === 'Json' || isTypeDef(schema, type);
     const autoIncrement = isAutoIncrement(fieldDef);
     const singleId = !!fieldDef.id && modelDef.idFields.length === 1;
 
     return {
         name,
-        type: fieldDef.type,
+        type,
         isEnum,
         isJson,
         array: !!fieldDef.array,
@@ -197,7 +192,14 @@ function buildIndexes(modelDef: ModelDef, tableName: string, provider: Provider)
             columns = [columnName(fieldDef)];
         } else {
             const fields = Object.keys(value);
-            if (fields.some((f) => modelDef.fields[f]?.originModel && modelDef.fields[f]!.originModel !== modelDef.name)) {
+            if (fields.length === modelDef.idFields.length && fields.every((f, i) => f === modelDef.idFields[i])) {
+                // a compound `@@id` also shows up in `uniqueFields` — it's the primary key,
+                // not a unique index (Prisma emits no index for it either)
+                continue;
+            }
+            if (
+                fields.some((f) => modelDef.fields[f]?.originModel && modelDef.fields[f]!.originModel !== modelDef.name)
+            ) {
                 continue;
             }
             columns = fields.map((f) => columnName(modelDef.fields[f]!));
@@ -307,6 +309,15 @@ function isTypeDef(schema: SchemaDef, type: string): boolean {
     return !!schema.typeDefs && Object.values(schema.typeDefs).some((d) => d.name === type);
 }
 
+/**
+ * Resolves the type a column is stored as. A primitive custom type (`type Age with Int`) is
+ * stored as its base type; other custom types remain typed-JSON.
+ */
+function resolveColumnType(schema: SchemaDef, type: string): string {
+    const typeDef = schema.typeDefs && Object.values(schema.typeDefs).find((d) => d.name === type);
+    return typeDef?.base ?? type;
+}
+
 function isAutoIncrement(fieldDef: FieldDef): boolean {
     return (
         !!fieldDef.default &&
@@ -329,6 +340,15 @@ function extractDefault(fieldDef: FieldDef): SnapshotDefault | undefined {
             }
             if (fn === 'autoincrement') {
                 return { kind: 'autoincrement' };
+            }
+            if (fn === 'dbgenerated') {
+                const arg = (def as any).args?.[0];
+                const sql = arg ? ExpressionUtils.getLiteralValue(arg) : undefined;
+                if (typeof sql === 'string' && sql.length > 0) {
+                    return { kind: 'raw', sql };
+                }
+                // argument-less dbgenerated() carries no expressible SQL — fall through to
+                // `call`, which (like other generator functions) emits no DB-level default
             }
             return { kind: 'call', function: fn };
         }

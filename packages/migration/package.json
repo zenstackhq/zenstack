@@ -43,8 +43,8 @@
         "./package.json": "./package.json"
     },
     "dependencies": {
-        "@zenstackhq/orm": "workspace:*",
         "@zenstackhq/schema": "workspace:*",
+        "jiti": "catalog:",
         "kysely": "catalog:"
     },
     "devDependencies": {

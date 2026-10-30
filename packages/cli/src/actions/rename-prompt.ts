@@ -20,6 +20,7 @@ export function createInteractiveRenameResolver(): RenameResolver | undefined {
     return {
         resolveTableRenames: (q) => resolve('table', undefined, q),
         resolveColumnRenames: (q) => resolve('column', q.table, q),
+        resolveEnumRenames: (q) => resolve('enum', undefined, q),
     };
 }
 
@@ -42,24 +43,27 @@ export function createInteractiveDataLossConfirmer(): ConfirmDataLossCallback | 
         }
         const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
         return new Promise<boolean>((resolve) => {
-            rl.question(`${colors.bold('Are you sure you want to create and apply this migration?')} (y/N) `, (answer) => {
-                rl.close();
-                const text = answer.trim().toLowerCase();
-                resolve(text === 'y' || text === 'yes');
-            });
+            rl.question(
+                `${colors.bold('Are you sure you want to create and apply this migration?')} (y/N) `,
+                (answer) => {
+                    rl.close();
+                    const text = answer.trim().toLowerCase();
+                    resolve(text === 'y' || text === 'yes');
+                },
+            );
         }).finally(() => rl.close());
     };
 }
 
 async function resolve(
-    kind: 'table' | 'column',
+    kind: 'table' | 'column' | 'enum',
     table: string | undefined,
     query: { created: string[]; deleted: string[] },
 ): Promise<RenameMapping[]> {
     const available = [...query.deleted];
     const mappings: RenameMapping[] = [];
-    const noun = kind === 'table' ? 'table' : 'column';
-    const Noun = kind === 'table' ? 'Table' : 'Column';
+    const noun = kind;
+    const Noun = kind.charAt(0).toUpperCase() + kind.slice(1);
     const scope = kind === 'column' ? ` in "${table}"` : '';
 
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });

@@ -2,7 +2,7 @@ import { clone } from '@zenstackhq/common-helpers';
 import { ZenStackClient } from '@zenstackhq/orm';
 import { PostgresDialect } from '@zenstackhq/orm/dialects/postgres';
 import { PolicyPlugin } from '@zenstackhq/plugin-policy';
-import { TEST_PG_URL } from '@zenstackhq/testtools';
+import { pushSchemaToDatabase, TEST_PG_URL } from '@zenstackhq/testtools';
 import { Database } from 'bun:sqlite';
 import { afterEach, describe, expect, it } from 'bun:test';
 import type { Dialect } from 'kysely';
@@ -113,6 +113,6 @@ async function createClient(provider: 'sqlite' | 'postgresql', dbName: string) {
     }
 
     const db = new ZenStackClient(_schema, { dialect });
-    await db.$pushSchema();
+    await pushSchemaToDatabase(db, _schema, provider);
     return db;
 }

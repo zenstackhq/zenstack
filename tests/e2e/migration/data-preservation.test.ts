@@ -65,6 +65,21 @@ const CASES: Case[] = [
         },
     },
     {
+        // dropping an indexed column needs special care: SQLite can't DROP COLUMN on an
+        // indexed column (table rebuild instead), and MySQL's DROP COLUMN auto-drops the
+        // index (so no explicit DROP INDEX must follow)
+        name: 'remove an indexed field preserves other columns',
+        from: `model User { ${ID}  name String  email String @unique  handle String?  @@index([handle]) }`,
+        to: `model User { ${ID}  name String }`,
+        seed: (db) => seedRows(db, 'User', [{ name: 'Alice', email: 'alice@example.com', handle: 'alice' }]),
+        readTable: 'User',
+        assert: (rows) => {
+            expect(rows).toHaveLength(1);
+            expect(rows[0]!['name']).toBe('Alice');
+            expect(rows[0]).not.toHaveProperty('email');
+        },
+    },
+    {
         name: 'add a unique index preserves existing rows',
         from: `model User { ${ID}  email String }`,
         to: `model User { ${ID}  email String @unique }`,

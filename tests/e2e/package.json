@@ -23,11 +23,13 @@
         "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/testtools": "workspace:*",
         "better-sqlite3": "catalog:",
+        "cuid": "^3.0.0",
         "decimal.js": "catalog:",
-        "jiti": "^2.6.1",
+        "jiti": "catalog:",
         "kysely": "catalog:",
         "mysql2": "catalog:",
         "pg": "catalog:",
+        "ts-pattern": "catalog:",
         "ulid": "^3.0.0",
         "uuid": "^11.1.1",
         "cuid": "^3.0.0",
@@ -39,6 +41,7 @@
         "@types/pg": "^8.16.0",
         "@zenstackhq/cli": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
-        "@zenstackhq/vitest-config": "workspace:*"
+        "@zenstackhq/vitest-config": "workspace:*",
+        "prisma": "^6.19.0"
     }
 }

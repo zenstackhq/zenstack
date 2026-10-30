@@ -284,8 +284,8 @@ export async function createTestClient(
  * applier, running over the client's own (raw) Kysely connection. Sharing the connection is
  * important for in-memory SQLite, where a separate connection would be a different database.
  */
-async function pushSchemaToDatabase(
-    client: ClientContract<SchemaDef>,
+export async function pushSchemaToDatabase(
+    client: Pick<ClientContract<any, any>, '$qbRaw'>,
     schema: SchemaDef,
     provider: DataSourceProviderType,
 ): Promise<void> {

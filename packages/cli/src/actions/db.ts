@@ -1,10 +1,14 @@
 import { formatDocument, ZModelCodeGenerator } from '@zenstackhq/language';
 import { DataModel, Enum, isDataField, type DataField, type Model } from '@zenstackhq/language/ast';
+import { introspect } from '@zenstackhq/migration';
+import type { DataSourceProviderType } from '@zenstackhq/schema';
 import colors from 'colors';
 import fs from 'node:fs';
 import path from 'node:path';
 import ora from 'ora';
+import { CliError } from '../cli-error';
 import { execPrisma } from '../utils/exec-utils';
+import { logError, logSuccess, logWarning } from '../utils/log';
 import {
     generateTempPrismaSchema,
     getSchemaFile,
@@ -12,7 +16,6 @@ import {
     loadSchemaDocument,
     requireDataSourceUrl,
 } from './action-utils';
-import { logError, logSuccess, logWarning } from '../utils/log';
 import { isNativeEnabled, prepareEngine, printNativeBanner } from './migration-support';
 import { consolidateEnums, syncEnums, syncRelation, syncTable, type Relation } from './pull';
 import { providers as pullProviders } from './pull/provider';
@@ -24,8 +27,6 @@ import {
     getRelationName,
     isDatabaseManagedAttribute,
 } from './pull/utils';
-import type { DataSourceProviderType } from '@zenstackhq/schema';
-import { CliError } from '../cli-error';
 
 type PushOptions = {
     schema?: string;
@@ -214,7 +215,7 @@ export async function runPull(options: PullOptions) {
         }
 
         spinner.start('Introspecting database...');
-        const { enums, tables } = await provider.introspect(datasource.url, {
+        const { enums, tables } = await introspect(datasource.provider, datasource.url, {
             schemas: datasource.allSchemas,
             modelCasing: options.modelCasing,
         });

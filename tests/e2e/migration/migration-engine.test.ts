@@ -1,6 +1,5 @@
 import { ExpressionUtils, type SchemaDef } from '@zenstackhq/schema';
 import Database from 'better-sqlite3';
-import { createJiti } from 'jiti';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -43,7 +42,6 @@ describe('native migration engine', () => {
     let workDir: string;
     let migrationsDir: string;
     let dbFile: string;
-    const importer = { import: (id: string) => createJiti(import.meta.url).import(id) };
 
     beforeEach(() => {
         workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zen-migrate-'));
@@ -55,14 +53,13 @@ describe('native migration engine', () => {
         fs.rmSync(workDir, { recursive: true, force: true });
     });
 
-    function makeEngine(schema: SchemaDef, at: string) {
+    function makeEngine(schema: SchemaDef, at: string, opts?: { ignoreChecksumMismatch?: boolean }) {
         return new MigrationEngine({
             schema,
             migrationsDir,
             connectionUrl: dbFile,
-            baseDir: workDir,
-            importer,
             now: () => new Date(at),
+            ...opts,
         });
     }
 
@@ -81,7 +78,10 @@ describe('native migration engine', () => {
     function columns(table: string): string[] {
         const db = new Database(dbFile);
         try {
-            return db.prepare(`PRAGMA table_info("${table}")`).all().map((r: any) => r.name);
+            return db
+                .prepare(`PRAGMA table_info("${table}")`)
+                .all()
+                .map((r: any) => r.name);
         } finally {
             db.close();
         }
@@ -221,6 +221,49 @@ describe('native migration engine', () => {
             // re-deploying an unchanged history verifies checksums and is a no-op
             expect((await makeEngine(schemaV1(), at).deploy()).error).toBeUndefined();
         });
+
+        it('deploys edited migrations when ignoreChecksumMismatch is set', async () => {
+            const init = await makeEngine(schemaV1(), at).generate('init');
+            await makeEngine(schemaV1(), at).deploy();
+
+            // tamper with the already-applied migration.ts
+            fs.appendFileSync(path.join(init.dir!, 'migration.ts'), '\n// tampered\n');
+            await makeEngine(schemaV2(), '2026-01-02T00:00:00Z').generate('add_age');
+
+            // refused by default
+            expect((await makeEngine(schemaV2(), at).deploy()).error).toBeDefined();
+
+            // proceeds with the option and adopts the edited file's checksum
+            const result = await makeEngine(schemaV2(), at, { ignoreChecksumMismatch: true }).deploy();
+            expect(result.error).toBeUndefined();
+            expect(columns('User')).toContain('age');
+
+            // subsequent deploys without the option succeed against the adopted checksum
+            expect((await makeEngine(schemaV2(), at).deploy()).error).toBeUndefined();
+        });
+
+        it('reports applied migrations that have no recorded checksum', async () => {
+            const init = await makeEngine(schemaV1(), at).generate('init');
+            expect((await makeEngine(schemaV1(), at).deploy()).unverified).toEqual([]);
+
+            // simulate a deploy interrupted after applying but before recording checksums
+            const raw = new Database(dbFile);
+            raw.prepare('UPDATE zenstack_migration SET checksum = NULL').run();
+            raw.close();
+
+            expect(await makeEngine(schemaV1(), at).status()).toEqual([
+                { name: init.name, applied: true, unverified: true },
+            ]);
+
+            // the next deploy backfills the checksum but reports the unverified adoption
+            const result = await makeEngine(schemaV1(), at).deploy();
+            expect(result.error).toBeUndefined();
+            expect(result.unverified).toEqual([init.name]);
+
+            // once backfilled, the history is verified again
+            expect(await makeEngine(schemaV1(), at).status()).toEqual([{ name: init.name, applied: true }]);
+            expect((await makeEngine(schemaV1(), at).deploy()).unverified).toEqual([]);
+        });
     });
 
     describe('db push', () => {
@@ -260,6 +303,39 @@ describe('native migration engine', () => {
             await makeEngine(schemaV2(), at).push();
             const result = await makeEngine(schemaV1(), at).push({ acceptDataLoss: true });
             expect(result.aborted).toBe(false);
+            expect(columns('User')).not.toContain('age');
+        });
+
+        it("leaves migration bookkeeping tables alone (incl. Prisma's)", async () => {
+            await makeEngine(schemaV1(), at).push();
+
+            // simulate a database previously managed by Prisma migrate
+            const raw = new Database(dbFile);
+            raw.prepare('CREATE TABLE _prisma_migrations (id TEXT PRIMARY KEY)').run();
+            raw.close();
+
+            const result = await makeEngine(schemaV1(), at).push({ acceptDataLoss: true });
+            expect(result.applied).toHaveLength(0);
+            expect(result.dataLoss).toHaveLength(0);
+            expect(tables()).toContain('_prisma_migrations');
+        });
+
+        it('rolls back all changes when one fails to apply', async () => {
+            // v1 without the unique constraint on email
+            const v1 = schemaV1();
+            delete (v1.models['User']!.fields['email'] as any).unique;
+            delete (v1.models['User']!.uniqueFields as any)['email'];
+            await makeEngine(v1, at).push();
+
+            // duplicate emails make v2's unique index fail to build
+            const raw = new Database(dbFile);
+            raw.prepare("INSERT INTO User (email) VALUES ('dup@x.com'), ('dup@x.com')").run();
+            raw.close();
+
+            // v2 adds the `age` column (applied first) and the unique index (fails)
+            await expect(makeEngine(schemaV2(), at).push()).rejects.toThrow();
+
+            // the added column was rolled back together with the failed index
             expect(columns('User')).not.toContain('age');
         });
     });

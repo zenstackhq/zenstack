@@ -8,7 +8,9 @@ import type { Snapshot } from './types';
 export interface MigrationFolderInput {
     /** Absolute path of the migration folder to create. */
     dir: string;
+
     changes: SchemaChange[];
+
     /** Snapshot representing the schema state *after* this migration. */
     after: Snapshot;
 }

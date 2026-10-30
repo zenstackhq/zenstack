@@ -1,7 +1,8 @@
-import type { ClientContract } from '@zenstackhq/orm';
+import type { Kysely } from 'kysely';
+import type { Migration, MigrationProvider } from 'kysely/migration';
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Migration, MigrationProvider } from 'kysely/migration';
+import { MigrationError, MigrationErrorReason } from './error';
 import type { MigrationModule } from './types';
 
 /** Minimal shape of the module loader used to import `migration.ts` files. */
@@ -13,8 +14,8 @@ export interface ModuleImporter {
  * A Kysely {@link MigrationProvider} backed by ZenStack's on-disk migration folders.
  *
  * Each migration is a folder under the migrations directory containing a `migration.ts`
- * that exports `migrate`. The provider wraps it into a Kysely `up`, passing the ZenStack
- * client's Kysely query builder.
+ * that exports `migrate`. The provider wraps it into a Kysely `up`, passing the Kysely
+ * instance (physical table/column names, no ORM name mapping).
  *
  * Down migrations are intentionally not supported (ZenStack favors roll-forward).
  */
@@ -22,7 +23,6 @@ export class ZenStackMigrationProvider implements MigrationProvider {
     constructor(
         private readonly migrationsDir: string,
         private readonly importer: ModuleImporter,
-        private readonly client: ClientContract<any>,
     ) {}
 
     async getMigrations(): Promise<Record<string, Migration>> {
@@ -45,13 +45,20 @@ export class ZenStackMigrationProvider implements MigrationProvider {
             }
             const mod = normalizeModule(await this.importer.import(file));
             if (typeof mod.migrate !== 'function') {
-                throw new Error(`Migration "${name}" does not export a "migrate" function`);
+                const error = new MigrationError(
+                    MigrationErrorReason.INVALID_MIGRATION,
+                    `Migration "${name}" does not export a "migrate" function`,
+                );
+                error.migration = name;
+                throw error;
             }
             migrations[name] = {
-                // Kysely's migrator drives ordering/locking/tracking; `migrate` runs against
-                // the ZenStack client's Kysely query builder (same underlying connection).
-                up: async () => {
-                    await mod.migrate(this.client.$qb);
+                // `migrate` must run on the Kysely instance the migrator passes in — it's the
+                // migrator's dedicated connection (and, on transactional-DDL dialects, its
+                // transaction). Using any other instance deadlocks single-connection dialects
+                // like better-sqlite3.
+                up: async (db: Kysely<any>) => {
+                    await mod.migrate(db);
                 },
             };
         }

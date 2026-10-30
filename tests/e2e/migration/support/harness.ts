@@ -1,7 +1,6 @@
 import type { SchemaDef } from '@zenstackhq/schema';
 import { createTestProject, generateTsSchema, getTestDbProvider } from '@zenstackhq/testtools';
 import BetterSqlite3 from 'better-sqlite3';
-import { createJiti } from 'jiti';
 import { Kysely, MysqlDialect, PostgresDialect, SqliteDialect, sql } from 'kysely';
 import { createPool as createMysqlPool } from 'mysql2';
 import { execSync } from 'node:child_process';
@@ -69,7 +68,7 @@ export interface TestDb {
     workDir: string;
     /** Connection URL passed to the migration engine. */
     url: string;
-    /** Base dir for resolving relative sqlite paths (also where `schema.ts` is written). */
+    /** Project dir where `schema.zmodel`/`schema.ts` are written (and where the sqlite file lives). */
     baseDir: string;
     introspect(): Promise<DbSchema>;
     /** Type-checks the scaffolded project (schema + migration files) with `tsc`, throwing on error. */
@@ -93,7 +92,7 @@ export async function createTestDb(provider: Provider, options?: { debug: boolea
         return {
             provider,
             workDir,
-            url: 'file:./test.db',
+            url: `file:${dbFile}`,
             baseDir: workDir,
             introspect: () => introspectSqlite(dbFile),
             typecheck,
@@ -176,8 +175,6 @@ function makeEngine(schema: SchemaDef, db: TestDb, migrationsDir: string, seq = 
         schema,
         migrationsDir,
         connectionUrl: db.url,
-        baseDir: db.baseDir,
-        importer: { import: (id: string) => createJiti(import.meta.url).import(id) },
         resolver,
         // distinct, increasing timestamps so migration folders sort in creation order
         now: () => new Date(Date.UTC(2026, 0, 1, 0, 0, seq)),
@@ -396,7 +393,11 @@ async function mysqlIndexes(db: Kysely<any>, table: string): Promise<DbIndex[]> 
         if (r.INDEX_NAME === 'PRIMARY') {
             continue; // primary key, not an index we manage
         }
-        const existing = byName.get(r.INDEX_NAME) ?? { name: r.INDEX_NAME, columns: [], unique: Number(r.NON_UNIQUE) === 0 };
+        const existing = byName.get(r.INDEX_NAME) ?? {
+            name: r.INDEX_NAME,
+            columns: [],
+            unique: Number(r.NON_UNIQUE) === 0,
+        };
         existing.columns.push(r.COLUMN_NAME);
         byName.set(r.INDEX_NAME, existing);
     }

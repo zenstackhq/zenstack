@@ -1,7 +1,6 @@
 import { buildSnapshot, dataLossWarnings, diffSnapshots, MigrationEngine } from '@zenstackhq/migration';
 import { ExpressionUtils, type SchemaDef } from '@zenstackhq/schema';
 import Database from 'better-sqlite3';
-import { createJiti } from 'jiti';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -19,10 +18,7 @@ describe(`data-loss warnings (${provider})`, () => {
     }
 
     it('warns on dropped table', async () => {
-        const { risks } = await warningsFor(
-            `model User { ${ID} }  model Post { ${ID} }`,
-            `model User { ${ID} }`,
-        );
+        const { risks } = await warningsFor(`model User { ${ID} }  model Post { ${ID} }`, `model User { ${ID} }`);
         expect(risks).toEqual([
             expect.objectContaining({
                 table: 'Post',
@@ -33,10 +29,7 @@ describe(`data-loss warnings (${provider})`, () => {
 
     it('warns on dropped column', async () => {
         // on SQLite the drop may be lowered to a table rebuild — the warning must survive that path too
-        const { risks } = await warningsFor(
-            `model User { ${ID}  name String }`,
-            `model User { ${ID} }`,
-        );
+        const { risks } = await warningsFor(`model User { ${ID}  name String }`, `model User { ${ID} }`);
         expect(risks).toEqual([
             expect.objectContaining({
                 table: 'User',
@@ -47,10 +40,7 @@ describe(`data-loss warnings (${provider})`, () => {
     });
 
     it('does not warn on additive changes', async () => {
-        const { risks } = await warningsFor(
-            `model User { ${ID} }`,
-            `model User { ${ID}  name String? }`,
-        );
+        const { risks } = await warningsFor(`model User { ${ID} }`, `model User { ${ID}  name String? }`);
         expect(risks).toEqual([]);
     });
 
@@ -88,7 +78,6 @@ describe('data-loss confirmation (engine, sqlite)', () => {
     let workDir: string;
     let migrationsDir: string;
     let dbFile: string;
-    const importer = { import: (id: string) => createJiti(import.meta.url).import(id) };
 
     beforeEach(() => {
         workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zen-dataloss-'));
@@ -139,8 +128,6 @@ describe('data-loss confirmation (engine, sqlite)', () => {
             schema,
             migrationsDir,
             connectionUrl: dbFile,
-            baseDir: workDir,
-            importer,
             confirmDataLoss,
             now: () => new Date(at),
         });

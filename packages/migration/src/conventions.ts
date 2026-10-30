@@ -1,4 +1,5 @@
 import type { DataSourceProviderType } from '@zenstackhq/schema';
+import { providerTraits } from './provider-traits';
 
 /**
  * Physical naming conventions matching Prisma's, so the native engine reproduces the exact
@@ -10,23 +11,28 @@ import type { DataSourceProviderType } from '@zenstackhq/schema';
  * no practical limit and is not truncated.
  */
 
-/** Identifier length limit for constraint/index names, per provider (Prisma's behavior). */
-function nameLimit(provider: DataSourceProviderType): number {
-    switch (provider) {
-        case 'postgresql':
-            return 63;
-        case 'mysql':
-            return 64;
-        default:
-            return Number.POSITIVE_INFINITY; // SQLite is not truncated
-    }
+/** ZenStack's migration tracking table (overrides Kysely's `kysely_migration` default). */
+export const MIGRATION_TABLE = 'zenstack_migration';
+
+/** ZenStack's migration lock table. */
+export const MIGRATION_LOCK_TABLE = 'zenstack_migration_lock';
+
+/** Prisma's migration tracking table — present on databases adopted via `migrate baseline`. */
+export const PRISMA_MIGRATION_TABLE = '_prisma_migrations';
+
+/**
+ * Whether a table is migration-tooling bookkeeping (ours, Kysely's, or Prisma's) rather
+ * than part of the schema — such tables are excluded from introspection-based diffing.
+ */
+export function isBookkeepingTable(name: string): boolean {
+    return name.startsWith(MIGRATION_TABLE) || name.startsWith('kysely_') || name === PRISMA_MIGRATION_TABLE;
 }
 
 /** Assembles `<parts joined by _>_<suffix>`, truncating to fit the provider's limit. */
 function assemble(provider: DataSourceProviderType, parts: string[], suffix: string): string {
     const base = parts.join('_');
     const full = `${base}_${suffix}`;
-    const limit = nameLimit(provider);
+    const limit = providerTraits(provider).maxIdentifierLength;
     if (full.length <= limit) {
         return full;
     }

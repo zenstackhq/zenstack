@@ -1,13 +1,18 @@
 import type { DataSourceProviderType } from '@zenstackhq/schema';
-import { sql, type Kysely } from 'kysely';
+import { isBookkeepingTable } from './conventions';
+import { introspect } from './introspect';
+import { providerTraits } from './provider-traits';
 import type { SchemaChange } from './diff';
 import type { ColumnSnapshot, Snapshot, TableSnapshot } from './types';
 
 /** A live foreign-key constraint. */
 export interface FkInfo {
     name: string;
+
     columns: string[];
+
     refTable: string;
+
     refColumns: string[];
 }
 
@@ -15,12 +20,19 @@ export interface FkInfo {
 export interface CurrentDbState {
     /** Table name -> set of column names. */
     tables: Map<string, Set<string>>;
+
     /** Table name -> set of index names (excluding primary keys). */
     indexes: Map<string, Set<string>>;
-    /** Table name -> set of columns that participate in a foreign key (SQLite only). */
-    fkColumns: Map<string, Set<string>>;
+
+    /**
+     * Table name -> set of columns that participate in a foreign key or an index (SQLite
+     * only — dropping such a column requires a table rebuild).
+     */
+    constrainedColumns: Map<string, Set<string>>;
+
     /** Table name -> live foreign keys (MySQL only — used to drop FKs before their columns). */
     foreignKeys: Map<string, FkInfo[]>;
+
     /** Existing enum type names (PostgreSQL only). */
     enums: Set<string>;
 }
@@ -34,118 +46,81 @@ function fkKey(fk: { columns: string[]; refTable: string; refColumns: string[] }
 export interface PushDiff {
     /** Changes that are safe to apply (additive, plus accepted data-loss changes). */
     changes: SchemaChange[];
+
     /** Human-readable descriptions of data-loss changes that were included (accepted). */
     dataLoss: string[];
+
     /** Data-loss changes that were NOT included because data loss was not accepted. */
     blocked: string[];
 }
 
-/** Introspects the live database into a {@link CurrentDbState}. */
+/**
+ * Introspects the live database into a {@link CurrentDbState}, using the same deep
+ * introspection that powers `db pull` and reducing it to the name-based view the push
+ * diff consumes.
+ */
 export async function introspectCurrentState(
-    db: Kysely<any>,
+    connectionUrl: string,
     provider: DataSourceProviderType,
 ): Promise<CurrentDbState> {
+    const introspected = await introspect(provider, connectionUrl, {
+        // push operates on the default schema only
+        schemas: ['public'],
+        modelCasing: 'none',
+    });
+
     const tables = new Map<string, Set<string>>();
     const indexes = new Map<string, Set<string>>();
-    const fkColumns = new Map<string, Set<string>>();
+    const constrainedColumns = new Map<string, Set<string>>();
     const foreignKeys = new Map<string, FkInfo[]>();
-    for (const table of await db.introspection.getTables()) {
-        // ignore views and the migration engine's bookkeeping tables
-        if (table.isView || table.name.startsWith('kysely_') || table.name.startsWith('zenstack_migration')) {
+
+    for (const table of introspected.tables) {
+        // ignore views and migration-tooling bookkeeping tables
+        if (table.type !== 'table' || isBookkeepingTable(table.name)) {
             continue;
         }
         tables.set(table.name, new Set(table.columns.map((c) => c.name)));
-        indexes.set(table.name, await introspectIndexNames(db, provider, table.name));
+        indexes.set(table.name, new Set(table.indexes.filter((i) => !i.primary).map((i) => i.name)));
+
         if (provider === 'sqlite') {
-            // only needed to decide whether a column drop requires a table rebuild
-            const rows = (
-                await sql<{ from: string }>`PRAGMA foreign_key_list(${sql.raw(`"${table.name}"`)})`.execute(db)
-            ).rows;
-            fkColumns.set(table.name, new Set(rows.map((r) => r.from)));
-        } else if (provider === 'mysql') {
-            foreignKeys.set(table.name, await introspectMysqlForeignKeys(db, table.name));
-        }
-    }
-
-    const enums = new Set<string>();
-    if (provider === 'postgresql') {
-        const result = await sql<{ typname: string }>`SELECT typname FROM pg_type WHERE typtype = 'e'`.execute(db);
-        for (const row of result.rows) {
-            enums.add(row.typname);
-        }
-    }
-
-    return { tables, indexes, fkColumns, foreignKeys, enums };
-}
-
-/** Reads a MySQL table's foreign-key constraints. */
-async function introspectMysqlForeignKeys(db: Kysely<any>, table: string): Promise<FkInfo[]> {
-    const rows = (
-        await sql<{
-            CONSTRAINT_NAME: string;
-            COLUMN_NAME: string;
-            REFERENCED_TABLE_NAME: string;
-            REFERENCED_COLUMN_NAME: string;
-        }>`
-            SELECT CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
-            FROM information_schema.KEY_COLUMN_USAGE
-            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ${table} AND REFERENCED_TABLE_NAME IS NOT NULL
-            ORDER BY CONSTRAINT_NAME, ORDINAL_POSITION
-        `.execute(db)
-    ).rows;
-    const byName = new Map<string, FkInfo>();
-    for (const r of rows) {
-        const existing =
-            byName.get(r.CONSTRAINT_NAME) ??
-            ({ name: r.CONSTRAINT_NAME, columns: [], refTable: r.REFERENCED_TABLE_NAME, refColumns: [] } as FkInfo);
-        existing.columns.push(r.COLUMN_NAME);
-        existing.refColumns.push(r.REFERENCED_COLUMN_NAME);
-        byName.set(r.CONSTRAINT_NAME, existing);
-    }
-    return [...byName.values()];
-}
-
-/** Reads the (non-primary-key) index names of a table. */
-async function introspectIndexNames(
-    db: Kysely<any>,
-    provider: DataSourceProviderType,
-    table: string,
-): Promise<Set<string>> {
-    const names = new Set<string>();
-    if (provider === 'postgresql') {
-        const rows = (
-            await sql<{ indexname: string }>`
-                SELECT i.indexname
-                FROM pg_indexes i
-                JOIN pg_class c ON c.relname = i.indexname
-                JOIN pg_index ix ON ix.indexrelid = c.oid
-                WHERE i.schemaname = 'public' AND i.tablename = ${table} AND NOT ix.indisprimary
-            `.execute(db)
-        ).rows;
-        for (const r of rows) {
-            names.add(r.indexname);
-        }
-    } else if (provider === 'mysql') {
-        const rows = (
-            await sql<{ INDEX_NAME: string }>`
-                SELECT DISTINCT INDEX_NAME FROM information_schema.STATISTICS
-                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ${table} AND INDEX_NAME <> 'PRIMARY'
-            `.execute(db)
-        ).rows;
-        for (const r of rows) {
-            names.add(r.INDEX_NAME);
-        }
-    } else {
-        const rows = (
-            await sql<{ name: string; origin: string }>`PRAGMA index_list(${sql.raw(`"${table}"`)})`.execute(db)
-        ).rows;
-        for (const r of rows) {
-            if (r.origin !== 'pk' && !r.name.startsWith('sqlite_autoindex')) {
-                names.add(r.name);
+            // columns that participate in a foreign key or an index can't be dropped in
+            // place — their drop requires a table rebuild
+            const constrained = new Set<string>();
+            for (const column of table.columns) {
+                if (column.foreign_key_table) {
+                    constrained.add(column.name);
+                }
             }
+            for (const index of table.indexes) {
+                for (const column of index.columns) {
+                    constrained.add(column.name);
+                }
+            }
+            constrainedColumns.set(table.name, constrained);
+        } else if (provider === 'mysql') {
+            // group FK columns (reported per column) into constraints, preserving column order
+            const byName = new Map<string, FkInfo>();
+            for (const column of table.columns) {
+                if (!column.foreign_key_name || !column.foreign_key_table || !column.foreign_key_column) {
+                    continue;
+                }
+                const existing = byName.get(column.foreign_key_name) ?? {
+                    name: column.foreign_key_name,
+                    columns: [],
+                    refTable: column.foreign_key_table,
+                    refColumns: [],
+                };
+                existing.columns.push(column.name);
+                existing.refColumns.push(column.foreign_key_column);
+                byName.set(column.foreign_key_name, existing);
+            }
+            foreignKeys.set(table.name, [...byName.values()]);
         }
     }
-    return names;
+
+    const enums = new Set(introspected.enums.map((e) => e.enum_type));
+
+    return { tables, indexes, constrainedColumns, foreignKeys, enums };
 }
 
 /**
@@ -173,11 +148,12 @@ export function diffForPush(current: CurrentDbState, desired: Snapshot, acceptDa
             continue;
         }
 
-        // SQLite: dropping a foreign-key column requires a table rebuild
-        if (desired.provider === 'sqlite') {
-            const fkColumns = current.fkColumns.get(table.name) ?? new Set<string>();
+        // SQLite: dropping a column that participates in a foreign key or an index requires
+        // a table rebuild (its native DROP COLUMN refuses such columns)
+        if (providerTraits(desired.provider).rebuildTableForAlters) {
+            const constrained = current.constrainedColumns.get(table.name) ?? new Set<string>();
             const droppedColumns = [...currentColumns].filter((c) => !table.columns[c]);
-            if (droppedColumns.some((c) => fkColumns.has(c))) {
+            if (droppedColumns.some((c) => constrained.has(c))) {
                 if (acceptDataLoss) {
                     const copyColumns = Object.keys(table.columns)
                         .filter((c) => currentColumns.has(c))
@@ -197,11 +173,11 @@ export function diffForPush(current: CurrentDbState, desired: Snapshot, acceptDa
 
         // MySQL: drop foreign keys that are no longer desired before touching their columns,
         // and remember FK-backing index names so we don't try to drop them
-        const mysql = desired.provider === 'mysql';
-        const currentFks = mysql ? (current.foreignKeys.get(table.name) ?? []) : [];
+        const explicitFks = !providerTraits(desired.provider).inlineForeignKeys;
+        const currentFks = explicitFks ? (current.foreignKeys.get(table.name) ?? []) : [];
         const desiredFkKeys = new Set(table.foreignKeys.map(fkKey));
         const fkBackingIndexes = new Set<string>();
-        if (mysql) {
+        if (explicitFks) {
             for (const fk of currentFks) {
                 fkBackingIndexes.add(fk.name); // a MySQL FK creates an index of the same name
                 if (!desiredFkKeys.has(fkKey(fk))) {
@@ -210,10 +186,19 @@ export function diffForPush(current: CurrentDbState, desired: Snapshot, acceptDa
             }
         }
 
+        // drop stale indexes before the column changes — a dropped column's index must go
+        // first (MySQL's DROP COLUMN auto-drops it, making a later DROP INDEX fail)
+        const currentIndexes = current.indexes.get(table.name) ?? new Set<string>();
+        for (const indexName of currentIndexes) {
+            if (!table.indexes.some((i) => i.name === indexName) && !fkBackingIndexes.has(indexName)) {
+                changes.push({ kind: 'drop-index', table, index: { name: indexName, columns: [], unique: false } });
+            }
+        }
+
         for (const [columnName, column] of Object.entries(table.columns)) {
             if (!currentColumns.has(columnName)) {
                 // a single-column FK is added inline on pg/sqlite; MySQL adds it separately below
-                const fk = mysql
+                const fk = explicitFks
                     ? undefined
                     : table.foreignKeys.find((f) => f.columns.length === 1 && f.columns[0] === columnName);
                 changes.push({ kind: 'add-column', table, column, fk });
@@ -230,21 +215,15 @@ export function diffForPush(current: CurrentDbState, desired: Snapshot, acceptDa
                 }
             }
         }
-        // indexes (add/drop by name — index changes are not data-destructive)
-        const currentIndexes = current.indexes.get(table.name) ?? new Set<string>();
+        // create missing indexes once their columns exist (index changes are not data-destructive)
         for (const index of table.indexes) {
             if (!currentIndexes.has(index.name)) {
                 changes.push({ kind: 'create-index', table, index });
             }
         }
-        for (const indexName of currentIndexes) {
-            if (!table.indexes.some((i) => i.name === indexName) && !fkBackingIndexes.has(indexName)) {
-                changes.push({ kind: 'drop-index', table, index: { name: indexName, columns: [], unique: false } });
-            }
-        }
 
         // MySQL: add newly-desired foreign keys once their columns exist
-        if (mysql) {
+        if (explicitFks) {
             const currentFkKeys = new Set(currentFks.map(fkKey));
             for (const fk of table.foreignKeys) {
                 if (!currentFkKeys.has(fkKey(fk))) {

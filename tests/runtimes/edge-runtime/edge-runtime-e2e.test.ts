@@ -1,7 +1,7 @@
 import { ZenStackClient } from '@zenstackhq/orm';
 import { PostgresDialect } from '@zenstackhq/orm/dialects/postgres';
 import { PolicyPlugin } from '@zenstackhq/plugin-policy';
-import { TEST_PG_URL } from '@zenstackhq/testtools';
+import { pushSchemaToDatabase, TEST_PG_URL } from '@zenstackhq/testtools';
 import { Client, Pool } from 'pg';
 import { afterEach, describe, expect, it } from 'vitest';
 import { schema } from './schemas/schema';
@@ -96,6 +96,6 @@ async function createClient(dbName: string) {
     });
 
     const db = new ZenStackClient(schema, { dialect });
-    await db.$pushSchema();
+    await pushSchemaToDatabase(db, schema, 'postgresql');
     return db;
 }

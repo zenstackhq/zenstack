@@ -80,7 +80,9 @@ describe(`alter column (${provider})`, () => {
     });
 
     it('diffs an enum value removal (recreate on pg, no-op on sqlite, modify-column on mysql)', async () => {
-        const from = buildSnapshot(await compile(`enum Role { USER ADMIN GUEST }  model User { ${ID}  role Role }`, provider));
+        const from = buildSnapshot(
+            await compile(`enum Role { USER ADMIN GUEST }  model User { ${ID}  role Role }`, provider),
+        );
         const to = buildSnapshot(await compile(`enum Role { ADMIN USER }  model User { ${ID}  role Role }`, provider));
         const changes = diffSnapshots(from, to);
         if (provider === 'postgresql') {
@@ -118,7 +120,9 @@ describe(`alter column (${provider})`, () => {
             expect((await readRows(db, 'User'))[0]!['role']).toBe('ADMIN');
             // the removed value is gone and the remaining values are reordered
             const values = await withDb(db, async (k) => {
-                const result = await sql<{ values: string[] }>`SELECT enum_range(NULL::"Role")::text[] AS values`.execute(k);
+                const result = await sql<{
+                    values: string[];
+                }>`SELECT enum_range(NULL::"Role")::text[] AS values`.execute(k);
                 return result.rows[0]!.values;
             });
             expect(values).toEqual(['ADMIN', 'USER']);
@@ -209,6 +213,59 @@ describe(`alter column (${provider})`, () => {
         } finally {
             await db.cleanup();
         }
+    });
+
+    describe('dbgenerated defaults', () => {
+        const WITH_123 = `model Item { ${ID}  name String  n Int @default(dbgenerated("123")) }`;
+        const WITH_456 = `model Item { ${ID}  name String  n Int @default(dbgenerated("456")) }`;
+
+        it('captures the raw SQL in the snapshot', async () => {
+            const snap = buildSnapshot(await compile(WITH_123, provider));
+            expect(snap.tables['Item']!.columns['n']!.default).toEqual({ kind: 'raw', sql: '123' });
+        });
+
+        it('diffs a change of the raw SQL', async () => {
+            const from = buildSnapshot(await compile(WITH_123, provider));
+            const to = buildSnapshot(await compile(WITH_456, provider));
+            const changes = diffSnapshots(from, to);
+            if (provider === 'sqlite') {
+                expect(changes.some((c) => c.kind === 'rebuild-table')).toBe(true);
+            } else {
+                expect(changes.some((c) => c.kind === 'alter-column')).toBe(true);
+            }
+        });
+
+        for (const flow of ['push', 'dev', 'deploy'] as const) {
+            it(`applies the raw default on table creation (${flow})`, async () => {
+                const db = await createTestDb(provider);
+                try {
+                    await runFlow(db, flow, undefined, await compile(WITH_123, provider));
+                    await seedRows(db, 'Item', [{ name: 'a' }]);
+                    expect(Number((await readRows(db, 'Item'))[0]!['n'])).toBe(123);
+                } finally {
+                    await db.cleanup();
+                }
+            });
+        }
+
+        describe.each(FLOWS)('%s', (flow) => {
+            it('changes the raw default, keeping stored values', async () => {
+                const db = await createTestDb(provider);
+                try {
+                    const from = await compile(WITH_123, provider);
+                    const to = await compile(WITH_456, provider);
+                    await runFlow(db, flow, from, to, { seed: () => seedRows(db, 'Item', [{ name: 'a' }]) });
+
+                    await seedRows(db, 'Item', [{ name: 'b' }]);
+                    const rows = await readRows(db, 'Item');
+                    // the pre-migration row keeps its stored value; new rows get the new default
+                    expect(Number(rows.find((r) => r['name'] === 'a')!['n'])).toBe(123);
+                    expect(Number(rows.find((r) => r['name'] === 'b')!['n'])).toBe(456);
+                } finally {
+                    await db.cleanup();
+                }
+            });
+        });
     });
 
     it.runIf(provider === 'mysql')('changes enum values on a renamed table', async () => {

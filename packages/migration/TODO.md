@@ -31,12 +31,52 @@ Ordered by impact. Checkboxes are open items.
 - [x] MySQL enum value changes — lowered to `alter-column` (`MODIFY COLUMN` restating the new
       inline `enum(...)`) per using column, emitted after the table loop so names are
       post-rename; fails at apply time under strict mode if a removed value is still in row data
-- [ ] `db push` alter detection — `diffForPush` uses name-only introspection, so `db push`
-      still misses type/nullability/default changes (needs richer introspection). Prisma's
-      `db push` handles these. `migrate dev`/`deploy` do handle them.
+- [x] Enum **rename** (via the resolver, like tables/columns) — `rename-enum` lowers to a single
+      `ALTER TYPE … RENAME TO` on pg (using columns follow the type automatically; value changes
+      are reconciled against the renamed type). No DDL on MySQL/SQLite (the enum name isn't
+      materialized there), and the mapping suppresses the phantom column type changes that a
+      rename would otherwise register (spurious `MODIFY COLUMN` on MySQL, table rebuild on SQLite).
+      Without the resolver, the old drop+create fallback on pg still fails when columns use the
+      type (no implicit enum→enum cast) — that path remains manual.
+- [x] Drop of an **indexed** column (`@unique` / `@@index`) — SQLite's native `DROP COLUMN`
+      refuses columns that participate in an index, so those drops take the table-rebuild path
+      (like FK columns; Prisma rebuilds for _every_ SQLite column drop). On MySQL/pg the drop
+      stays in place, with index drops emitted _before_ column changes (MySQL auto-drops a
+      dropped column's index, which would make a trailing `DROP INDEX` fail).
+- [x] PK constraint name follows a **table rename** on pg (`rename-primary-key`, emitted right
+      after `rename-table`) — pg doesn't rename constraints with the table, which would break
+      the `<table>_pkey` convention `drop-primary-key` relies on (in the same migration or any
+      later one). MySQL's PK is anonymous and SQLite rebuilds, so neither is affected.
+- [x] `@default(dbgenerated("..."))` — captured as a raw-SQL default (`{ kind: 'raw' }`) in the
+      snapshot and emitted verbatim as the `DEFAULT` clause on create/add/alter, so pulled
+      schemas (`db pull` emits `dbgenerated`) round-trip instead of silently losing the
+      default. Argument-less `dbgenerated()` stays a no-op like other generator functions
+      (uuid()/cuid()/... are computed client-side by the ORM, by design).
+- [ ] FK constraint names drift after a **table rename** (pg + MySQL) — like the PK case above,
+      a renamed table's FK constraints keep their old names, but later snapshots derive fresh
+      conventional names, so a later `drop-foreign-key` (FK removed or `onDelete`/`onUpdate`
+      changed) targets a name that doesn't exist. Fix like the PK: rename FK constraints with
+      the table on pg (`RENAME CONSTRAINT`); MySQL has no constraint rename, so drop + re-add.
+      (Indexes are immune — they're diffed by name, so a rename yields drop-old + create-new.)
+- [x] **Prisma physical-schema parity suite** (`tests/e2e/migration/prisma-parity.test.ts`) —
+      for each schema case, builds one DB via our `db push`, one via our `migrate dev`, and a
+      Prisma-built reference, then deep-introspects (types, defaults, PKs, index/constraint
+      names, FK actions, enums) and compares. Covers scalars, defaults (incl. `dbgenerated`),
+      exhaustive `@db.*` native types per provider, relations/actions, keys/indexes, `@map`s,
+      enums, and dev-flow evolutions. Fixed two divergences it caught: a redundant unique
+      index emitted for compound `@@id` columns, and SQLite `Int @id` missing the implicit
+      `AUTOINCREMENT` Prisma always emits. Known unexpressible gap: MySQL Boolean native type
+      (ZModel only accepts `@db.Boolean`, Prisma only `@db.TinyInt(1)`); `@db.Citext` excluded
+      (needs the citext extension).
+- [ ] `db push` alter detection — `diffForPush` still diffs by name only, so `db push`
+      misses type/nullability/default changes. Prisma's `db push` handles these;
+      `migrate dev`/`deploy` do handle them. The groundwork now exists: push shares the
+      deep introspection that powers `db pull` (`src/introspect/`, moved from the CLI), so
+      the remaining work is mapping `IntrospectedSchema` columns back into snapshot terms
+      and widening `diffForPush` (or replacing it with `diffSnapshots`).
 
-Already automated: add/drop table, column, index, relation; **rename** table/column (via the
-resolver — better than Prisma's drop+create).
+Already automated: add/drop table, column, index, relation; **rename** table/column/enum (via
+the resolver — better than Prisma's drop+create).
 
 ## 2. Migration integrity & safety mechanics
 
@@ -44,7 +84,15 @@ We rely on Kysely's migrator (name-only tracking). Missing vs Prisma's `_prisma_
 
 - [x] Checksums — a `checksum` column on `zenstack_migration` stores the SHA-256 of each
       applied `migration.ts`; `deploy` refuses (returns an error, applies nothing) if an
-      already-applied migration was edited, and backfills checksums for legacy rows
+      already-applied migration was edited, and backfills checksums for legacy rows. The
+      `ignoreChecksumMismatch` engine option skips the refusal and adopts the edited files'
+      checksums as canonical. Migrations applied without a recorded checksum (a deploy
+      interrupted before `recordChecksums`) are surfaced instead of silently adopted:
+      `status` flags them `unverified`, `deploy` lists them in `DeployResult.unverified`
+- [x] Atomic `db push` — changes apply inside a single transaction, so a failed push rolls
+      back cleanly on pg/sqlite (SQLite FK pragmas are toggled outside the transaction,
+      where they're not a no-op). MySQL DDL auto-commits each statement, so partial
+      application remains possible there (re-running push self-heals)
 - [ ] Failed-migration state — Kysely only records on success, so a mid-failure migration is
       retried on the next run (possibly on a partially-applied DB). Prisma records
       `finished_at = NULL` and blocks until resolved. Needs failed-state tracking + a
@@ -87,28 +135,29 @@ We rely on Kysely's migrator (name-only tracking). Missing vs Prisma's `_prisma_
       new engine. Decide the long-term story: keep it opt-in, flip the default with a
       `--legacy`/`--prisma` escape hatch, or drop the Prisma path once at parity.
 
-  **Key constraint — it is not just a flag.** The native engine records history in its own
-  `zenstack_migration` table and cannot read Prisma's `_prisma_migrations` / `prisma/migrations/*.sql`.
-  Switching an existing project therefore requires a one-time **baselining cutover per database**
-  (`baseline` / `resolve --applied`) so the engine doesn't think the schema is empty and try to
-  recreate everything. Because the tracking table is per-DB, dev/staging/prod each need it — so a
-  naive default-flip would break existing projects.
+    **Key constraint — it is not just a flag.** The native engine records history in its own
+    `zenstack_migration` table and cannot read Prisma's `_prisma_migrations` / `prisma/migrations/*.sql`.
+    Switching an existing project therefore requires a one-time **baselining cutover per database**
+    (`baseline` / `resolve --applied`) so the engine doesn't think the schema is empty and try to
+    recreate everything. Because the tracking table is per-DB, dev/staging/prod each need it — so a
+    naive default-flip would break existing projects.
 
-  Sub-tasks to make the cutover smooth:
-  - [ ] A guided `migrate adopt` (or `baseline --from-prisma`) that detects an existing
-        `_prisma_migrations`, verifies the live DB matches the current schema (drift check), and
-        baselines automatically — one command per environment instead of manual steps.
-  - [ ] Docs + a clear error when the engine is pointed at a Prisma-managed DB with no
-        `zenstack_migration` table (tell the user to `adopt`/`baseline`, don't silently recreate).
-  - [ ] Decide whether to keep the old `prisma/migrations` history around (read-only) or discard it
-        after adoption.
+    Sub-tasks to make the cutover smooth:
+
+    - [ ] A guided `migrate adopt` (or `baseline --from-prisma`) that detects an existing
+          `_prisma_migrations`, verifies the live DB matches the current schema (drift check), and
+          baselines automatically — one command per environment instead of manual steps.
+    - [ ] Docs + a clear error when the engine is pointed at a Prisma-managed DB with no
+          `zenstack_migration` table (tell the user to `adopt`/`baseline`, don't silently recreate).
+    - [ ] Decide whether to keep the old `prisma/migrations` history around (read-only) or discard it
+          after adoption.
 
 ## Where we already match or beat Prisma
 
 - Rename detection (data-preserving `RENAME`) — Prisma can't do this automatically
 - Snapshot-based diffing — no shadow DB needed to author a migration
 - `baseline` + `resolve --applied` for adopting an existing (e.g. Prisma-built) database
-- TypeScript migrations with Kysely *and* the ORM client available
+- TypeScript migrations with the full Kysely query builder available (DDL + data backfills)
 - Prisma-compatible physical output (names / types / 63-64 char truncation) — verified vs Prisma v7
 - Delegate (polymorphic) model support
 

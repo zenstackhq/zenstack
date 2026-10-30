@@ -1,12 +1,16 @@
 import { sql, type Kysely } from 'kysely';
 import type { SchemaChange } from './diff';
+import { providerTraits } from './provider-traits';
+import { EMPTY_RENAME_PLAN, type RenamePlan } from './rename';
 import type { Snapshot } from './types';
 
 /** A single data-loss (or destructive) risk detected while diffing. */
 export interface DataLossRisk {
     message: string;
+
     /** Physical table to probe for at-risk data (absent for risks that can't be probed). */
     table?: string;
+
     /** Column to probe (non-null check); absent means "any row in the table". */
     column?: string;
 }
@@ -22,7 +26,12 @@ export type ConfirmDataLossCallback = (warnings: string[]) => boolean | Promise<
  * can destroy data: dropped tables/columns, columns lost in a SQLite table rebuild, and enum
  * value removals (which fail the migration if rows still use the removed values).
  */
-export function dataLossWarnings(from: Snapshot, to: Snapshot, changes: SchemaChange[]): DataLossRisk[] {
+export function dataLossWarnings(
+    from: Snapshot,
+    to: Snapshot,
+    changes: SchemaChange[],
+    plan: RenamePlan = EMPTY_RENAME_PLAN,
+): DataLossRisk[] {
     const risks: DataLossRisk[] = [];
 
     for (const change of changes) {
@@ -70,9 +79,10 @@ export function dataLossWarnings(from: Snapshot, to: Snapshot, changes: SchemaCh
     // different change kinds (pg: recreate-enum, MySQL: alter-column with from === to), so the
     // change list isn't a reliable signal. SQLite stores enums as plain text (no enforcement,
     // and the diff emits nothing), so it's skipped.
-    if (to.provider !== 'sqlite') {
+    if (providerTraits(to.provider).enumStrategy !== 'text') {
+        const newEnumOf = new Map(plan.enums.map((m) => [m.from, m.to]));
         for (const [name, before] of Object.entries(from.enums)) {
-            const after = to.enums[name];
+            const after = to.enums[newEnumOf.get(name) ?? name];
             if (!after) {
                 continue; // drop-enum: any using column surfaces as its own change
             }

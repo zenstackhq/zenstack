@@ -1,4 +1,12 @@
-import { ConfigExpr, InvocationExpr, isDataSource, isInvocationExpr, isLiteralExpr, LiteralExpr, type Model } from '@zenstackhq/language/ast';
+import {
+    ConfigExpr,
+    InvocationExpr,
+    isDataSource,
+    isInvocationExpr,
+    isLiteralExpr,
+    LiteralExpr,
+    type Model,
+} from '@zenstackhq/language/ast';
 import { getStringLiteral } from '@zenstackhq/language/utils';
 import { MigrationEngine, type ConfirmDataLossCallback, type RenameResolver } from '@zenstackhq/migration';
 import type { DataSourceProviderType, SchemaDef } from '@zenstackhq/schema';
@@ -67,7 +75,10 @@ export async function prepareEngine(options: {
     }
 
     const model = await loadSchemaDocument(schemaFile);
-    const { provider, url } = resolveDatasource(model);
+    const { provider, url: rawUrl } = resolveDatasource(model);
+    // the engine resolves relative SQLite `file:` paths against the current working
+    // directory — anchor them to the schema output dir (the CLI's convention) instead
+    const url = provider === 'sqlite' ? resolveSqliteUrl(rawUrl, outputPath) : rawUrl;
 
     const migrationsDir = options.migrations
         ? path.resolve(process.cwd(), options.migrations)
@@ -85,13 +96,20 @@ export async function prepareEngine(options: {
         schema,
         connectionUrl: url,
         migrationsDir,
-        baseDir: outputPath,
-        importer: { import: (id: string) => jiti.import(id) },
         resolver: options.resolver,
         confirmDataLoss: options.confirmDataLoss,
     });
 
     return { engine, schema, outputPath, provider, url, jiti };
+}
+
+/** Makes a relative SQLite `file:` URL absolute by resolving it against `baseDir`. */
+function resolveSqliteUrl(url: string, baseDir: string): string {
+    if (!url.startsWith('file:')) {
+        return url;
+    }
+    const filePath = url.substring('file:'.length);
+    return path.isAbsolute(filePath) ? url : `file:${path.resolve(baseDir, filePath)}`;
 }
 
 function resolveDatasource(model: Model): { provider: DataSourceProviderType; url: string } {

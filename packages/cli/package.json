@@ -69,7 +69,7 @@
         "cors": "^2.8.5",
         "dotenv": "^17.2.3",
         "execa": "^9.6.0",
-        "jiti": "^2.6.1",
+        "jiti": "catalog:",
         "langium": "catalog:",
         "mixpanel": "^0.18.1",
         "ora": "^5.4.1",

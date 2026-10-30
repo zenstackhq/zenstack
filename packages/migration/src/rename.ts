@@ -6,6 +6,7 @@ export type MaybePromise<T> = T | Promise<T>;
 export interface RenameMapping {
     /** The pre-existing (old) physical name. */
     from: string;
+
     /** The new physical name it was renamed to. */
     to: string;
 }
@@ -14,7 +15,17 @@ export interface RenameMapping {
 export interface TableRenameQuery {
     /** Tables present in the new schema but not the old one (candidates for rename targets). */
     created: string[];
+
     /** Tables present in the old schema but not the new one (candidates for rename sources). */
+    deleted: string[];
+}
+
+/** The set of ambiguous enum changes presented to a {@link RenameResolver}. */
+export interface EnumRenameQuery {
+    /** Enums present in the new schema but not the old one (candidates for rename targets). */
+    created: string[];
+
+    /** Enums present in the old schema but not the new one (candidates for rename sources). */
     deleted: string[];
 }
 
@@ -22,8 +33,10 @@ export interface TableRenameQuery {
 export interface ColumnRenameQuery {
     /** Physical table name (already resolved through any table rename). */
     table: string;
+
     /** Columns present in the new schema but not the old one. */
     created: string[];
+
     /** Columns present in the old schema but not the new one. */
     deleted: string[];
 }
@@ -39,34 +52,47 @@ export interface ColumnRenameQuery {
  */
 export interface RenameResolver {
     resolveTableRenames?(query: TableRenameQuery): MaybePromise<RenameMapping[]>;
+
     resolveColumnRenames?(query: ColumnRenameQuery): MaybePromise<RenameMapping[]>;
+
+    resolveEnumRenames?(query: EnumRenameQuery): MaybePromise<RenameMapping[]>;
 }
 
 /** The resolved rename decisions consumed by the snapshot diff. */
 export interface RenamePlan {
     /** Table renames (old table name -> new table name). */
     tables: RenameMapping[];
+
     /** Column renames keyed by the *new* table name (old column name -> new column name). */
     columns: Record<string, RenameMapping[]>;
+
+    /** Enum renames (old enum name -> new enum name). */
+    enums: RenameMapping[];
 }
 
-export const EMPTY_RENAME_PLAN: RenamePlan = { tables: [], columns: {} };
+export const EMPTY_RENAME_PLAN: RenamePlan = { tables: [], columns: {}, enums: [] };
 
 /**
  * Computes a {@link RenamePlan} by detecting the ambiguous add/drop pairs between two
  * snapshots and asking the `resolver` to disambiguate them. With no resolver, returns an
  * empty plan (everything stays a drop + create).
  */
-export async function resolveRenames(
-    from: Snapshot,
-    to: Snapshot,
-    resolver?: RenameResolver,
-): Promise<RenamePlan> {
+export async function resolveRenames(from: Snapshot, to: Snapshot, resolver?: RenameResolver): Promise<RenamePlan> {
     if (!resolver) {
         return EMPTY_RENAME_PLAN;
     }
 
-    const plan: RenamePlan = { tables: [], columns: {} };
+    const plan: RenamePlan = { tables: [], columns: {}, enums: [] };
+
+    // enum renames — resolved for every provider: even where a rename needs no DDL (MySQL's
+    // inline enums, SQLite's text), the mapping stops the using columns from registering as
+    // type changes (a spurious alter on MySQL, a full table rebuild on SQLite)
+    const deletedEnums = Object.keys(from.enums).filter((name) => !to.enums[name]);
+    const createdEnums = Object.keys(to.enums).filter((name) => !from.enums[name]);
+    if (resolver.resolveEnumRenames && deletedEnums.length > 0 && createdEnums.length > 0) {
+        const mappings = await resolver.resolveEnumRenames({ created: createdEnums, deleted: deletedEnums });
+        plan.enums = sanitize(mappings, deletedEnums, createdEnums);
+    }
 
     // table renames
     const deletedTables = Object.keys(from.tables).filter((name) => !to.tables[name]);
