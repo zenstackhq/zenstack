@@ -483,16 +483,18 @@ export class ZodSchemaFactory<
             return this.extraValidationsEnabled ? ZodUtils.addCustomValidation(schema, typeDef.attributes) : schema;
         }
         const func = typeDef.strict ? z.strictObject : z.looseObject;
-        const schema = func(
+        const objectSchema = func(
             Object.fromEntries(
                 Object.entries(typeDef.fields).map(([field, def]) => {
-                    // Wrap nested typedef references in z.lazy() so cyclic or self-referencing
-                    // typedefs don't recurse infinitely while building schemas.
-                    let fieldSchema: ZodType = isTypeDef(this.schema, def.type)
-                        ? z.lazy(() => this.makeTypeDefSchema(def.type))
-                        : this.makeScalarSchema(def.type);
+                    // Wrap nested object typedef references in z.lazy() so cyclic or self-referencing
+                    // typedefs don't recurse infinitely while building schemas. All other fields get
+                    // their validation attributes applied, the same as model fields.
+                    let fieldSchema: ZodType =
+                        isTypeDef(this.schema, def.type) && !isPrimitiveTypeDef(this.schema, def.type)
+                            ? z.lazy(() => this.makeTypeDefSchema(def.type))
+                            : this.makeScalarSchema(def.type, this.getItemAttributes(def));
                     if (def.array) {
-                        fieldSchema = fieldSchema.array();
+                        fieldSchema = ZodUtils.addListValidation(fieldSchema.array(), def.attributes);
                     }
                     if (def.optional) {
                         fieldSchema = fieldSchema.nullish();
@@ -501,6 +503,9 @@ export class ZodSchemaFactory<
                 }),
             ),
         );
+        const schema = this.extraValidationsEnabled
+            ? ZodUtils.addCustomValidation(objectSchema, typeDef.attributes)
+            : objectSchema;
 
         // zod doesn't preserve object field order after parsing, here we use a
         // validation-only custom schema and use the original data if parsing
