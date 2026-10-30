@@ -5,153 +5,196 @@
 
 /* eslint-disable */
 
-import { type SchemaType as $Schema } from "./schema";
-import type { FindManyArgs as $FindManyArgs, FindUniqueArgs as $FindUniqueArgs, FindFirstArgs as $FindFirstArgs, ExistsArgs as $ExistsArgs, CreateArgs as $CreateArgs, CreateManyArgs as $CreateManyArgs, CreateManyAndReturnArgs as $CreateManyAndReturnArgs, UpdateArgs as $UpdateArgs, UpdateManyArgs as $UpdateManyArgs, UpdateManyAndReturnArgs as $UpdateManyAndReturnArgs, UpsertArgs as $UpsertArgs, DeleteArgs as $DeleteArgs, DeleteManyArgs as $DeleteManyArgs, CountArgs as $CountArgs, AggregateArgs as $AggregateArgs, GroupByArgs as $GroupByArgs, WhereInput as $WhereInput, SelectInput as $SelectInput, IncludeInput as $IncludeInput, OmitInput as $OmitInput, QueryOptions as $QueryOptions } from "@zenstackhq/orm";
-import type { SimplifiedPlainResult as $Result, SelectIncludeOmit as $SelectIncludeOmit } from "@zenstackhq/orm";
-export type UserFindManyArgs = $FindManyArgs<$Schema, "User">;
-export type UserFindUniqueArgs = $FindUniqueArgs<$Schema, "User">;
-export type UserFindFirstArgs = $FindFirstArgs<$Schema, "User">;
-export type UserExistsArgs = $ExistsArgs<$Schema, "User">;
-export type UserCreateArgs = $CreateArgs<$Schema, "User">;
-export type UserCreateManyArgs = $CreateManyArgs<$Schema, "User">;
-export type UserCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "User">;
-export type UserUpdateArgs = $UpdateArgs<$Schema, "User">;
-export type UserUpdateManyArgs = $UpdateManyArgs<$Schema, "User">;
-export type UserUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "User">;
-export type UserUpsertArgs = $UpsertArgs<$Schema, "User">;
-export type UserDeleteArgs = $DeleteArgs<$Schema, "User">;
-export type UserDeleteManyArgs = $DeleteManyArgs<$Schema, "User">;
-export type UserCountArgs = $CountArgs<$Schema, "User">;
-export type UserAggregateArgs = $AggregateArgs<$Schema, "User">;
-export type UserGroupByArgs = $GroupByArgs<$Schema, "User">;
-export type UserWhereInput = $WhereInput<$Schema, "User">;
-export type UserSelect = $SelectInput<$Schema, "User">;
-export type UserInclude = $IncludeInput<$Schema, "User">;
-export type UserOmit = $OmitInput<$Schema, "User">;
-export type UserGetPayload<Args extends $SelectIncludeOmit<$Schema, "User", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "User", Args, Options>;
-export type CommentFindManyArgs = $FindManyArgs<$Schema, "Comment">;
-export type CommentFindUniqueArgs = $FindUniqueArgs<$Schema, "Comment">;
-export type CommentFindFirstArgs = $FindFirstArgs<$Schema, "Comment">;
-export type CommentExistsArgs = $ExistsArgs<$Schema, "Comment">;
-export type CommentCreateArgs = $CreateArgs<$Schema, "Comment">;
-export type CommentCreateManyArgs = $CreateManyArgs<$Schema, "Comment">;
-export type CommentCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "Comment">;
-export type CommentUpdateArgs = $UpdateArgs<$Schema, "Comment">;
-export type CommentUpdateManyArgs = $UpdateManyArgs<$Schema, "Comment">;
-export type CommentUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "Comment">;
-export type CommentUpsertArgs = $UpsertArgs<$Schema, "Comment">;
-export type CommentDeleteArgs = $DeleteArgs<$Schema, "Comment">;
-export type CommentDeleteManyArgs = $DeleteManyArgs<$Schema, "Comment">;
-export type CommentCountArgs = $CountArgs<$Schema, "Comment">;
-export type CommentAggregateArgs = $AggregateArgs<$Schema, "Comment">;
-export type CommentGroupByArgs = $GroupByArgs<$Schema, "Comment">;
-export type CommentWhereInput = $WhereInput<$Schema, "Comment">;
-export type CommentSelect = $SelectInput<$Schema, "Comment">;
-export type CommentInclude = $IncludeInput<$Schema, "Comment">;
-export type CommentOmit = $OmitInput<$Schema, "Comment">;
-export type CommentGetPayload<Args extends $SelectIncludeOmit<$Schema, "Comment", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "Comment", Args, Options>;
-export type AssetFindManyArgs = $FindManyArgs<$Schema, "Asset">;
-export type AssetFindUniqueArgs = $FindUniqueArgs<$Schema, "Asset">;
-export type AssetFindFirstArgs = $FindFirstArgs<$Schema, "Asset">;
-export type AssetExistsArgs = $ExistsArgs<$Schema, "Asset">;
-export type AssetCreateArgs = $CreateArgs<$Schema, "Asset">;
-export type AssetCreateManyArgs = $CreateManyArgs<$Schema, "Asset">;
-export type AssetCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "Asset">;
-export type AssetUpdateArgs = $UpdateArgs<$Schema, "Asset">;
-export type AssetUpdateManyArgs = $UpdateManyArgs<$Schema, "Asset">;
-export type AssetUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "Asset">;
-export type AssetUpsertArgs = $UpsertArgs<$Schema, "Asset">;
-export type AssetDeleteArgs = $DeleteArgs<$Schema, "Asset">;
-export type AssetDeleteManyArgs = $DeleteManyArgs<$Schema, "Asset">;
-export type AssetCountArgs = $CountArgs<$Schema, "Asset">;
-export type AssetAggregateArgs = $AggregateArgs<$Schema, "Asset">;
-export type AssetGroupByArgs = $GroupByArgs<$Schema, "Asset">;
-export type AssetWhereInput = $WhereInput<$Schema, "Asset">;
-export type AssetSelect = $SelectInput<$Schema, "Asset">;
-export type AssetInclude = $IncludeInput<$Schema, "Asset">;
-export type AssetOmit = $OmitInput<$Schema, "Asset">;
-export type AssetGetPayload<Args extends $SelectIncludeOmit<$Schema, "Asset", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "Asset", Args, Options>;
-export type VideoFindManyArgs = $FindManyArgs<$Schema, "Video">;
-export type VideoFindUniqueArgs = $FindUniqueArgs<$Schema, "Video">;
-export type VideoFindFirstArgs = $FindFirstArgs<$Schema, "Video">;
-export type VideoExistsArgs = $ExistsArgs<$Schema, "Video">;
-export type VideoCreateArgs = $CreateArgs<$Schema, "Video">;
-export type VideoCreateManyArgs = $CreateManyArgs<$Schema, "Video">;
-export type VideoCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "Video">;
-export type VideoUpdateArgs = $UpdateArgs<$Schema, "Video">;
-export type VideoUpdateManyArgs = $UpdateManyArgs<$Schema, "Video">;
-export type VideoUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "Video">;
-export type VideoUpsertArgs = $UpsertArgs<$Schema, "Video">;
-export type VideoDeleteArgs = $DeleteArgs<$Schema, "Video">;
-export type VideoDeleteManyArgs = $DeleteManyArgs<$Schema, "Video">;
-export type VideoCountArgs = $CountArgs<$Schema, "Video">;
-export type VideoAggregateArgs = $AggregateArgs<$Schema, "Video">;
-export type VideoGroupByArgs = $GroupByArgs<$Schema, "Video">;
-export type VideoWhereInput = $WhereInput<$Schema, "Video">;
-export type VideoSelect = $SelectInput<$Schema, "Video">;
-export type VideoInclude = $IncludeInput<$Schema, "Video">;
-export type VideoOmit = $OmitInput<$Schema, "Video">;
-export type VideoGetPayload<Args extends $SelectIncludeOmit<$Schema, "Video", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "Video", Args, Options>;
-export type RatedVideoFindManyArgs = $FindManyArgs<$Schema, "RatedVideo">;
-export type RatedVideoFindUniqueArgs = $FindUniqueArgs<$Schema, "RatedVideo">;
-export type RatedVideoFindFirstArgs = $FindFirstArgs<$Schema, "RatedVideo">;
-export type RatedVideoExistsArgs = $ExistsArgs<$Schema, "RatedVideo">;
-export type RatedVideoCreateArgs = $CreateArgs<$Schema, "RatedVideo">;
-export type RatedVideoCreateManyArgs = $CreateManyArgs<$Schema, "RatedVideo">;
-export type RatedVideoCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "RatedVideo">;
-export type RatedVideoUpdateArgs = $UpdateArgs<$Schema, "RatedVideo">;
-export type RatedVideoUpdateManyArgs = $UpdateManyArgs<$Schema, "RatedVideo">;
-export type RatedVideoUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "RatedVideo">;
-export type RatedVideoUpsertArgs = $UpsertArgs<$Schema, "RatedVideo">;
-export type RatedVideoDeleteArgs = $DeleteArgs<$Schema, "RatedVideo">;
-export type RatedVideoDeleteManyArgs = $DeleteManyArgs<$Schema, "RatedVideo">;
-export type RatedVideoCountArgs = $CountArgs<$Schema, "RatedVideo">;
-export type RatedVideoAggregateArgs = $AggregateArgs<$Schema, "RatedVideo">;
-export type RatedVideoGroupByArgs = $GroupByArgs<$Schema, "RatedVideo">;
-export type RatedVideoWhereInput = $WhereInput<$Schema, "RatedVideo">;
-export type RatedVideoSelect = $SelectInput<$Schema, "RatedVideo">;
-export type RatedVideoInclude = $IncludeInput<$Schema, "RatedVideo">;
-export type RatedVideoOmit = $OmitInput<$Schema, "RatedVideo">;
-export type RatedVideoGetPayload<Args extends $SelectIncludeOmit<$Schema, "RatedVideo", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "RatedVideo", Args, Options>;
-export type ImageFindManyArgs = $FindManyArgs<$Schema, "Image">;
-export type ImageFindUniqueArgs = $FindUniqueArgs<$Schema, "Image">;
-export type ImageFindFirstArgs = $FindFirstArgs<$Schema, "Image">;
-export type ImageExistsArgs = $ExistsArgs<$Schema, "Image">;
-export type ImageCreateArgs = $CreateArgs<$Schema, "Image">;
-export type ImageCreateManyArgs = $CreateManyArgs<$Schema, "Image">;
-export type ImageCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "Image">;
-export type ImageUpdateArgs = $UpdateArgs<$Schema, "Image">;
-export type ImageUpdateManyArgs = $UpdateManyArgs<$Schema, "Image">;
-export type ImageUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "Image">;
-export type ImageUpsertArgs = $UpsertArgs<$Schema, "Image">;
-export type ImageDeleteArgs = $DeleteArgs<$Schema, "Image">;
-export type ImageDeleteManyArgs = $DeleteManyArgs<$Schema, "Image">;
-export type ImageCountArgs = $CountArgs<$Schema, "Image">;
-export type ImageAggregateArgs = $AggregateArgs<$Schema, "Image">;
-export type ImageGroupByArgs = $GroupByArgs<$Schema, "Image">;
-export type ImageWhereInput = $WhereInput<$Schema, "Image">;
-export type ImageSelect = $SelectInput<$Schema, "Image">;
-export type ImageInclude = $IncludeInput<$Schema, "Image">;
-export type ImageOmit = $OmitInput<$Schema, "Image">;
-export type ImageGetPayload<Args extends $SelectIncludeOmit<$Schema, "Image", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "Image", Args, Options>;
-export type GalleryFindManyArgs = $FindManyArgs<$Schema, "Gallery">;
-export type GalleryFindUniqueArgs = $FindUniqueArgs<$Schema, "Gallery">;
-export type GalleryFindFirstArgs = $FindFirstArgs<$Schema, "Gallery">;
-export type GalleryExistsArgs = $ExistsArgs<$Schema, "Gallery">;
-export type GalleryCreateArgs = $CreateArgs<$Schema, "Gallery">;
-export type GalleryCreateManyArgs = $CreateManyArgs<$Schema, "Gallery">;
-export type GalleryCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "Gallery">;
-export type GalleryUpdateArgs = $UpdateArgs<$Schema, "Gallery">;
-export type GalleryUpdateManyArgs = $UpdateManyArgs<$Schema, "Gallery">;
-export type GalleryUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "Gallery">;
-export type GalleryUpsertArgs = $UpsertArgs<$Schema, "Gallery">;
-export type GalleryDeleteArgs = $DeleteArgs<$Schema, "Gallery">;
-export type GalleryDeleteManyArgs = $DeleteManyArgs<$Schema, "Gallery">;
-export type GalleryCountArgs = $CountArgs<$Schema, "Gallery">;
-export type GalleryAggregateArgs = $AggregateArgs<$Schema, "Gallery">;
-export type GalleryGroupByArgs = $GroupByArgs<$Schema, "Gallery">;
-export type GalleryWhereInput = $WhereInput<$Schema, "Gallery">;
-export type GallerySelect = $SelectInput<$Schema, "Gallery">;
-export type GalleryInclude = $IncludeInput<$Schema, "Gallery">;
-export type GalleryOmit = $OmitInput<$Schema, "Gallery">;
-export type GalleryGetPayload<Args extends $SelectIncludeOmit<$Schema, "Gallery", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "Gallery", Args, Options>;
+import { type SchemaType as $Schema } from './schema';
+import type {
+    FindManyArgs as $FindManyArgs,
+    FindUniqueArgs as $FindUniqueArgs,
+    FindFirstArgs as $FindFirstArgs,
+    ExistsArgs as $ExistsArgs,
+    CreateArgs as $CreateArgs,
+    CreateManyArgs as $CreateManyArgs,
+    CreateManyAndReturnArgs as $CreateManyAndReturnArgs,
+    UpdateArgs as $UpdateArgs,
+    UpdateManyArgs as $UpdateManyArgs,
+    UpdateManyAndReturnArgs as $UpdateManyAndReturnArgs,
+    UpsertArgs as $UpsertArgs,
+    DeleteArgs as $DeleteArgs,
+    DeleteManyArgs as $DeleteManyArgs,
+    CountArgs as $CountArgs,
+    AggregateArgs as $AggregateArgs,
+    GroupByArgs as $GroupByArgs,
+    WhereInput as $WhereInput,
+    SelectInput as $SelectInput,
+    IncludeInput as $IncludeInput,
+    OmitInput as $OmitInput,
+    QueryOptions as $QueryOptions,
+} from '@zenstackhq/orm';
+import type { SimplifiedPlainResult as $Result, SelectIncludeOmit as $SelectIncludeOmit } from '@zenstackhq/orm';
+export type UserFindManyArgs = $FindManyArgs<$Schema, 'User'>;
+export type UserFindUniqueArgs = $FindUniqueArgs<$Schema, 'User'>;
+export type UserFindFirstArgs = $FindFirstArgs<$Schema, 'User'>;
+export type UserExistsArgs = $ExistsArgs<$Schema, 'User'>;
+export type UserCreateArgs = $CreateArgs<$Schema, 'User'>;
+export type UserCreateManyArgs = $CreateManyArgs<$Schema, 'User'>;
+export type UserCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'User'>;
+export type UserUpdateArgs = $UpdateArgs<$Schema, 'User'>;
+export type UserUpdateManyArgs = $UpdateManyArgs<$Schema, 'User'>;
+export type UserUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'User'>;
+export type UserUpsertArgs = $UpsertArgs<$Schema, 'User'>;
+export type UserDeleteArgs = $DeleteArgs<$Schema, 'User'>;
+export type UserDeleteManyArgs = $DeleteManyArgs<$Schema, 'User'>;
+export type UserCountArgs = $CountArgs<$Schema, 'User'>;
+export type UserAggregateArgs = $AggregateArgs<$Schema, 'User'>;
+export type UserGroupByArgs = $GroupByArgs<$Schema, 'User'>;
+export type UserWhereInput = $WhereInput<$Schema, 'User'>;
+export type UserSelect = $SelectInput<$Schema, 'User'>;
+export type UserInclude = $IncludeInput<$Schema, 'User'>;
+export type UserOmit = $OmitInput<$Schema, 'User'>;
+export type UserGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'User', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'User', Args, Options>;
+export type CommentFindManyArgs = $FindManyArgs<$Schema, 'Comment'>;
+export type CommentFindUniqueArgs = $FindUniqueArgs<$Schema, 'Comment'>;
+export type CommentFindFirstArgs = $FindFirstArgs<$Schema, 'Comment'>;
+export type CommentExistsArgs = $ExistsArgs<$Schema, 'Comment'>;
+export type CommentCreateArgs = $CreateArgs<$Schema, 'Comment'>;
+export type CommentCreateManyArgs = $CreateManyArgs<$Schema, 'Comment'>;
+export type CommentCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'Comment'>;
+export type CommentUpdateArgs = $UpdateArgs<$Schema, 'Comment'>;
+export type CommentUpdateManyArgs = $UpdateManyArgs<$Schema, 'Comment'>;
+export type CommentUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'Comment'>;
+export type CommentUpsertArgs = $UpsertArgs<$Schema, 'Comment'>;
+export type CommentDeleteArgs = $DeleteArgs<$Schema, 'Comment'>;
+export type CommentDeleteManyArgs = $DeleteManyArgs<$Schema, 'Comment'>;
+export type CommentCountArgs = $CountArgs<$Schema, 'Comment'>;
+export type CommentAggregateArgs = $AggregateArgs<$Schema, 'Comment'>;
+export type CommentGroupByArgs = $GroupByArgs<$Schema, 'Comment'>;
+export type CommentWhereInput = $WhereInput<$Schema, 'Comment'>;
+export type CommentSelect = $SelectInput<$Schema, 'Comment'>;
+export type CommentInclude = $IncludeInput<$Schema, 'Comment'>;
+export type CommentOmit = $OmitInput<$Schema, 'Comment'>;
+export type CommentGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'Comment', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'Comment', Args, Options>;
+export type AssetFindManyArgs = $FindManyArgs<$Schema, 'Asset'>;
+export type AssetFindUniqueArgs = $FindUniqueArgs<$Schema, 'Asset'>;
+export type AssetFindFirstArgs = $FindFirstArgs<$Schema, 'Asset'>;
+export type AssetExistsArgs = $ExistsArgs<$Schema, 'Asset'>;
+export type AssetCreateArgs = $CreateArgs<$Schema, 'Asset'>;
+export type AssetCreateManyArgs = $CreateManyArgs<$Schema, 'Asset'>;
+export type AssetCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'Asset'>;
+export type AssetUpdateArgs = $UpdateArgs<$Schema, 'Asset'>;
+export type AssetUpdateManyArgs = $UpdateManyArgs<$Schema, 'Asset'>;
+export type AssetUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'Asset'>;
+export type AssetUpsertArgs = $UpsertArgs<$Schema, 'Asset'>;
+export type AssetDeleteArgs = $DeleteArgs<$Schema, 'Asset'>;
+export type AssetDeleteManyArgs = $DeleteManyArgs<$Schema, 'Asset'>;
+export type AssetCountArgs = $CountArgs<$Schema, 'Asset'>;
+export type AssetAggregateArgs = $AggregateArgs<$Schema, 'Asset'>;
+export type AssetGroupByArgs = $GroupByArgs<$Schema, 'Asset'>;
+export type AssetWhereInput = $WhereInput<$Schema, 'Asset'>;
+export type AssetSelect = $SelectInput<$Schema, 'Asset'>;
+export type AssetInclude = $IncludeInput<$Schema, 'Asset'>;
+export type AssetOmit = $OmitInput<$Schema, 'Asset'>;
+export type AssetGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'Asset', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'Asset', Args, Options>;
+export type VideoFindManyArgs = $FindManyArgs<$Schema, 'Video'>;
+export type VideoFindUniqueArgs = $FindUniqueArgs<$Schema, 'Video'>;
+export type VideoFindFirstArgs = $FindFirstArgs<$Schema, 'Video'>;
+export type VideoExistsArgs = $ExistsArgs<$Schema, 'Video'>;
+export type VideoCreateArgs = $CreateArgs<$Schema, 'Video'>;
+export type VideoCreateManyArgs = $CreateManyArgs<$Schema, 'Video'>;
+export type VideoCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'Video'>;
+export type VideoUpdateArgs = $UpdateArgs<$Schema, 'Video'>;
+export type VideoUpdateManyArgs = $UpdateManyArgs<$Schema, 'Video'>;
+export type VideoUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'Video'>;
+export type VideoUpsertArgs = $UpsertArgs<$Schema, 'Video'>;
+export type VideoDeleteArgs = $DeleteArgs<$Schema, 'Video'>;
+export type VideoDeleteManyArgs = $DeleteManyArgs<$Schema, 'Video'>;
+export type VideoCountArgs = $CountArgs<$Schema, 'Video'>;
+export type VideoAggregateArgs = $AggregateArgs<$Schema, 'Video'>;
+export type VideoGroupByArgs = $GroupByArgs<$Schema, 'Video'>;
+export type VideoWhereInput = $WhereInput<$Schema, 'Video'>;
+export type VideoSelect = $SelectInput<$Schema, 'Video'>;
+export type VideoInclude = $IncludeInput<$Schema, 'Video'>;
+export type VideoOmit = $OmitInput<$Schema, 'Video'>;
+export type VideoGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'Video', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'Video', Args, Options>;
+export type RatedVideoFindManyArgs = $FindManyArgs<$Schema, 'RatedVideo'>;
+export type RatedVideoFindUniqueArgs = $FindUniqueArgs<$Schema, 'RatedVideo'>;
+export type RatedVideoFindFirstArgs = $FindFirstArgs<$Schema, 'RatedVideo'>;
+export type RatedVideoExistsArgs = $ExistsArgs<$Schema, 'RatedVideo'>;
+export type RatedVideoCreateArgs = $CreateArgs<$Schema, 'RatedVideo'>;
+export type RatedVideoCreateManyArgs = $CreateManyArgs<$Schema, 'RatedVideo'>;
+export type RatedVideoCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'RatedVideo'>;
+export type RatedVideoUpdateArgs = $UpdateArgs<$Schema, 'RatedVideo'>;
+export type RatedVideoUpdateManyArgs = $UpdateManyArgs<$Schema, 'RatedVideo'>;
+export type RatedVideoUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'RatedVideo'>;
+export type RatedVideoUpsertArgs = $UpsertArgs<$Schema, 'RatedVideo'>;
+export type RatedVideoDeleteArgs = $DeleteArgs<$Schema, 'RatedVideo'>;
+export type RatedVideoDeleteManyArgs = $DeleteManyArgs<$Schema, 'RatedVideo'>;
+export type RatedVideoCountArgs = $CountArgs<$Schema, 'RatedVideo'>;
+export type RatedVideoAggregateArgs = $AggregateArgs<$Schema, 'RatedVideo'>;
+export type RatedVideoGroupByArgs = $GroupByArgs<$Schema, 'RatedVideo'>;
+export type RatedVideoWhereInput = $WhereInput<$Schema, 'RatedVideo'>;
+export type RatedVideoSelect = $SelectInput<$Schema, 'RatedVideo'>;
+export type RatedVideoInclude = $IncludeInput<$Schema, 'RatedVideo'>;
+export type RatedVideoOmit = $OmitInput<$Schema, 'RatedVideo'>;
+export type RatedVideoGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'RatedVideo', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'RatedVideo', Args, Options>;
+export type ImageFindManyArgs = $FindManyArgs<$Schema, 'Image'>;
+export type ImageFindUniqueArgs = $FindUniqueArgs<$Schema, 'Image'>;
+export type ImageFindFirstArgs = $FindFirstArgs<$Schema, 'Image'>;
+export type ImageExistsArgs = $ExistsArgs<$Schema, 'Image'>;
+export type ImageCreateArgs = $CreateArgs<$Schema, 'Image'>;
+export type ImageCreateManyArgs = $CreateManyArgs<$Schema, 'Image'>;
+export type ImageCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'Image'>;
+export type ImageUpdateArgs = $UpdateArgs<$Schema, 'Image'>;
+export type ImageUpdateManyArgs = $UpdateManyArgs<$Schema, 'Image'>;
+export type ImageUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'Image'>;
+export type ImageUpsertArgs = $UpsertArgs<$Schema, 'Image'>;
+export type ImageDeleteArgs = $DeleteArgs<$Schema, 'Image'>;
+export type ImageDeleteManyArgs = $DeleteManyArgs<$Schema, 'Image'>;
+export type ImageCountArgs = $CountArgs<$Schema, 'Image'>;
+export type ImageAggregateArgs = $AggregateArgs<$Schema, 'Image'>;
+export type ImageGroupByArgs = $GroupByArgs<$Schema, 'Image'>;
+export type ImageWhereInput = $WhereInput<$Schema, 'Image'>;
+export type ImageSelect = $SelectInput<$Schema, 'Image'>;
+export type ImageInclude = $IncludeInput<$Schema, 'Image'>;
+export type ImageOmit = $OmitInput<$Schema, 'Image'>;
+export type ImageGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'Image', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'Image', Args, Options>;
+export type GalleryFindManyArgs = $FindManyArgs<$Schema, 'Gallery'>;
+export type GalleryFindUniqueArgs = $FindUniqueArgs<$Schema, 'Gallery'>;
+export type GalleryFindFirstArgs = $FindFirstArgs<$Schema, 'Gallery'>;
+export type GalleryExistsArgs = $ExistsArgs<$Schema, 'Gallery'>;
+export type GalleryCreateArgs = $CreateArgs<$Schema, 'Gallery'>;
+export type GalleryCreateManyArgs = $CreateManyArgs<$Schema, 'Gallery'>;
+export type GalleryCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'Gallery'>;
+export type GalleryUpdateArgs = $UpdateArgs<$Schema, 'Gallery'>;
+export type GalleryUpdateManyArgs = $UpdateManyArgs<$Schema, 'Gallery'>;
+export type GalleryUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'Gallery'>;
+export type GalleryUpsertArgs = $UpsertArgs<$Schema, 'Gallery'>;
+export type GalleryDeleteArgs = $DeleteArgs<$Schema, 'Gallery'>;
+export type GalleryDeleteManyArgs = $DeleteManyArgs<$Schema, 'Gallery'>;
+export type GalleryCountArgs = $CountArgs<$Schema, 'Gallery'>;
+export type GalleryAggregateArgs = $AggregateArgs<$Schema, 'Gallery'>;
+export type GalleryGroupByArgs = $GroupByArgs<$Schema, 'Gallery'>;
+export type GalleryWhereInput = $WhereInput<$Schema, 'Gallery'>;
+export type GallerySelect = $SelectInput<$Schema, 'Gallery'>;
+export type GalleryInclude = $IncludeInput<$Schema, 'Gallery'>;
+export type GalleryOmit = $OmitInput<$Schema, 'Gallery'>;
+export type GalleryGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'Gallery', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'Gallery', Args, Options>;

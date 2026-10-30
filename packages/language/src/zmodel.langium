@@ -66,7 +66,7 @@ ConfigArrayExpr:
 ConfigExpr:
     LiteralExpr | InvocationExpr | ConfigArrayExpr;
 
-type ReferenceTarget = FunctionParam | DataField | EnumField | CollectionPredicateBinding;
+type ReferenceTarget = FunctionParam | DataField | EnumField | CollectionPredicateBinding | Enum;
 
 ThisExpr:
     value='this';
@@ -179,14 +179,21 @@ DataModel:
     '}';
 
 fragment WithClause:
-    'with' mixins+=[TypeDef] (','? mixins+=[TypeDef])*;
+    'with' 
+    (mixins+=[TypeDef] | base=BuiltinType) 
+    (','? mixins+=[TypeDef])*;
 
 fragment ExtendsClause:
     'extends' baseModel=[DataModel];
 
 DataField:
     (comments+=TRIPLE_SLASH_COMMENT)*
-    name=RegularIDWithTypeNames type=DataFieldType (attributes+=DataFieldAttribute)*;
+    name=DataFieldName ('(' params+=DataFieldParam (',' params+=DataFieldParam)* ')')? type=DataFieldType (attributes+=DataFieldAttribute)*;
+
+// Parameters of a parameterized field (only meaningful on `@computed` fields).
+// Shares the shape of FunctionParam/ProcedureParam.
+DataFieldParam:
+    TRIPLE_SLASH_COMMENT* name=RegularID ':' type=FunctionParamType (optional?='?')?;
 
 DataFieldType:
     (type=BuiltinType | unsupported=UnsupportedFieldType | reference=[TypeDeclaration:RegularID]) (array?='[' ']')? (optional?='?')?;
@@ -236,6 +243,11 @@ Procedure:
 RegularID returns string:
     // include keywords that we'd like to work as ID in most places
     ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'view' | 'import' | 'type';
+
+// `this` is only allowed as a field name (for primitive type defs' `this` field); keeping it out of
+// `RegularID` avoids ambiguity with `ThisExpr` in expressions
+DataFieldName returns string:
+    RegularIDWithTypeNames | 'this';
 
 RegularIDWithTypeNames returns string:
     RegularID | 'String' | 'Boolean' | 'Int' | 'BigInt' | 'Float' | 'Decimal' | 'DateTime' | 'Json' | 'Bytes' | 'Null' | 'Object' | 'Any' | 'Void' | 'Unsupported';

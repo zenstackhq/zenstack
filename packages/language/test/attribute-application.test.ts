@@ -366,7 +366,200 @@ describe('Attribute application validation tests', () => {
                     @@allow('all', true)
                 }
                 `,
-                `Field-level policies are not allowed for relation fields`,
+                `Field-level policies are only allowed for implicit many-to-many relation fields`,
+            );
+        });
+
+        it('accepts update field-level policy on many-to-many relation fields', async () => {
+            await loadSchema(`
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id   Int  @id @default(autoincrement())
+                    bars Bar[]
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int    @id @default(autoincrement())
+                    foos Foo[] @allow('update', true)
+                    @@allow('all', true)
+                }
+            `);
+        });
+
+        it('accepts deny update field-level policy on many-to-many relation fields', async () => {
+            await loadSchema(`
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id   Int  @id @default(autoincrement())
+                    bars Bar[]
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int    @id @default(autoincrement())
+                    foos Foo[] @deny('update', false)
+                    @@allow('all', true)
+                }
+            `);
+        });
+
+        it('rejects read field-level policy on many-to-many relation fields', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id   Int  @id @default(autoincrement())
+                    bars Bar[]
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int    @id @default(autoincrement())
+                    foos Foo[] @allow('read', true)
+                    @@allow('all', true)
+                }
+                `,
+                `Only 'update' policies are allowed on many-to-many relation fields`,
+            );
+        });
+
+        it('rejects all field-level policy on many-to-many relation fields', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id   Int  @id @default(autoincrement())
+                    bars Bar[]
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int    @id @default(autoincrement())
+                    foos Foo[] @allow('all', true)
+                    @@allow('all', true)
+                }
+                `,
+                `Only 'update' policies are allowed on many-to-many relation fields`,
+            );
+        });
+
+        it('rejects comma-separated kinds including non-update on many-to-many relation fields', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id   Int  @id @default(autoincrement())
+                    bars Bar[]
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int    @id @default(autoincrement())
+                    foos Foo[] @allow('read, update', true)
+                    @@allow('all', true)
+                }
+                `,
+                `Only 'update' policies are allowed on many-to-many relation fields`,
+            );
+        });
+
+        it('rejects update field-level policy on one-to-many relation fields', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id Int @id @default(autoincrement())
+                    bar Bar @relation(fields: [barId], references: [id])
+                    barId Int
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id   Int    @id @default(autoincrement())
+                    foos Foo[] @allow('update', true)
+                    @@allow('all', true)
+                }
+                `,
+                `Field-level policies are only allowed for implicit many-to-many relation fields`,
+            );
+        });
+
+        it('rejects update field-level policy on one-to-many relation fields when a separate m2m relation exists', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id    Int  @id @default(autoincrement())
+                    bar   Bar  @relation("one-to-many", fields: [barId], references: [id]) @allow('update', true)
+                    barId Int
+                    bars  Bar[] @relation("m2m")
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id   Int  @id @default(autoincrement())
+                    foos Foo[] @relation("m2m")
+                    @@allow('all', true)
+                }
+                `,
+                `Field-level policies are only allowed for implicit many-to-many relation fields`,
+            );
+        });
+
+        it('rejects update field-level policy on a one-to-many field that is not many-to-many when a differently-named relation exists on the opposite model', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id     Int   @id @default(autoincrement())
+                    bars   Bar[] @allow('update', true)
+                    bar2   Bar   @relation("other", fields: [bar2Id], references: [id])
+                    bar2Id Int
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id    Int @id @default(autoincrement())
+                    foo   Foo   @relation(fields: [fooId], references: [id])
+                    fooId Int
+                    foos  Foo[] @relation("other")
+                    @@allow('all', true)
+                }
+                `,
+                `Field-level policies are only allowed for implicit many-to-many relation fields`,
             );
         });
 
@@ -588,6 +781,329 @@ describe('Attribute application validation tests', () => {
         });
     });
 
+    describe('Field-level @uuid attribute', () => {
+        it('does not require a version arg', async () => {
+            await loadSchema(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid
+                }
+                `,
+            );
+        });
+
+        it('accepts supported version args', async () => {
+            await loadSchema(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(4)
+                }
+                `,
+            );
+
+            await loadSchema(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(7)
+                }
+                `,
+            );
+        });
+
+        it('rejects unsupported version args', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(1)
+                }
+                `,
+                /`@uuid` version must be `4` or `7`/,
+            );
+
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(2)
+                }
+                `,
+                /`@uuid` version must be `4` or `7`/,
+            );
+        });
+
+        it('resolves the version arg by name regardless of argument order', async () => {
+            await loadSchema(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(message: 'invalid uuid', version: 7)
+                }
+                `,
+            );
+
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(message: 'invalid uuid', version: 1)
+                }
+                `,
+                /`@uuid` version must be `4` or `7`/,
+            );
+        });
+
+        it('does not treat a message-only arg as a version', async () => {
+            await loadSchema(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(message: 'invalid uuid')
+                }
+                `,
+            );
+        });
+    });
+
+    describe('Native type mapping attributes', () => {
+        describe('sqlite', () => {
+            it('rejects when any native type mapping attribute is used', async () => {
+                // postgresql attribute
+                await loadSchemaWithError(
+                    `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @db.Uuid
+                }
+                `,
+                    `attribute "@db.Uuid" cannot be used with the "sqlite" provider`,
+                );
+
+                // mysql attribute
+                await loadSchemaWithError(
+                    `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id Int @id @db.TinyInt
+                }
+                `,
+                    `attribute "@db.TinyInt" cannot be used with the "sqlite" provider`,
+                );
+
+                // postgres/mysql attribute
+                await loadSchemaWithError(
+                    `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @db.Text
+                }
+                `,
+                    `attribute "@db.Text" cannot be used with the "sqlite" provider`,
+                );
+            });
+        });
+
+        describe('postgresql', () => {
+            it('allows all postgresql attributes', async () => {
+                await loadSchema(
+                    `
+                datasource db {
+                    provider = 'postgresql'
+                    url      = env('DATABASE_URL')
+                }
+
+                model User {
+                    id                     Int      @id @default(autoincrement())
+
+                    text                   String   @db.Text
+                    char                   String   @db.Char(10)
+                    varchar                String   @db.VarChar(255)
+                    bitString              String   @db.Bit(8)
+                    varBit                 String   @db.VarBit
+                    uuid                   String   @db.Uuid
+                    xml                    String   @db.Xml
+                    inet                   String   @db.Inet
+                    citext                 String   @db.Citext
+
+                    boolean                Boolean  @db.Boolean
+
+                    int                    Int      @db.Int
+                    integer                Int      @db.Integer
+                    smallInt               Int      @db.SmallInt
+                    oid                    Int      @db.Oid
+
+                    bigInt                 BigInt   @db.BigInt
+
+                    doublePrecisionFloat   Float    @db.DoublePrecision
+                    doublePrecisionDecimal Decimal  @db.DoublePrecision
+
+                    realFloat              Float    @db.Real
+                    realDecimal            Decimal  @db.Real
+
+                    decimalFloat           Float    @db.Decimal(10, 2)
+                    decimalDecimal         Decimal  @db.Decimal(10, 2)
+
+                    moneyFloat             Float    @db.Money
+                    moneyDecimal           Decimal  @db.Money
+
+                    timestamp              DateTime @db.Timestamp(6)
+                    timestamptz            DateTime @db.Timestamptz(6)
+                    date                   DateTime @db.Date
+                    time                   DateTime @db.Time(6)
+                    timetz                 DateTime @db.Timetz(6)
+
+                    json                   Json     @db.Json
+                    jsonb                  Json     @db.JsonB
+
+                    bytea                  Bytes    @db.ByteA
+                }
+                `,
+                );
+            });
+
+            it('rejects mysql attributes', async () => {
+                await loadSchemaWithError(
+                    `
+                datasource db {
+                    provider = 'postgresql'
+                    url      = env('DATABASE_URL')
+                }
+
+                model User {
+                    id Int @id @db.TinyInt
+                }
+                `,
+                    `attribute "@db.TinyInt" cannot be used with the "postgresql" provider`,
+                );
+            });
+        });
+
+        describe('mysql', () => {
+            it('allows all mysql attributes', async () => {
+                await loadSchema(
+                    `
+                datasource db {
+                    provider = 'mysql'
+                    url      = env('DATABASE_URL')
+                }
+
+                model User {
+                    id                Int      @id @default(autoincrement())
+
+                    text              String   @db.Text
+                    char              String   @db.Char(10)
+                    varchar           String   @db.VarChar(255)
+                    tinyText          String   @db.TinyText
+                    mediumText        String   @db.MediumText
+                    longText          String   @db.LongText
+
+                    bitString         String   @db.Bit(8)
+                    bitBool           Boolean  @db.Bit(1)
+                    bitBytes          Bytes    @db.Bit(64)
+
+                    tinyIntBool       Boolean  @db.TinyInt(1)
+
+                    int               Int      @db.Int
+                    smallInt          Int      @db.SmallInt
+                    mediumInt         Int      @db.MediumInt
+                    tinyInt           Int      @db.TinyInt
+                    year              Int      @db.Year
+                    unsignedInt       Int      @db.UnsignedInt
+                    unsignedSmallInt  Int      @db.UnsignedSmallInt
+                    unsignedMediumInt Int      @db.UnsignedMediumInt
+                    unsignedTinyInt   Int      @db.UnsignedTinyInt
+
+                    bigInt            BigInt   @db.BigInt
+                    unsignedBigInt    BigInt   @db.UnsignedBigInt
+
+                    float             Float    @db.Float
+                    double            Float    @db.Double
+                    decimalFloat      Float    @db.Decimal(10, 2)
+                    decimal           Decimal  @db.Decimal(10, 2)
+
+                    timestamp         DateTime @db.Timestamp(6)
+                    datetime          DateTime @db.DateTime(6)
+                    date              DateTime @db.Date
+                    time              DateTime @db.Time(6)
+
+                    json              Json     @db.Json
+
+                    longBlob          Bytes    @db.LongBlob
+                    blob              Bytes    @db.Blob
+                    mediumBlob        Bytes    @db.MediumBlob
+                    tinyBlob          Bytes    @db.TinyBlob
+                    binary            Bytes    @db.Binary(16)
+                    varBinary         Bytes    @db.VarBinary(255)
+                }
+                `,
+                );
+            });
+
+            it('rejects postgresql attributes', async () => {
+                await loadSchemaWithError(
+                    `
+                datasource db {
+                    provider = 'mysql'
+                    url      = env('DATABASE_URL')
+                }
+
+                model User {
+                    id String @id @db.Uuid
+                }
+                `,
+                    `attribute "@db.Uuid" cannot be used with the "mysql" provider`,
+                );
+            });
+        });
+    });
+
     it('requires relation and fk to have consistent optionality', async () => {
         await loadSchemaWithError(
             `
@@ -611,5 +1127,61 @@ describe('Attribute application validation tests', () => {
             `,
             /relation "bar" is not optional/,
         );
+    });
+
+    describe('@@strict attribute', () => {
+        it('accepts type defs', async () => {
+            await loadSchema(`
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                type Profile {
+                    name String
+                    
+                    @@strict
+                }
+            `);
+        });
+
+        it('rejects non-type defs', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id   String @id
+                    name String
+                    
+                    @@strict
+                }
+            `,
+                /attribute "@@strict" can only be used on type definitions/,
+            );
+
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id   String @id
+                }
+                
+                enum Enum {
+                    TEST
+                    
+                    @@strict
+                }
+            `,
+                /attribute "@@strict" can only be used on type definitions/,
+            );
+        });
     });
 });

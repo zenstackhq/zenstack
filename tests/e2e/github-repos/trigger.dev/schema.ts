@@ -1028,7 +1028,7 @@ export class SchemaType implements SchemaDef {
                     name: "workerGroups",
                     type: "WorkerInstanceGroup",
                     array: true,
-                    relation: { opposite: "defaultForProjects" }
+                    relation: { opposite: "project" }
                 },
                 workers: {
                     name: "workers",

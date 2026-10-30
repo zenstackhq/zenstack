@@ -5,131 +5,172 @@
 
 /* eslint-disable */
 
-import { type SchemaType as $Schema } from "./schema";
-import type { FindManyArgs as $FindManyArgs, FindUniqueArgs as $FindUniqueArgs, FindFirstArgs as $FindFirstArgs, ExistsArgs as $ExistsArgs, CreateArgs as $CreateArgs, CreateManyArgs as $CreateManyArgs, CreateManyAndReturnArgs as $CreateManyAndReturnArgs, UpdateArgs as $UpdateArgs, UpdateManyArgs as $UpdateManyArgs, UpdateManyAndReturnArgs as $UpdateManyAndReturnArgs, UpsertArgs as $UpsertArgs, DeleteArgs as $DeleteArgs, DeleteManyArgs as $DeleteManyArgs, CountArgs as $CountArgs, AggregateArgs as $AggregateArgs, GroupByArgs as $GroupByArgs, WhereInput as $WhereInput, SelectInput as $SelectInput, IncludeInput as $IncludeInput, OmitInput as $OmitInput, UncheckedCreateInput as $UncheckedCreateInput, CheckedCreateInput as $CheckedCreateInput, UncheckedUpdateInput as $UncheckedUpdateInput, CheckedUpdateInput as $CheckedUpdateInput, QueryOptions as $QueryOptions } from "@zenstackhq/orm";
-import type { SimplifiedPlainResult as $Result, SelectIncludeOmit as $SelectIncludeOmit } from "@zenstackhq/orm";
-export type UserFindManyArgs = $FindManyArgs<$Schema, "User">;
-export type UserFindUniqueArgs = $FindUniqueArgs<$Schema, "User">;
-export type UserFindFirstArgs = $FindFirstArgs<$Schema, "User">;
-export type UserExistsArgs = $ExistsArgs<$Schema, "User">;
-export type UserCreateArgs = $CreateArgs<$Schema, "User">;
-export type UserCreateManyArgs = $CreateManyArgs<$Schema, "User">;
-export type UserCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "User">;
-export type UserUpdateArgs = $UpdateArgs<$Schema, "User">;
-export type UserUpdateManyArgs = $UpdateManyArgs<$Schema, "User">;
-export type UserUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "User">;
-export type UserUpsertArgs = $UpsertArgs<$Schema, "User">;
-export type UserDeleteArgs = $DeleteArgs<$Schema, "User">;
-export type UserDeleteManyArgs = $DeleteManyArgs<$Schema, "User">;
-export type UserCountArgs = $CountArgs<$Schema, "User">;
-export type UserAggregateArgs = $AggregateArgs<$Schema, "User">;
-export type UserGroupByArgs = $GroupByArgs<$Schema, "User">;
-export type UserWhereInput = $WhereInput<$Schema, "User">;
-export type UserSelect = $SelectInput<$Schema, "User">;
-export type UserInclude = $IncludeInput<$Schema, "User">;
-export type UserOmit = $OmitInput<$Schema, "User">;
-export type UserUncheckedCreateInput = $UncheckedCreateInput<$Schema, "User">;
-export type UserCheckedCreateInput = $CheckedCreateInput<$Schema, "User">;
-export type UserUncheckedUpdateInput = $UncheckedUpdateInput<$Schema, "User">;
-export type UserCheckedUpdateInput = $CheckedUpdateInput<$Schema, "User">;
-export type UserGetPayload<Args extends $SelectIncludeOmit<$Schema, "User", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "User", Args, Options>;
-export type PostFindManyArgs = $FindManyArgs<$Schema, "Post">;
-export type PostFindUniqueArgs = $FindUniqueArgs<$Schema, "Post">;
-export type PostFindFirstArgs = $FindFirstArgs<$Schema, "Post">;
-export type PostExistsArgs = $ExistsArgs<$Schema, "Post">;
-export type PostCreateArgs = $CreateArgs<$Schema, "Post">;
-export type PostCreateManyArgs = $CreateManyArgs<$Schema, "Post">;
-export type PostCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "Post">;
-export type PostUpdateArgs = $UpdateArgs<$Schema, "Post">;
-export type PostUpdateManyArgs = $UpdateManyArgs<$Schema, "Post">;
-export type PostUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "Post">;
-export type PostUpsertArgs = $UpsertArgs<$Schema, "Post">;
-export type PostDeleteArgs = $DeleteArgs<$Schema, "Post">;
-export type PostDeleteManyArgs = $DeleteManyArgs<$Schema, "Post">;
-export type PostCountArgs = $CountArgs<$Schema, "Post">;
-export type PostAggregateArgs = $AggregateArgs<$Schema, "Post">;
-export type PostGroupByArgs = $GroupByArgs<$Schema, "Post">;
-export type PostWhereInput = $WhereInput<$Schema, "Post">;
-export type PostSelect = $SelectInput<$Schema, "Post">;
-export type PostInclude = $IncludeInput<$Schema, "Post">;
-export type PostOmit = $OmitInput<$Schema, "Post">;
-export type PostUncheckedCreateInput = $UncheckedCreateInput<$Schema, "Post">;
-export type PostCheckedCreateInput = $CheckedCreateInput<$Schema, "Post">;
-export type PostUncheckedUpdateInput = $UncheckedUpdateInput<$Schema, "Post">;
-export type PostCheckedUpdateInput = $CheckedUpdateInput<$Schema, "Post">;
-export type PostGetPayload<Args extends $SelectIncludeOmit<$Schema, "Post", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "Post", Args, Options>;
-export type CommentFindManyArgs = $FindManyArgs<$Schema, "Comment">;
-export type CommentFindUniqueArgs = $FindUniqueArgs<$Schema, "Comment">;
-export type CommentFindFirstArgs = $FindFirstArgs<$Schema, "Comment">;
-export type CommentExistsArgs = $ExistsArgs<$Schema, "Comment">;
-export type CommentCreateArgs = $CreateArgs<$Schema, "Comment">;
-export type CommentCreateManyArgs = $CreateManyArgs<$Schema, "Comment">;
-export type CommentCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "Comment">;
-export type CommentUpdateArgs = $UpdateArgs<$Schema, "Comment">;
-export type CommentUpdateManyArgs = $UpdateManyArgs<$Schema, "Comment">;
-export type CommentUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "Comment">;
-export type CommentUpsertArgs = $UpsertArgs<$Schema, "Comment">;
-export type CommentDeleteArgs = $DeleteArgs<$Schema, "Comment">;
-export type CommentDeleteManyArgs = $DeleteManyArgs<$Schema, "Comment">;
-export type CommentCountArgs = $CountArgs<$Schema, "Comment">;
-export type CommentAggregateArgs = $AggregateArgs<$Schema, "Comment">;
-export type CommentGroupByArgs = $GroupByArgs<$Schema, "Comment">;
-export type CommentWhereInput = $WhereInput<$Schema, "Comment">;
-export type CommentSelect = $SelectInput<$Schema, "Comment">;
-export type CommentInclude = $IncludeInput<$Schema, "Comment">;
-export type CommentOmit = $OmitInput<$Schema, "Comment">;
-export type CommentUncheckedCreateInput = $UncheckedCreateInput<$Schema, "Comment">;
-export type CommentCheckedCreateInput = $CheckedCreateInput<$Schema, "Comment">;
-export type CommentUncheckedUpdateInput = $UncheckedUpdateInput<$Schema, "Comment">;
-export type CommentCheckedUpdateInput = $CheckedUpdateInput<$Schema, "Comment">;
-export type CommentGetPayload<Args extends $SelectIncludeOmit<$Schema, "Comment", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "Comment", Args, Options>;
-export type ProfileFindManyArgs = $FindManyArgs<$Schema, "Profile">;
-export type ProfileFindUniqueArgs = $FindUniqueArgs<$Schema, "Profile">;
-export type ProfileFindFirstArgs = $FindFirstArgs<$Schema, "Profile">;
-export type ProfileExistsArgs = $ExistsArgs<$Schema, "Profile">;
-export type ProfileCreateArgs = $CreateArgs<$Schema, "Profile">;
-export type ProfileCreateManyArgs = $CreateManyArgs<$Schema, "Profile">;
-export type ProfileCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "Profile">;
-export type ProfileUpdateArgs = $UpdateArgs<$Schema, "Profile">;
-export type ProfileUpdateManyArgs = $UpdateManyArgs<$Schema, "Profile">;
-export type ProfileUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "Profile">;
-export type ProfileUpsertArgs = $UpsertArgs<$Schema, "Profile">;
-export type ProfileDeleteArgs = $DeleteArgs<$Schema, "Profile">;
-export type ProfileDeleteManyArgs = $DeleteManyArgs<$Schema, "Profile">;
-export type ProfileCountArgs = $CountArgs<$Schema, "Profile">;
-export type ProfileAggregateArgs = $AggregateArgs<$Schema, "Profile">;
-export type ProfileGroupByArgs = $GroupByArgs<$Schema, "Profile">;
-export type ProfileWhereInput = $WhereInput<$Schema, "Profile">;
-export type ProfileSelect = $SelectInput<$Schema, "Profile">;
-export type ProfileInclude = $IncludeInput<$Schema, "Profile">;
-export type ProfileOmit = $OmitInput<$Schema, "Profile">;
-export type ProfileUncheckedCreateInput = $UncheckedCreateInput<$Schema, "Profile">;
-export type ProfileCheckedCreateInput = $CheckedCreateInput<$Schema, "Profile">;
-export type ProfileUncheckedUpdateInput = $UncheckedUpdateInput<$Schema, "Profile">;
-export type ProfileCheckedUpdateInput = $CheckedUpdateInput<$Schema, "Profile">;
-export type ProfileGetPayload<Args extends $SelectIncludeOmit<$Schema, "Profile", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "Profile", Args, Options>;
-export type PlainFindManyArgs = $FindManyArgs<$Schema, "Plain">;
-export type PlainFindUniqueArgs = $FindUniqueArgs<$Schema, "Plain">;
-export type PlainFindFirstArgs = $FindFirstArgs<$Schema, "Plain">;
-export type PlainExistsArgs = $ExistsArgs<$Schema, "Plain">;
-export type PlainCreateArgs = $CreateArgs<$Schema, "Plain">;
-export type PlainCreateManyArgs = $CreateManyArgs<$Schema, "Plain">;
-export type PlainCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "Plain">;
-export type PlainUpdateArgs = $UpdateArgs<$Schema, "Plain">;
-export type PlainUpdateManyArgs = $UpdateManyArgs<$Schema, "Plain">;
-export type PlainUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "Plain">;
-export type PlainUpsertArgs = $UpsertArgs<$Schema, "Plain">;
-export type PlainDeleteArgs = $DeleteArgs<$Schema, "Plain">;
-export type PlainDeleteManyArgs = $DeleteManyArgs<$Schema, "Plain">;
-export type PlainCountArgs = $CountArgs<$Schema, "Plain">;
-export type PlainAggregateArgs = $AggregateArgs<$Schema, "Plain">;
-export type PlainGroupByArgs = $GroupByArgs<$Schema, "Plain">;
-export type PlainWhereInput = $WhereInput<$Schema, "Plain">;
-export type PlainSelect = $SelectInput<$Schema, "Plain">;
-export type PlainInclude = $IncludeInput<$Schema, "Plain">;
-export type PlainOmit = $OmitInput<$Schema, "Plain">;
-export type PlainUncheckedCreateInput = $UncheckedCreateInput<$Schema, "Plain">;
-export type PlainCheckedCreateInput = $CheckedCreateInput<$Schema, "Plain">;
-export type PlainUncheckedUpdateInput = $UncheckedUpdateInput<$Schema, "Plain">;
-export type PlainCheckedUpdateInput = $CheckedUpdateInput<$Schema, "Plain">;
-export type PlainGetPayload<Args extends $SelectIncludeOmit<$Schema, "Plain", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "Plain", Args, Options>;
+import { type SchemaType as $Schema } from './schema';
+import type {
+    FindManyArgs as $FindManyArgs,
+    FindUniqueArgs as $FindUniqueArgs,
+    FindFirstArgs as $FindFirstArgs,
+    ExistsArgs as $ExistsArgs,
+    CreateArgs as $CreateArgs,
+    CreateManyArgs as $CreateManyArgs,
+    CreateManyAndReturnArgs as $CreateManyAndReturnArgs,
+    UpdateArgs as $UpdateArgs,
+    UpdateManyArgs as $UpdateManyArgs,
+    UpdateManyAndReturnArgs as $UpdateManyAndReturnArgs,
+    UpsertArgs as $UpsertArgs,
+    DeleteArgs as $DeleteArgs,
+    DeleteManyArgs as $DeleteManyArgs,
+    CountArgs as $CountArgs,
+    AggregateArgs as $AggregateArgs,
+    GroupByArgs as $GroupByArgs,
+    WhereInput as $WhereInput,
+    SelectInput as $SelectInput,
+    IncludeInput as $IncludeInput,
+    OmitInput as $OmitInput,
+    UncheckedCreateInput as $UncheckedCreateInput,
+    CheckedCreateInput as $CheckedCreateInput,
+    UncheckedUpdateInput as $UncheckedUpdateInput,
+    CheckedUpdateInput as $CheckedUpdateInput,
+    QueryOptions as $QueryOptions,
+} from '@zenstackhq/orm';
+import type { SimplifiedPlainResult as $Result, SelectIncludeOmit as $SelectIncludeOmit } from '@zenstackhq/orm';
+export type UserFindManyArgs = $FindManyArgs<$Schema, 'User'>;
+export type UserFindUniqueArgs = $FindUniqueArgs<$Schema, 'User'>;
+export type UserFindFirstArgs = $FindFirstArgs<$Schema, 'User'>;
+export type UserExistsArgs = $ExistsArgs<$Schema, 'User'>;
+export type UserCreateArgs = $CreateArgs<$Schema, 'User'>;
+export type UserCreateManyArgs = $CreateManyArgs<$Schema, 'User'>;
+export type UserCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'User'>;
+export type UserUpdateArgs = $UpdateArgs<$Schema, 'User'>;
+export type UserUpdateManyArgs = $UpdateManyArgs<$Schema, 'User'>;
+export type UserUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'User'>;
+export type UserUpsertArgs = $UpsertArgs<$Schema, 'User'>;
+export type UserDeleteArgs = $DeleteArgs<$Schema, 'User'>;
+export type UserDeleteManyArgs = $DeleteManyArgs<$Schema, 'User'>;
+export type UserCountArgs = $CountArgs<$Schema, 'User'>;
+export type UserAggregateArgs = $AggregateArgs<$Schema, 'User'>;
+export type UserGroupByArgs = $GroupByArgs<$Schema, 'User'>;
+export type UserWhereInput = $WhereInput<$Schema, 'User'>;
+export type UserSelect = $SelectInput<$Schema, 'User'>;
+export type UserInclude = $IncludeInput<$Schema, 'User'>;
+export type UserOmit = $OmitInput<$Schema, 'User'>;
+export type UserUncheckedCreateInput = $UncheckedCreateInput<$Schema, 'User'>;
+export type UserCheckedCreateInput = $CheckedCreateInput<$Schema, 'User'>;
+export type UserUncheckedUpdateInput = $UncheckedUpdateInput<$Schema, 'User'>;
+export type UserCheckedUpdateInput = $CheckedUpdateInput<$Schema, 'User'>;
+export type UserGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'User', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'User', Args, Options>;
+export type PostFindManyArgs = $FindManyArgs<$Schema, 'Post'>;
+export type PostFindUniqueArgs = $FindUniqueArgs<$Schema, 'Post'>;
+export type PostFindFirstArgs = $FindFirstArgs<$Schema, 'Post'>;
+export type PostExistsArgs = $ExistsArgs<$Schema, 'Post'>;
+export type PostCreateArgs = $CreateArgs<$Schema, 'Post'>;
+export type PostCreateManyArgs = $CreateManyArgs<$Schema, 'Post'>;
+export type PostCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'Post'>;
+export type PostUpdateArgs = $UpdateArgs<$Schema, 'Post'>;
+export type PostUpdateManyArgs = $UpdateManyArgs<$Schema, 'Post'>;
+export type PostUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'Post'>;
+export type PostUpsertArgs = $UpsertArgs<$Schema, 'Post'>;
+export type PostDeleteArgs = $DeleteArgs<$Schema, 'Post'>;
+export type PostDeleteManyArgs = $DeleteManyArgs<$Schema, 'Post'>;
+export type PostCountArgs = $CountArgs<$Schema, 'Post'>;
+export type PostAggregateArgs = $AggregateArgs<$Schema, 'Post'>;
+export type PostGroupByArgs = $GroupByArgs<$Schema, 'Post'>;
+export type PostWhereInput = $WhereInput<$Schema, 'Post'>;
+export type PostSelect = $SelectInput<$Schema, 'Post'>;
+export type PostInclude = $IncludeInput<$Schema, 'Post'>;
+export type PostOmit = $OmitInput<$Schema, 'Post'>;
+export type PostUncheckedCreateInput = $UncheckedCreateInput<$Schema, 'Post'>;
+export type PostCheckedCreateInput = $CheckedCreateInput<$Schema, 'Post'>;
+export type PostUncheckedUpdateInput = $UncheckedUpdateInput<$Schema, 'Post'>;
+export type PostCheckedUpdateInput = $CheckedUpdateInput<$Schema, 'Post'>;
+export type PostGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'Post', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'Post', Args, Options>;
+export type CommentFindManyArgs = $FindManyArgs<$Schema, 'Comment'>;
+export type CommentFindUniqueArgs = $FindUniqueArgs<$Schema, 'Comment'>;
+export type CommentFindFirstArgs = $FindFirstArgs<$Schema, 'Comment'>;
+export type CommentExistsArgs = $ExistsArgs<$Schema, 'Comment'>;
+export type CommentCreateArgs = $CreateArgs<$Schema, 'Comment'>;
+export type CommentCreateManyArgs = $CreateManyArgs<$Schema, 'Comment'>;
+export type CommentCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'Comment'>;
+export type CommentUpdateArgs = $UpdateArgs<$Schema, 'Comment'>;
+export type CommentUpdateManyArgs = $UpdateManyArgs<$Schema, 'Comment'>;
+export type CommentUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'Comment'>;
+export type CommentUpsertArgs = $UpsertArgs<$Schema, 'Comment'>;
+export type CommentDeleteArgs = $DeleteArgs<$Schema, 'Comment'>;
+export type CommentDeleteManyArgs = $DeleteManyArgs<$Schema, 'Comment'>;
+export type CommentCountArgs = $CountArgs<$Schema, 'Comment'>;
+export type CommentAggregateArgs = $AggregateArgs<$Schema, 'Comment'>;
+export type CommentGroupByArgs = $GroupByArgs<$Schema, 'Comment'>;
+export type CommentWhereInput = $WhereInput<$Schema, 'Comment'>;
+export type CommentSelect = $SelectInput<$Schema, 'Comment'>;
+export type CommentInclude = $IncludeInput<$Schema, 'Comment'>;
+export type CommentOmit = $OmitInput<$Schema, 'Comment'>;
+export type CommentUncheckedCreateInput = $UncheckedCreateInput<$Schema, 'Comment'>;
+export type CommentCheckedCreateInput = $CheckedCreateInput<$Schema, 'Comment'>;
+export type CommentUncheckedUpdateInput = $UncheckedUpdateInput<$Schema, 'Comment'>;
+export type CommentCheckedUpdateInput = $CheckedUpdateInput<$Schema, 'Comment'>;
+export type CommentGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'Comment', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'Comment', Args, Options>;
+export type ProfileFindManyArgs = $FindManyArgs<$Schema, 'Profile'>;
+export type ProfileFindUniqueArgs = $FindUniqueArgs<$Schema, 'Profile'>;
+export type ProfileFindFirstArgs = $FindFirstArgs<$Schema, 'Profile'>;
+export type ProfileExistsArgs = $ExistsArgs<$Schema, 'Profile'>;
+export type ProfileCreateArgs = $CreateArgs<$Schema, 'Profile'>;
+export type ProfileCreateManyArgs = $CreateManyArgs<$Schema, 'Profile'>;
+export type ProfileCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'Profile'>;
+export type ProfileUpdateArgs = $UpdateArgs<$Schema, 'Profile'>;
+export type ProfileUpdateManyArgs = $UpdateManyArgs<$Schema, 'Profile'>;
+export type ProfileUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'Profile'>;
+export type ProfileUpsertArgs = $UpsertArgs<$Schema, 'Profile'>;
+export type ProfileDeleteArgs = $DeleteArgs<$Schema, 'Profile'>;
+export type ProfileDeleteManyArgs = $DeleteManyArgs<$Schema, 'Profile'>;
+export type ProfileCountArgs = $CountArgs<$Schema, 'Profile'>;
+export type ProfileAggregateArgs = $AggregateArgs<$Schema, 'Profile'>;
+export type ProfileGroupByArgs = $GroupByArgs<$Schema, 'Profile'>;
+export type ProfileWhereInput = $WhereInput<$Schema, 'Profile'>;
+export type ProfileSelect = $SelectInput<$Schema, 'Profile'>;
+export type ProfileInclude = $IncludeInput<$Schema, 'Profile'>;
+export type ProfileOmit = $OmitInput<$Schema, 'Profile'>;
+export type ProfileUncheckedCreateInput = $UncheckedCreateInput<$Schema, 'Profile'>;
+export type ProfileCheckedCreateInput = $CheckedCreateInput<$Schema, 'Profile'>;
+export type ProfileUncheckedUpdateInput = $UncheckedUpdateInput<$Schema, 'Profile'>;
+export type ProfileCheckedUpdateInput = $CheckedUpdateInput<$Schema, 'Profile'>;
+export type ProfileGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'Profile', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'Profile', Args, Options>;
+export type PlainFindManyArgs = $FindManyArgs<$Schema, 'Plain'>;
+export type PlainFindUniqueArgs = $FindUniqueArgs<$Schema, 'Plain'>;
+export type PlainFindFirstArgs = $FindFirstArgs<$Schema, 'Plain'>;
+export type PlainExistsArgs = $ExistsArgs<$Schema, 'Plain'>;
+export type PlainCreateArgs = $CreateArgs<$Schema, 'Plain'>;
+export type PlainCreateManyArgs = $CreateManyArgs<$Schema, 'Plain'>;
+export type PlainCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'Plain'>;
+export type PlainUpdateArgs = $UpdateArgs<$Schema, 'Plain'>;
+export type PlainUpdateManyArgs = $UpdateManyArgs<$Schema, 'Plain'>;
+export type PlainUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'Plain'>;
+export type PlainUpsertArgs = $UpsertArgs<$Schema, 'Plain'>;
+export type PlainDeleteArgs = $DeleteArgs<$Schema, 'Plain'>;
+export type PlainDeleteManyArgs = $DeleteManyArgs<$Schema, 'Plain'>;
+export type PlainCountArgs = $CountArgs<$Schema, 'Plain'>;
+export type PlainAggregateArgs = $AggregateArgs<$Schema, 'Plain'>;
+export type PlainGroupByArgs = $GroupByArgs<$Schema, 'Plain'>;
+export type PlainWhereInput = $WhereInput<$Schema, 'Plain'>;
+export type PlainSelect = $SelectInput<$Schema, 'Plain'>;
+export type PlainInclude = $IncludeInput<$Schema, 'Plain'>;
+export type PlainOmit = $OmitInput<$Schema, 'Plain'>;
+export type PlainUncheckedCreateInput = $UncheckedCreateInput<$Schema, 'Plain'>;
+export type PlainCheckedCreateInput = $CheckedCreateInput<$Schema, 'Plain'>;
+export type PlainUncheckedUpdateInput = $UncheckedUpdateInput<$Schema, 'Plain'>;
+export type PlainCheckedUpdateInput = $CheckedUpdateInput<$Schema, 'Plain'>;
+export type PlainGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'Plain', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'Plain', Args, Options>;

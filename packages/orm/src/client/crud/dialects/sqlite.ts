@@ -21,6 +21,8 @@ import {
     getDelegateDescendantModels,
     getManyToManyRelation,
     getRelationForeignKeyFieldPairs,
+    isPrimitiveTypeDef,
+    isTypeDef,
     requireField,
     requireIdFields,
     requireModel,
@@ -81,7 +83,17 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
             invariant(false, 'should not reach here: AnyNull is not a valid input value');
         }
 
-        if (type === 'Json' || (this.schema.typeDefs && type in this.schema.typeDefs)) {
+        if (isTypeDef(this.schema, type)) {
+            if (isPrimitiveTypeDef(this.schema, type)) {
+                // a primitive typedef is stored as its base type
+                type = this.schema.typeDefs![type]!.base!;
+            } else {
+                // JSON data should be stringified
+                return JSON.stringify(value);
+            }
+        }
+
+        if (type === 'Json') {
             // JSON data should be stringified
             return JSON.stringify(value);
         }
@@ -99,7 +111,7 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
                           ? new Date(value).toISOString()
                           : value;
                 case 'Decimal':
-                    return (value as Decimal).toString();
+                    return value !== null ? value.toString() : value;
                 case 'Bytes':
                     return Buffer.from(value as Uint8Array);
                 default:
@@ -108,10 +120,13 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
         }
     }
 
-    override transformOutput(value: unknown, type: BuiltinType, array: boolean) {
+    override transformOutput(value: unknown, type: BuiltinType, array: boolean): unknown {
         if (value === null || value === undefined) {
             return value;
         } else if (this.schema.typeDefs && type in this.schema.typeDefs) {
+            if (isPrimitiveTypeDef(this.schema, type)) {
+                return this.transformOutput(value, this.schema.typeDefs[type]!.base!, array);
+            }
             // typed JSON field
             return this.transformOutputJson(value);
         } else {
@@ -266,6 +281,8 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
                 objArgs.push(
                     ...Object.entries(relationModelDef.fields)
                         .filter(([, value]) => !value.relation)
+                        // a parameterized computed field is never auto-returned (it needs args)
+                        .filter(([, value]) => !(value.computed && value.params))
                         .filter(([name]) => !this.shouldOmitField(omit, relationModel, name))
                         .map(([field]) => [sql.lit(field), this.fieldRef(relationModel, field, subQueryName, false)])
                         .flatMap((v) => v),
@@ -295,6 +312,20 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
                                         value,
                                     );
                                     return [sql.lit(field), subJson];
+                                } else if (fieldDef.computed && fieldDef.params) {
+                                    // parameterized computed field on the relation: inline the
+                                    // computer with its query-time args (correlates to the
+                                    // relation's real columns, which are materialized)
+                                    return [
+                                        sql.lit(field),
+                                        this.fieldRef(
+                                            relationModel,
+                                            field,
+                                            subQueryName,
+                                            true,
+                                            (value as any).args,
+                                        ) as ArgsType,
+                                    ];
                                 } else {
                                     return [
                                         sql.lit(field),
@@ -325,6 +356,21 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
                                     value,
                                 );
                                 return [sql.lit(field), subJson];
+                            }
+                            const fieldDef = requireField(this.schema, relationModel, field);
+                            if (fieldDef.computed && fieldDef.params) {
+                                // parameterized computed field included on the relation: inline
+                                // the computer with its query-time args
+                                return [
+                                    sql.lit(field),
+                                    this.fieldRef(
+                                        relationModel,
+                                        field,
+                                        subQueryName,
+                                        true,
+                                        (value as any).args,
+                                    ) as ArgsType,
+                                ];
                             }
                             const subJson = this.buildRelationJSON(
                                 relationModel,

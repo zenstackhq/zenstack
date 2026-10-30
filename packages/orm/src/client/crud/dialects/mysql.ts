@@ -14,16 +14,11 @@ import {
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
 import type { NullsOrder, SortOrder } from '../../crud-types';
 import { createInvalidInputError, createNotSupportedError } from '../../errors';
-import type { ClientOptions } from '../../options';
-import { isTypeDef } from '../../query-utils';
+import { isPrimitiveTypeDef, isTypeDef } from '../../query-utils';
 import type { FuzzyFilterOptions } from './base-dialect';
 import { LateralJoinDialectBase } from './lateral-join-dialect-base';
 
 export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDialectBase<Schema> {
-    constructor(schema: Schema, options: ClientOptions<Schema>) {
-        super(schema, options);
-    }
-
     override get provider() {
         return 'mysql' as const;
     }
@@ -77,15 +72,21 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
         }
 
         if (isTypeDef(this.schema, type)) {
-            // type-def fields (regardless array or scalar) are stored as scalar `Json` and
-            // their input values need to be stringified if not already (i.e., provided in
-            // default values)
-            if (typeof value !== 'string') {
-                return this.transformInput(value, 'Json', forArrayField);
+            if (isPrimitiveTypeDef(this.schema, type)) {
+                type = this.schema['typeDefs']![type]!['base']!;
             } else {
-                return value;
+                // type-def fields (regardless array or scalar) are stored as scalar `Json` and
+                // their input values need to be stringified if not already (i.e., provided in
+                // default values)
+                if (typeof value !== 'string') {
+                    return this.transformInput(value, 'Json', forArrayField);
+                } else {
+                    return value;
+                }
             }
-        } else if (Array.isArray(value)) {
+        }
+
+        if (Array.isArray(value)) {
             if (type === 'Json') {
                 // type-def arrays reach here
                 return JSON.stringify(value);
@@ -119,9 +120,13 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
         }
     }
 
-    override transformOutput(value: unknown, type: BuiltinType, array: boolean) {
+    override transformOutput(value: unknown, type: BuiltinType, array: boolean): unknown {
         if (value === null || value === undefined) {
             return value;
+        }
+
+        if (isPrimitiveTypeDef(this.schema, type)) {
+            return this.transformOutput(value, this.schema.typeDefs![type]!.base!, array);
         }
 
         switch (type) {
@@ -184,7 +189,17 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
     }
 
     private transformOutputBytes(value: unknown) {
-        return Buffer.isBuffer(value) ? Uint8Array.from(value) : value;
+        if (Buffer.isBuffer(value)) {
+            return Uint8Array.from(value);
+        }
+        // MySQL encodes binary values embedded in JSON as `base64:type<N>:<data>`
+        if (typeof value === 'string') {
+            const match = /^base64:type\d+:(.*)$/s.exec(value);
+            if (match) {
+                return Uint8Array.from(Buffer.from(match[1]!, 'base64'));
+            }
+        }
+        return value;
     }
 
     // #endregion

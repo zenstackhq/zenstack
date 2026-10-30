@@ -20,11 +20,27 @@ export function getVersion() {
 export async function checkNewVersion() {
     const currVersion = getVersion();
     let latestVersion: string;
+    // race against a ref'd, always-settling timer: if the fetch's connection dies in a
+    // way that strands its promise (leaving no active handle), the pending `await` would
+    // otherwise drain the event loop and silently exit the process with code 0 mid-command;
+    // the timer both keeps the loop alive and guarantees this await settles
+    let timer: NodeJS.Timeout | undefined;
     try {
-        latestVersion = await getLatestVersion();
+        const fetchPromise = getLatestVersion();
+        // if the timer wins the race, a later settlement of the fetch must not surface
+        // as an unhandled rejection
+        fetchPromise.catch(() => {});
+        latestVersion = await Promise.race([
+            fetchPromise,
+            new Promise<never>((_, reject) => {
+                timer = setTimeout(() => reject(new Error('version check timed out')), CHECK_VERSION_TIMEOUT + 1000);
+            }),
+        ]);
     } catch {
         // noop
         return;
+    } finally {
+        clearTimeout(timer);
     }
 
     if (latestVersion && currVersion && semver.gt(latestVersion, currVersion)) {

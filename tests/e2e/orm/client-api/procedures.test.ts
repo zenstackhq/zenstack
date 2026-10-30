@@ -64,6 +64,39 @@ describe('Procedures tests', () => {
                         return createdUsers;
                     });
                 },
+
+                updateProfile: async ({ client, args: { userId, profile } }) => {
+                    await client.user.update({
+                        data: {
+                            profile,
+                        },
+
+                        where: {
+                            id: userId,
+                        },
+                    });
+                },
+
+                getAge: async ({ client, args: { id } }) => {
+                    const user = await client.$procs.getUser({
+                        args: {
+                            id,
+                        },
+                    });
+                    return user.age;
+                },
+
+                setAge: async ({ client, args: { id, age } }) => {
+                    return await client.user.update({
+                        data: {
+                            age,
+                        },
+
+                        where: {
+                            id,
+                        },
+                    });
+                },
             },
         });
     });
@@ -213,5 +246,53 @@ describe('Procedures tests', () => {
         await client.$procs.signUp({ args: { name: 'Alice' } });
         await expect(client.$procs.signUp({ args: { name: 'Alice' } })).rejects.toThrow();
         await expect(client.user.count()).resolves.toBe(1);
+    });
+
+    it('respects strict json', async () => {
+        const user = await client.$procs.signUp({ args: { name: 'Alice' } });
+        await expect(
+            client.$procs.updateProfile({
+                args: {
+                    userId: user.id,
+                    profile: {
+                        bio: 'Programmer',
+                        // @ts-expect-error
+                        unknown: true,
+                    },
+                },
+            }),
+        ).rejects.toThrow(/Unrecognized key: "unknown"/);
+    });
+
+    it('supports primitive type defs', async () => {
+        const user = await client.$procs.signUp({ args: { name: 'Alice' } });
+        await expect(
+            client.$procs.setAge({
+                args: {
+                    id: user.id,
+                    age: 18,
+                },
+            }),
+        ).resolves.toMatchObject({
+            id: user.id,
+            age: 18,
+        });
+
+        await expect(
+            client.$procs.getAge({
+                args: {
+                    id: user.id,
+                },
+            }),
+        ).resolves.toBe(18);
+
+        await expect(
+            client.$procs.setAge({
+                args: {
+                    id: user.id,
+                    age: -1,
+                },
+            }),
+        ).rejects.toThrow(/Validation error: Too small/);
     });
 });

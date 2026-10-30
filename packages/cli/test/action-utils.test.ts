@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { generateTempPrismaSchema } from '../src/actions/action-utils';
+import { generateTempPrismaSchema, isPackageInstalled, loadPackage } from '../src/actions/action-utils';
 import { createProject } from './utils';
 
 const model = `
@@ -48,5 +48,17 @@ describe('generateTempPrismaSchema', () => {
                 }
             }
         }
+    });
+});
+
+describe('loadPackage and isPackageInstalled', () => {
+    it('detects installed packages', () => {
+        expect(isPackageInstalled('better-sqlite3')).toBe(true);
+        expect(isPackageInstalled('non-existent-pkg-999')).toBe(false);
+    });
+
+    it('loads installed package successfully', async () => {
+        const mod = await loadPackage('better-sqlite3');
+        expect(mod).toBeDefined();
     });
 });

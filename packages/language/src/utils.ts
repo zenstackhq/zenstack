@@ -7,6 +7,7 @@ import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME, type ExpressionContext } from 
 import {
     InternalAttribute,
     isArrayExpr,
+    isAttribute,
     isBinaryExpr,
     isConfigArrayExpr,
     isDataField,
@@ -18,6 +19,7 @@ import {
     isLiteralExpr,
     isMemberAccessExpr,
     isModel,
+    isNumberLiteral,
     isObjectExpr,
     isPlugin,
     isReferenceExpr,
@@ -75,6 +77,13 @@ export function isAuthInvocation(node: AstNode) {
  */
 export function getStringLiteral(node: AstNode | undefined): string | undefined {
     return isStringLiteral(node) ? node.value : undefined;
+}
+
+/**
+ * Try getting number value from a potential number literal expression
+ */
+export function getNumberLiteral(node: AstNode | undefined): number | undefined {
+    return isNumberLiteral(node) ? Number(node.value) : undefined;
 }
 
 const isoDateTimeRegex = /^\d{4}(-\d\d(-\d\d(T\d\d:\d\d(:\d\d)?(\.\d+)?(([+-]\d\d:\d\d)|Z)?)?)?)?$/i;
@@ -158,6 +167,54 @@ export function isRelationshipField(field: DataField) {
 }
 
 /**
+ * Returns the name of the relation the given field belongs to, as declared in its `@relation`
+ * attribute, or `undefined` if the field has no `@relation` attribute or no explicit name.
+ *
+ * The name argument is matched by its literal name (or absence of a name for the positional
+ * argument) rather than by `$resolvedParam`, because this function is also used during schema
+ * validation, where `$resolvedParam` may not have been resolved yet for attributes that have
+ * not been validated.
+ */
+export function getRelationName(field: DataField): string | undefined {
+    const relation = getAttribute(field, '@relation');
+    if (!relation) {
+        return undefined;
+    }
+    for (const arg of relation.args) {
+        if (!arg.name || arg.name === 'name') {
+            if (isStringLiteral(arg.value)) {
+                return arg.value.value;
+            }
+        }
+    }
+    return undefined;
+}
+
+/**
+ * Returns if the given field is a many-to-many relation field, i.e. a relation field that is an
+ * array and whose opposite relation field on the referenced model (belonging to the same relation)
+ * is also an array referencing back to the containing model.
+ */
+export function isManyToManyField(field: DataField) {
+    if (!isRelationshipField(field) || !field.type.array) {
+        return false;
+    }
+
+    const oppositeModel = field.type.reference!.ref as DataModel;
+    const containingModel = field.$container as DataModel;
+    const relationName = getRelationName(field);
+
+    return getAllFields(oppositeModel).some((f) => {
+        if (f === field || !f.type.array || f.type.reference?.ref?.name !== containingModel.name) {
+            return false;
+        }
+        // the opposite field must belong to the same relation: either both declare the same
+        // explicit relation name, or both are unnamed
+        return getRelationName(f) === relationName;
+    });
+}
+
+/**
  * Returns if the given field is a computed field.
  */
 export function isComputedField(field: DataField) {
@@ -169,6 +226,34 @@ export function isComputedField(field: DataField) {
  */
 export function isDelegateModel(node: AstNode) {
     return isDataModel(node) && hasAttribute(node, '@@delegate');
+}
+
+/**
+ * Returns if the given node is a Prisma attribute.
+ */
+export function isPrismaAttribute(node: AstNode): node is Attribute {
+    return isAttribute(node) && hasAttribute(node, '@@@prisma');
+}
+
+/**
+ * Returns if the given node is a native type mapping attribute.
+ */
+export function isNativeTypeMappingAttribute(node: AstNode): node is Attribute {
+    return isPrismaAttribute(node) && node.name.startsWith('@db.');
+}
+
+/**
+ * Returns if the given node is a lite attribute.
+ */
+export function isLiteAttribute(node: AstNode): node is Attribute {
+    return isAttribute(node) && hasAttribute(node, '@@@lite');
+}
+
+/**
+ * Returns if the given node is primitive type def.
+ */
+export function isPrimitiveTypeDef(node: AstNode): node is TypeDef {
+    return isTypeDef(node) && !!node.base;
 }
 
 /**
@@ -659,6 +744,10 @@ export function getAllFields(
     return fields;
 }
 
+export function getPrimitiveTypeDefThisField(td: TypeDef) {
+    return td.fields.find((f) => f.name === 'this');
+}
+
 /**
  * Gets all attributes of a data model or type def, including inherited attributes
  * from base models and mixins.
@@ -723,7 +812,7 @@ export function getPluginDocuments(model: Model, schemaPath: string): string[] {
         }
 
         const provider = getLiteral<string>(providerField.value);
-        if (!provider) {
+        if (!provider || typeof provider !== 'string') {
             continue;
         }
 

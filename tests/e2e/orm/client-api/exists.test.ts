@@ -57,17 +57,21 @@ describe('Client exists tests', () => {
             },
         });
 
-        await expect(client.user.exists({
-            where: {
-                email: 'test@email.com',
-            },
-        })).resolves.toBe(true);
+        await expect(
+            client.user.exists({
+                where: {
+                    email: 'test@email.com',
+                },
+            }),
+        ).resolves.toBe(true);
 
-        await expect(client.user.exists({
-            where: {
-                email: 'wrong@email.com',
-            },
-        })).resolves.toBe(false);
+        await expect(
+            client.user.exists({
+                where: {
+                    email: 'wrong@email.com',
+                },
+            }),
+        ).resolves.toBe(false);
     });
 
     it('works with nested', async () => {
@@ -82,37 +86,45 @@ describe('Client exists tests', () => {
             },
         });
 
-        await expect(client.user.exists({
-            where: {
-                posts: {
-                    some: {
-                        title: 'Test title',
+        await expect(
+            client.user.exists({
+                where: {
+                    posts: {
+                        some: {
+                            title: 'Test title',
+                        },
                     },
                 },
-            },
-        })).resolves.toBe(true);
+            }),
+        ).resolves.toBe(true);
 
-        await expect(client.user.exists({
-            where: {
-                posts: {
-                    some: {
-                        title: 'Wrong test title',
+        await expect(
+            client.user.exists({
+                where: {
+                    posts: {
+                        some: {
+                            title: 'Wrong test title',
+                        },
                     },
                 },
-            },
-        })).resolves.toBe(false);
+            }),
+        ).resolves.toBe(false);
 
-        await expect(client.post.exists({
-            where: {
-                title: 'Test title',
-            }
-        })).resolves.toBe(true);
+        await expect(
+            client.post.exists({
+                where: {
+                    title: 'Test title',
+                },
+            }),
+        ).resolves.toBe(true);
 
-        await expect(client.post.exists({
-            where: {
-                title: 'Wrong test title',
-            }
-        })).resolves.toBe(false);
+        await expect(
+            client.post.exists({
+                where: {
+                    title: 'Wrong test title',
+                },
+            }),
+        ).resolves.toBe(false);
     });
 
     it('works with deeply nested', async () => {
@@ -132,49 +144,55 @@ describe('Client exists tests', () => {
             },
         });
 
-        await expect(client.user.exists({
-            where: {
-                posts: {
-                    some: {
-                        title: 'Test title',
-                        comments: {
-                            some: {
-                                content: 'Test content',
+        await expect(
+            client.user.exists({
+                where: {
+                    posts: {
+                        some: {
+                            title: 'Test title',
+                            comments: {
+                                some: {
+                                    content: 'Test content',
+                                },
                             },
                         },
                     },
                 },
-            },
-        })).resolves.toBe(true);
+            }),
+        ).resolves.toBe(true);
 
-        await expect(client.user.exists({
-            where: {
-                posts: {
-                    some: {
-                        title: 'Test title',
-                        comments: {
-                            some: {
-                                content: 'Wrong test content',
+        await expect(
+            client.user.exists({
+                where: {
+                    posts: {
+                        some: {
+                            title: 'Test title',
+                            comments: {
+                                some: {
+                                    content: 'Wrong test content',
+                                },
                             },
                         },
                     },
                 },
-            },
-        })).resolves.toBe(false);
+            }),
+        ).resolves.toBe(false);
 
-        await expect(client.user.exists({
-            where: {
-                posts: {
-                    some: {
-                        title: 'Wrong test title',
-                        comments: {
-                            some: {
-                                content: 'Test content',
+        await expect(
+            client.user.exists({
+                where: {
+                    posts: {
+                        some: {
+                            title: 'Wrong test title',
+                            comments: {
+                                some: {
+                                    content: 'Test content',
+                                },
                             },
                         },
                     },
                 },
-            },
-        })).resolves.toBe(false);
+            }),
+        ).resolves.toBe(false);
     });
 });

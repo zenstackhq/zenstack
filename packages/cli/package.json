@@ -2,7 +2,7 @@
     "name": "@zenstackhq/cli",
     "displayName": "ZenStack CLI",
     "description": "FullStack database toolkit with built-in access control and automatic API generation.",
-    "version": "3.8.3",
+    "version": "3.10.0",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
@@ -37,7 +37,20 @@
         "pack": "pnpm pack"
     },
     "exports": {
-        "./package.json": "./package.json"
+        "./package.json": {
+            "import": "./package.json",
+            "require": "./package.json"
+        },
+        "./proxy": {
+            "import": {
+                "types": "./dist/proxy.d.mts",
+                "default": "./dist/proxy.mjs"
+            },
+            "require": {
+                "types": "./dist/proxy.d.cts",
+                "default": "./dist/proxy.cjs"
+            }
+        }
     },
     "dependencies": {
         "@zenstackhq/common-helpers": "workspace:*",
@@ -48,13 +61,14 @@
         "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/plugin-policy": "workspace:*",
         "@zenstackhq/server": "workspace:*",
+        "@hono/node-server": "^1.13.8",
+        "hono": "^4.13.7",
         "chokidar": "^5.0.0",
         "colors": "1.4.0",
         "commander": "^8.3.0",
         "cors": "^2.8.5",
         "dotenv": "^17.2.3",
         "execa": "^9.6.0",
-        "express": "^5.0.0",
         "jiti": "^2.6.1",
         "langium": "catalog:",
         "mixpanel": "^0.18.1",

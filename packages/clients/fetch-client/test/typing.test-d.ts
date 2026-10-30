@@ -188,9 +188,9 @@ describe('Extended result fields (ExtResult)', () => {
     it('adds the computed field to read results', () => {
         const client = createClient<DbType>(schema, { endpoint: ENDPOINT });
 
-        expectTypeOf(client.user.findUnique({ where: { id: '1' } })).resolves.toMatchTypeOf<
-            { displayName: string } | null
-        >();
+        expectTypeOf(client.user.findUnique({ where: { id: '1' } })).resolves.toMatchTypeOf<{
+            displayName: string;
+        } | null>();
 
         expectTypeOf(client.user.findMany()).resolves.toMatchTypeOf<Array<{ displayName: string }>>();
     });
@@ -215,5 +215,21 @@ describe('Extended result fields (ExtResult)', () => {
             expectTypeOf(r[0]).toMatchTypeOf<Array<{ displayName: string }>>();
             expectTypeOf(r[1]).toMatchTypeOf<{ displayName: string }>();
         };
+    });
+});
+
+describe('Custom types', () => {
+    it('supports @@strict', () => {
+        const client = createClient(schema, { endpoint: ENDPOINT });
+
+        client.$procs.sendNotification.mutate({
+            args: {
+                notification: {
+                    message: 'test',
+                    // @ts-expect-error known properties
+                    unknown: true,
+                },
+            },
+        });
     });
 });

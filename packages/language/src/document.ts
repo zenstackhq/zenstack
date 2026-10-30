@@ -261,4 +261,3 @@ export async function formatDocument(content: string) {
     const edits = await formatter.formatDocument(document, { options, textDocument: identifier });
     return TextDocument.applyEdits(document.textDocument, edits);
 }
-

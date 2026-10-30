@@ -1,7 +1,8 @@
-import { ZenStackClient } from '@zenstackhq/orm';
+import { ZenStackClient, type Subset } from '@zenstackhq/orm';
 import SQLite from 'better-sqlite3';
 import { SqliteDialect } from 'kysely';
 import { Role, Status, type Identity, type IdentityProvider } from './models';
+import type { UserSelect, UserWhereInput } from './input';
 import { schema } from './schema';
 
 const client = new ZenStackClient(schema, {
@@ -13,8 +14,26 @@ const client = new ZenStackClient(schema, {
                     .selectFrom('Post')
                     .whereRef('Post.authorId', '=', 'id')
                     .select(({ fn }) => fn.countAll<number>().as('postCount')),
+            // typing-only stub: the query-time `status` arg is typed as the `Status` enum
+            hasStatus: (eb, _ctx, args) => eb.lit(args.status === Status.ACTIVE),
         },
     },
+});
+
+const strictClient = new ZenStackClient(schema, {
+    dialect: new SqliteDialect({ database: new SQLite('./zenstack/test.db') }),
+    computedFields: {
+        user: {
+            postCount: (eb) =>
+                eb
+                    .selectFrom('Post')
+                    .whereRef('Post.authorId', '=', 'id')
+                    .select(({ fn }) => fn.countAll<number>().as('postCount')),
+            // typing-only stub: the query-time `status` arg is typed as the `Status` enum
+            hasStatus: (eb, _ctx, args) => eb.lit(args.status === Status.ACTIVE),
+        },
+    },
+    typing: { exactQueryArgs: true },
 });
 
 async function main() {
@@ -31,6 +50,133 @@ async function main() {
 }
 
 async function find() {
+    // a parameterized computed field's `args` are typed from its declared params: an enum param
+    // accepts only the enum's values, and `args` is required wherever the field is used
+    const withArgs = await client.user.findFirst({
+        select: { id: true, hasStatus: { args: { status: Status.ACTIVE } } },
+        where: { hasStatus: { args: { status: 'INACTIVE' }, equals: true } },
+        orderBy: { hasStatus: { args: { status: Status.BANNED }, sort: 'desc' } },
+    });
+    const hasStatus: boolean | undefined = withArgs?.hasStatus;
+    void hasStatus;
+    await client.user.findMany({
+        // @ts-expect-error not a Status value
+        select: { hasStatus: { args: { status: 'WRONG' } } },
+    });
+    await client.user.findMany({
+        // @ts-expect-error not a Status value
+        where: { hasStatus: { args: { status: 'WRONG' }, equals: true } },
+    });
+    await client.user.findMany({
+        // @ts-expect-error not a Status value
+        orderBy: { hasStatus: { args: { status: 'WRONG' }, sort: 'asc' } },
+    });
+    await client.user.findMany({
+        // @ts-expect-error args are required for a parameterized computed field
+        select: { hasStatus: true },
+    });
+    // the generated input types carry the same typing
+    // @ts-expect-error not a Status value
+    const selectWithWrongArgs: UserSelect = { hasStatus: { args: { status: 'WRONG' } } };
+    // @ts-expect-error not a Status value
+    const whereWithWrongArgs: UserWhereInput = { hasStatus: { args: { status: 'WRONG' }, equals: true } };
+    void selectWithWrongArgs;
+    void whereWithWrongArgs;
+
+    await client.user.findMany({
+        where: {
+            posts: {
+                some: {
+                    // @ts-expect-error unknown nested where field
+                    missingField: true,
+                },
+            },
+        },
+    });
+
+    await client.user.findMany({
+        select: {
+            posts: {
+                select: {
+                    // @ts-expect-error unknown deeply nested select field
+                    missingField: true,
+                },
+            },
+        },
+    });
+
+    await client.user.findMany({
+        include: {
+            posts: {
+                where: {
+                    // @ts-expect-error unknown where field nested in include
+                    missingField: true,
+                },
+            },
+        },
+    });
+
+    await client.user.findMany({
+        select: {
+            _count: {
+                select: {
+                    // @ts-expect-error unknown nested count field
+                    missingField: true,
+                },
+            },
+        },
+    });
+
+    const invalidArgs = {
+        where: {
+            posts: {
+                some: { missingField: true },
+            },
+        },
+    };
+    // @ts-expect-error hoisted arguments are recursively checked too
+    await client.user.findMany(invalidArgs);
+
+    const invalidExactReadArgs = {
+        where: {
+            posts: {
+                some: { title: 'post', missingField: true },
+            },
+        },
+        select: {
+            posts: {
+                where: { title: 'post', missingField: true },
+                orderBy: { title: 'asc' as const, missingField: 'asc' as const },
+                cursor: { id: 1, missingField: true },
+                select: { id: true, missingField: true },
+            },
+        },
+    };
+    await client.user.findMany(invalidExactReadArgs);
+    // @ts-expect-error exact mode recursively checks all supplied read arguments
+    await strictClient.user.findMany(invalidExactReadArgs);
+
+    const optionalInvalidWhere: { posts: { some: { title: string; missingField: true } } } | undefined =
+        Math.random() > 0.5 ? { posts: { some: { title: 'post', missingField: true } } } : undefined;
+    await client.user.findMany({ where: optionalInvalidWhere });
+    // @ts-expect-error exact mode preserves checking across optional unions
+    await strictClient.user.findMany({ where: optionalInvalidWhere });
+
+    const nullableInvalidSelect: { posts: { select: { id: true; missingField: true } } } | null =
+        Math.random() > 0.5 ? { posts: { select: { id: true, missingField: true } } } : null;
+    await client.user.findMany({ select: nullableInvalidSelect });
+    // @ts-expect-error exact mode preserves checking across nullable unions
+    await strictClient.user.findMany({ select: nullableInvalidSelect });
+
+    type BrandedUserId = number & { readonly __brand: 'UserId' };
+    type BrandedEmail = string & { readonly __brand: 'Email' };
+    const brandedUserId = 1 as BrandedUserId;
+    const brandedEmail = 'alex@zenstack.dev' as BrandedEmail;
+    await client.user.findUnique({ where: { id: brandedUserId } });
+    await strictClient.user.findUnique({ where: { id: brandedUserId } });
+    await client.user.findUnique({ where: { email: brandedEmail } });
+    await strictClient.user.findUnique({ where: { email: brandedEmail } });
+
     const user1 = await client.user.findFirst({
         where: {
             name: 'Alex',
@@ -223,6 +369,96 @@ async function find() {
 }
 
 async function create() {
+    // Exact nested argument checking stays opt-in for compatibility.
+    await client.user.create({
+        data: {
+            name: 'Alex',
+            email: 'alex@zenstack.dev',
+            profile: {
+                create: {
+                    age: 20,
+                    missingField: true,
+                },
+            },
+        },
+    });
+
+    await strictClient.user.create({
+        data: {
+            name: 'Alex',
+            email: 'alex@zenstack.dev',
+            profile: {
+                create: {
+                    age: 20,
+                    // @ts-expect-error unknown nested create field in exact mode
+                    missingField: true,
+                },
+            },
+        },
+    });
+
+    const invalidNestedCreateArgs = {
+        data: {
+            name: 'Alex',
+            email: 'alex@zenstack.dev',
+            profile: { create: { age: 20, missingField: true } },
+        },
+    };
+    // @ts-expect-error hoisted nested write arguments are checked in exact mode
+    await strictClient.user.create(invalidNestedCreateArgs);
+
+    const invalidNestedCreateArrayArgs = {
+        data: {
+            title: 'post',
+            content: 'content',
+            author: { connect: { id: 1 } },
+            tags: {
+                create: [{ name: 'valid' }, { name: 'invalid', missingField: true }],
+            },
+        },
+    };
+    // @ts-expect-error exactness recurses into array elements
+    await strictClient.post.create(invalidNestedCreateArrayArgs);
+
+    await strictClient.profile.create({
+        data: { age: 20, user: { connect: { id: 1 } } },
+    });
+
+    await strictClient.profile.create({
+        data: { age: 20, userId: 1 },
+    });
+
+    await strictClient.profile.create({
+        // @ts-expect-error checked and unchecked create branches cannot be mixed
+        data: {
+            age: 20,
+            userId: 1,
+            user: { connect: { id: 1 } },
+        },
+    });
+
+    await strictClient.user.create({
+        data: {
+            name: 'JSON user',
+            email: 'json@example.com',
+            createdAt: new Date(),
+            identity: { providers: [{ id: 'github', name: 'GitHub' }] },
+        },
+    });
+
+    await strictClient.profile.create({
+        data: {
+            age: 20,
+            user: {
+                connect: {
+                    id: 1,
+                    // @ts-expect-error unknown nested connect field
+                    missingField: true,
+                },
+            },
+        },
+    });
+
     await client.user.create({
         // @ts-expect-error email is required
         data: { name: 'Alex' },
@@ -372,7 +608,7 @@ async function create() {
             tags: { create: [{ name: 'tag2' }, { name: 'tag3' }] },
         },
     });
-    await client.tag.create({
+    await strictClient.tag.create({
         data: {
             name: 'tag4',
             posts: {
@@ -382,6 +618,8 @@ async function create() {
                         title: 'Hello World',
                         content: 'This is a test post',
                         author: { connect: { id: 1 } },
+                        // @ts-expect-error unknown nested connectOrCreate field
+                        missingField: true,
                     },
                 },
             },
@@ -406,7 +644,22 @@ async function update() {
         },
     });
 
-    await client.user.update({
+    const invalidMutationWhereArgs = {
+        where: { id: 1, missingField: true },
+        data: { name: 'Alex' },
+    };
+    // @ts-expect-error exact mode checks hoisted mutation where arguments
+    await strictClient.user.update(invalidMutationWhereArgs);
+
+    const invalidMutationSelectArgs = {
+        where: { id: 1 },
+        data: { name: 'Alex' },
+        select: { posts: { select: { missingField: true } } },
+    };
+    // @ts-expect-error exact mode checks hoisted mutation relation selects
+    await strictClient.user.update(invalidMutationSelectArgs);
+
+    await strictClient.user.update({
         where: { id: 1 },
         data: {
             posts: {
@@ -440,6 +693,8 @@ async function update() {
                     data: {
                         title: 'Hello World',
                         content: 'This is a test post',
+                        // @ts-expect-error unknown deeply nested update field
+                        missingField: true,
                     },
                 },
                 upsert: {
@@ -451,6 +706,8 @@ async function update() {
                     update: {
                         title: 'Hello World',
                         content: 'This is a test post',
+                        // @ts-expect-error unknown deeply nested upsert field
+                        missingField: true,
                     },
                 },
                 updateMany: {
@@ -462,6 +719,22 @@ async function update() {
                 },
             },
         },
+    });
+
+    await strictClient.user.upsert({
+        where: { id: 1 },
+        create: {
+            name: 'Alex',
+            email: 'alex@zenstack.dev',
+            profile: {
+                create: {
+                    age: 20,
+                    // @ts-expect-error unknown field in a top-level upsert create payload
+                    missingField: true,
+                },
+            },
+        },
+        update: { name: 'Alex' },
     });
 
     await client.user.update({
@@ -557,6 +830,16 @@ async function update() {
 }
 
 async function del() {
+    const invalidDeleteArgs = { where: { id: 1, missingField: true }, select: { id: true } };
+    await client.user.delete(invalidDeleteArgs);
+    // @ts-expect-error exact mode checks delete arguments
+    await strictClient.user.delete(invalidDeleteArgs);
+
+    const invalidDeleteManyArgs = { where: { name: 'Alex', missingField: true } };
+    await client.user.deleteMany(invalidDeleteManyArgs);
+    // @ts-expect-error exact mode checks deleteMany arguments
+    await strictClient.user.deleteMany(invalidDeleteManyArgs);
+
     // @ts-expect-error where is required
     await client.user.delete({});
 
@@ -573,6 +856,16 @@ async function del() {
 }
 
 async function count() {
+    const invalidCountArgs = { where: { name: 'Alex', missingField: true } };
+    await client.user.count(invalidCountArgs);
+    // @ts-expect-error exact mode checks count arguments
+    await strictClient.user.count(invalidCountArgs);
+
+    const invalidExistsArgs = { where: { id: 1, missingField: true } };
+    await client.user.exists(invalidExistsArgs);
+    // @ts-expect-error exact mode checks exists arguments
+    await strictClient.user.exists(invalidExistsArgs);
+
     await client.user.count();
     await client.user.count({
         where: {
@@ -591,6 +884,11 @@ async function count() {
 }
 
 async function aggregate() {
+    const invalidAggregateArgs = { _avg: { age: true as const, missingField: true } };
+    await client.profile.aggregate(invalidAggregateArgs);
+    // @ts-expect-error exact mode checks aggregate arguments
+    await strictClient.profile.aggregate(invalidAggregateArgs);
+
     const r = await client.profile.aggregate({
         _count: true,
         _avg: { age: true },
@@ -617,6 +915,14 @@ async function aggregate() {
 }
 
 async function groupBy() {
+    const invalidGroupByArgs = {
+        by: 'regionCountry' as const,
+        _sum: { age: true as const, missingField: true },
+    };
+    await client.profile.groupBy(invalidGroupByArgs);
+    // @ts-expect-error exact mode checks groupBy arguments
+    await strictClient.profile.groupBy(invalidGroupByArgs);
+
     const r = await client.profile.groupBy({
         by: ['regionCountry', 'regionCity'],
         _count: true,
@@ -665,6 +971,15 @@ function enums() {
 }
 
 function typeDefs() {
+    const emptyExactObject: Subset<{}, {}, { typing: { exactQueryArgs: true } }> = {};
+    console.log(emptyExactObject);
+
+    const invalidEmptyExactObject: Subset<{ extra: true }, {}, { typing: { exactQueryArgs: true } }> = {
+        // @ts-expect-error finite empty shapes still reject supplied properties
+        extra: true,
+    };
+    console.log(invalidEmptyExactObject);
+
     const identityProvider: IdentityProvider = {
         id: '123',
         name: 'GitHub',

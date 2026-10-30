@@ -26,10 +26,7 @@ model Item {
         const user = await db.user.create({ data: { role: 'admin' } });
 
         const result = await db.$setAuth(user).item.createManyAndReturn({
-            data: [
-                { key: 'a', note: 'hello' },
-                { key: 'b' },
-            ],
+            data: [{ key: 'a', note: 'hello' }, { key: 'b' }],
         });
 
         expect(result).toHaveLength(2);

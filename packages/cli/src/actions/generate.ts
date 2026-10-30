@@ -188,8 +188,7 @@ async function runPlugins(schemaFile: string, model: Model, outputPath: string, 
         } else {
             // resolve relative plugin paths against the schema file where the plugin is declared,
             // not the entry schema file
-            const pluginSourcePath =
-                plugin.$cstNode?.container?.astNode.$document?.uri?.fsPath ?? schemaFile;
+            const pluginSourcePath = plugin.$cstNode?.container?.astNode.$document?.uri?.fsPath ?? schemaFile;
             cliPlugin = await loadPluginModule(provider, path.dirname(pluginSourcePath));
         }
 

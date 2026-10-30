@@ -211,4 +211,38 @@ model User {
             }),
         ).rejects.toThrow(/invalid/i);
     });
+
+    it('rejects unknown fields when type is strict', async () => {
+        const schema = `
+type Profile {
+    name String
+
+    @@strict
+}
+
+model User {
+    id       Int       @id @default(autoincrement())
+    profile  Profile? @json
+}
+    `;
+
+        const client = await createTestClient(schema, {
+            usePrismaPush: true,
+        });
+
+        try {
+            await expect(
+                client.user.create({
+                    data: {
+                        profile: {
+                            name: 'Test',
+                            unknown: true,
+                        },
+                    },
+                }),
+            ).rejects.toThrowError(/Unrecognized key: "unknown"/);
+        } finally {
+            await client.$disconnect();
+        }
+    });
 });

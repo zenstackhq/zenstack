@@ -1,6 +1,6 @@
 {
     "name": "e2e",
-    "version": "3.8.3",
+    "version": "3.10.0",
     "private": true,
     "type": "module",
     "scripts": {
@@ -29,7 +29,7 @@
         "mysql2": "catalog:",
         "pg": "catalog:",
         "ulid": "^3.0.0",
-        "uuid": "^11.0.5",
+        "uuid": "^11.1.1",
         "cuid": "^3.0.0",
         "zod": "catalog:",
         "ts-pattern": "catalog:"

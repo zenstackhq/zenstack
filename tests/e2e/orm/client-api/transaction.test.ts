@@ -134,8 +134,13 @@ describe('Client raw query tests', () => {
                     await (tx as any)
                         .$use({
                             id: 'noop',
-                            onQuery: async ({ args, proceed }: { args: unknown; proceed: (args: unknown) => Promise<unknown> }) =>
-                                proceed(args),
+                            onQuery: async ({
+                                args,
+                                proceed,
+                            }: {
+                                args: unknown;
+                                proceed: (args: unknown) => Promise<unknown>;
+                            }) => proceed(args),
                         })
                         .user.create({
                             data: { email: 'u1@test.com' },

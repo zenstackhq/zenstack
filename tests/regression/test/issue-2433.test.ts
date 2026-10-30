@@ -17,9 +17,7 @@ model Post {
             content: 'hello',
         });
         // Should fail validation: content exceeds max
-        await expect(
-            db.post.create({ data: { content: 'x'.repeat(10001) } }),
-        ).toBeRejectedByValidation();
+        await expect(db.post.create({ data: { content: 'x'.repeat(10001) } })).toBeRejectedByValidation();
     });
 
     it('should reject short string when only @length(min: N) is specified', async () => {
@@ -36,8 +34,6 @@ model Post {
             content: 'hello world',
         });
         // Should fail validation: content is too short
-        await expect(
-            db.post.create({ data: { content: 'hi' } }),
-        ).toBeRejectedByValidation();
+        await expect(db.post.create({ data: { content: 'hi' } })).toBeRejectedByValidation();
     });
 });

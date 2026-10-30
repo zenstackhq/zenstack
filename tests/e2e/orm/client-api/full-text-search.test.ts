@@ -204,10 +204,7 @@ describe.skipIf(provider !== 'postgresql')('Full-text search tests', () => {
         const ids = created.map((r) => r.id);
         const results = await client.article.findMany({
             where: { id: { in: ids } },
-            orderBy: [
-                { _ftsRelevance: { fields: ['subtitle'], search: 'cat', sort: 'desc' } },
-                { id: 'asc' },
-            ],
+            orderBy: [{ _ftsRelevance: { fields: ['subtitle'], search: 'cat', sort: 'desc' } }, { id: 'asc' }],
         });
         expect(results.map((r) => r.subtitle)).toEqual(['cat', null]);
     });
@@ -367,9 +364,7 @@ describe.skipIf(provider !== 'postgresql')('Full-text search tests', () => {
                     _ftsRelevance: { fields: ['notes' as any], search: 'foo', sort: 'desc' },
                 } as any,
             }),
-        ).rejects.toThrow(
-            /expected one of "title"\|"body"\|"subtitle"\s*at\s*"orderBy\._ftsRelevance\.fields/i,
-        );
+        ).rejects.toThrow(/expected one of "title"\|"body"\|"subtitle"\s*at\s*"orderBy\._ftsRelevance\.fields/i);
     });
 
     // ---------------------------------------------------------------
@@ -380,9 +375,9 @@ describe.skipIf(provider !== 'postgresql')('Full-text search tests', () => {
         // 'foo &&' is not valid tsquery syntax — Postgres throws
         // `syntax error in tsquery: "foo &&"` and we let it surface verbatim
         // (we do not pre-validate the query string).
-        await expect(
-            client.article.findMany({ where: { title: { fts: { search: 'foo &&' } } } }),
-        ).rejects.toThrow(/syntax error in tsquery/i);
+        await expect(client.article.findMany({ where: { title: { fts: { search: 'foo &&' } } } })).rejects.toThrow(
+            /syntax error in tsquery/i,
+        );
     });
 
     // ---------------------------------------------------------------

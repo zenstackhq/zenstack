@@ -24,24 +24,21 @@ mutation procedure createTwoAndFail(email1: String, email2: String): Int
 `;
 
     beforeEach(async () => {
-        client = await createTestClient(
-            schema,
-            {
-                procedures: {
-                    greet: async ({ args }: any) => {
-                        const name = args?.name as string | undefined;
-                        return `hello ${name ?? 'world'}`;
-                    },
-                    createTwoAndFail: async ({ client, args }: any) => {
-                        const email1 = args.email1 as string;
-                        const email2 = args.email2 as string;
-                        await client.user.create({ data: { email: email1 } });
-                        await client.user.create({ data: { email: email2 } });
-                        throw new Error('boom');
-                    },
+        client = await createTestClient(schema, {
+            procedures: {
+                greet: async ({ args }: any) => {
+                    const name = args?.name as string | undefined;
+                    return `hello ${name ?? 'world'}`;
                 },
-            } as any
-        );
+                createTwoAndFail: async ({ client, args }: any) => {
+                    const email1 = args.email1 as string;
+                    const email2 = args.email2 as string;
+                    await client.user.create({ data: { email: email1 } });
+                    await client.user.create({ data: { email: email2 } });
+                    throw new Error('boom');
+                },
+            },
+        } as any);
 
         api = new RestApiHandler({
             schema: client.$schema,

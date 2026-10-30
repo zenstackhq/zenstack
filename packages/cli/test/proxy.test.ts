@@ -1,9 +1,10 @@
+import { serve } from '@hono/node-server';
 import { PolicyPlugin } from '@zenstackhq/plugin-policy';
 import { createTestClient } from '@zenstackhq/testtools';
 import { sign } from 'node:crypto';
-import http from 'node:http';
+import type http from 'node:http';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createProxyApp } from '../src/actions/proxy';
+import { createProxyApp, getProviderFromUrl, resolveSchema } from '../src/actions/proxy';
 
 // ─── Ed25519 key pair for tests ───────────────────────────────────────────────
 const TEST_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
@@ -64,9 +65,14 @@ async function createPolicyApp(zmodel: string) {
     const authDb = client.$use(new PolicyPlugin());
     return {
         client,
-        app: createProxyApp(client, client.$schema, authDb, {
-            studioAuthKey: TEST_PUBLIC_KEY,
-            signatureToleranceSecs: 60,
+        app: createProxyApp({
+            client,
+            schema: client.$schema,
+            authDb,
+            auth: {
+                studioAuthKey: TEST_PUBLIC_KEY,
+                signatureToleranceSecs: 60,
+            },
         }),
     };
 }
@@ -89,10 +95,9 @@ describe('CLI proxy tests', () => {
 
     async function startAt(app: ReturnType<typeof createProxyApp>): Promise<string> {
         return new Promise((resolve) => {
-            server = app.listen(0, () => {
-                const addr = server!.address() as { port: number };
-                resolve(`http://localhost:${addr.port}`);
-            });
+            server = serve({ fetch: app.fetch, port: 0 }, (info) => {
+                resolve(`http://localhost:${info.port}`);
+            }) as http.Server;
         });
     }
 
@@ -106,7 +111,11 @@ describe('CLI proxy tests', () => {
 
         const client = await createTestClient(zmodel);
         const authDb = client.$use(new PolicyPlugin());
-        const app = createProxyApp(client, client.$schema, authDb);
+        const app = createProxyApp({
+            client,
+            schema: client.$schema,
+            authDb,
+        });
         const baseUrl = await startAt(app);
 
         const r = await fetch(`${baseUrl}/api/schema`);
@@ -123,6 +132,30 @@ describe('CLI proxy tests', () => {
         if ('zenstackVersion' in body) {
             expect(typeof body.zenstackVersion).toBe('string');
         }
+    });
+
+    it('should support createProxyApp with options object signature', async () => {
+        const zmodel = `
+            model User {
+                id    String @id @default(cuid())
+                email String @unique
+            }
+        `;
+
+        const client = await createTestClient(zmodel);
+        const authDb = client.$use(new PolicyPlugin());
+        const app = createProxyApp({
+            client,
+            schema: client.$schema,
+            authDb,
+        });
+        const baseUrl = await startAt(app);
+
+        const r = await fetch(`${baseUrl}/api/schema`);
+        expect(r.status).toBe(200);
+
+        const body = await r.json();
+        expect(body.models).toHaveProperty('User');
     });
 
     it('should omit computed fields from default query responses', async () => {
@@ -145,7 +178,11 @@ describe('CLI proxy tests', () => {
         });
 
         const authDb = client.$use(new PolicyPlugin());
-        const app = createProxyApp(client, client.$schema, authDb);
+        const app = createProxyApp({
+            client,
+            schema: client.$schema,
+            authDb,
+        });
         const baseUrl = await startAt(app);
 
         // Create a user via the proxy API.
@@ -193,7 +230,11 @@ describe('CLI proxy tests', () => {
 
         const client = await createTestClient(zmodel);
         const authDb = client.$use(new PolicyPlugin());
-        const app = createProxyApp(client, client.$schema, authDb);
+        const app = createProxyApp({
+            client,
+            schema: client.$schema,
+            authDb,
+        });
         const baseUrl = await startAt(app);
 
         const txRes = await fetch(`${baseUrl}/api/model/$transaction/sequential`, {
@@ -373,7 +414,11 @@ describe('CLI proxy tests', () => {
             // No studioAuthKey — backwards-compatible mode
             const client = await createTestClient(zmodel);
             const authDb = client.$use(new PolicyPlugin());
-            const app = createProxyApp(client, client.$schema, authDb);
+            const app = createProxyApp({
+                client,
+                schema: client.$schema,
+                authDb,
+            });
             const baseUrl = await startAt(app);
 
             // No signature header — should still work
@@ -402,9 +447,14 @@ describe('CLI proxy tests', () => {
             const client = await createTestClient(zmodel);
             const authDb = client.$use(new PolicyPlugin());
             // Pass the key as raw base64 DER — no PEM markers
-            const app = createProxyApp(client, client.$schema, authDb, {
-                studioAuthKey: TEST_PUBLIC_KEY_DER,
-                signatureToleranceSecs: 60,
+            const app = createProxyApp({
+                client,
+                schema: client.$schema,
+                authDb,
+                auth: {
+                    studioAuthKey: TEST_PUBLIC_KEY_DER,
+                    signatureToleranceSecs: 60,
+                },
             });
             const baseUrl = await startAt(app);
 
@@ -425,9 +475,14 @@ describe('CLI proxy tests', () => {
                 // No studioAuthKey option — would normally fall back to env var via run();
                 // here we verify the middleware still works when the resolved key is provided.
                 const authDb = client.$use(new PolicyPlugin());
-                const app = createProxyApp(client, client.$schema, authDb, {
-                    studioAuthKey: process.env['ZENSTACK_STUDIO_AUTH_KEY'],
-                    signatureToleranceSecs: 60,
+                const app = createProxyApp({
+                    client,
+                    schema: client.$schema,
+                    authDb,
+                    auth: {
+                        studioAuthKey: process.env['ZENSTACK_STUDIO_AUTH_KEY'],
+                        signatureToleranceSecs: 60,
+                    },
                 });
                 const baseUrl = await startAt(app);
 
@@ -456,9 +511,14 @@ describe('CLI proxy tests', () => {
         it('should reject a request whose timestamp is older than the tolerance window', async () => {
             const client = await createTestClient(zmodel);
             const authDb = client.$use(new PolicyPlugin());
-            const app = createProxyApp(client, client.$schema, authDb, {
-                studioAuthKey: TEST_PUBLIC_KEY,
-                signatureToleranceSecs: 60,
+            const app = createProxyApp({
+                client,
+                schema: client.$schema,
+                authDb,
+                auth: {
+                    studioAuthKey: TEST_PUBLIC_KEY,
+                    signatureToleranceSecs: 60,
+                },
             });
             const baseUrl = await startAt(app);
 
@@ -483,9 +543,14 @@ describe('CLI proxy tests', () => {
         it('should reject a request whose timestamp is too far in the future', async () => {
             const client = await createTestClient(zmodel);
             const authDb = client.$use(new PolicyPlugin());
-            const app = createProxyApp(client, client.$schema, authDb, {
-                studioAuthKey: TEST_PUBLIC_KEY,
-                signatureToleranceSecs: 60,
+            const app = createProxyApp({
+                client,
+                schema: client.$schema,
+                authDb,
+                auth: {
+                    studioAuthKey: TEST_PUBLIC_KEY,
+                    signatureToleranceSecs: 60,
+                },
             });
             const baseUrl = await startAt(app);
 
@@ -511,9 +576,14 @@ describe('CLI proxy tests', () => {
             const client = await createTestClient(zmodel);
             // Custom tolerance of 300 seconds
             const authDb = client.$use(new PolicyPlugin());
-            const app = createProxyApp(client, client.$schema, authDb, {
-                studioAuthKey: TEST_PUBLIC_KEY,
-                signatureToleranceSecs: 300,
+            const app = createProxyApp({
+                client,
+                schema: client.$schema,
+                authDb,
+                auth: {
+                    studioAuthKey: TEST_PUBLIC_KEY,
+                    signatureToleranceSecs: 300,
+                },
             });
             const baseUrl = await startAt(app);
 
@@ -537,9 +607,14 @@ describe('CLI proxy tests', () => {
             const client = await createTestClient(zmodel);
             const authDb = client.$use(new PolicyPlugin());
             // Very tight tolerance of 5 seconds
-            const app = createProxyApp(client, client.$schema, authDb, {
-                studioAuthKey: TEST_PUBLIC_KEY,
-                signatureToleranceSecs: 5,
+            const app = createProxyApp({
+                client,
+                schema: client.$schema,
+                authDb,
+                auth: {
+                    studioAuthKey: TEST_PUBLIC_KEY,
+                    signatureToleranceSecs: 5,
+                },
             });
             const baseUrl = await startAt(app);
 
@@ -573,9 +648,14 @@ describe('CLI proxy tests', () => {
         it('should reject a valid signature if it was produced without the Authorization token', async () => {
             const client = await createTestClient(zmodel);
             const authDb = client.$use(new PolicyPlugin());
-            const app = createProxyApp(client, client.$schema, authDb, {
-                studioAuthKey: TEST_PUBLIC_KEY,
-                signatureToleranceSecs: 60,
+            const app = createProxyApp({
+                client,
+                schema: client.$schema,
+                authDb,
+                auth: {
+                    studioAuthKey: TEST_PUBLIC_KEY,
+                    signatureToleranceSecs: 60,
+                },
             });
             const baseUrl = await startAt(app);
 
@@ -603,9 +683,14 @@ describe('CLI proxy tests', () => {
         it('should accept a request where the signature covers the Authorization token', async () => {
             const client = await createTestClient(zmodel);
             const authDb = client.$use(new PolicyPlugin());
-            const app = createProxyApp(client, client.$schema, authDb, {
-                studioAuthKey: TEST_PUBLIC_KEY,
-                signatureToleranceSecs: 60,
+            const app = createProxyApp({
+                client,
+                schema: client.$schema,
+                authDb,
+                auth: {
+                    studioAuthKey: TEST_PUBLIC_KEY,
+                    signatureToleranceSecs: 60,
+                },
             });
             const baseUrl = await startAt(app);
 
@@ -798,6 +883,161 @@ describe('CLI proxy tests', () => {
             // findMany respects policy — u1 sees only their posts
             expect(body.data[1]).toHaveLength(1);
             expect(body.data[1][0]).toMatchObject({ id: 'p1' });
+        });
+    });
+
+    // ─── --introspect helpers ─────────────────────────────────────────────────────
+
+    describe('--introspect helpers', () => {
+        describe('getProviderFromUrl', () => {
+            it('should return postgresql for postgres:// URLs', () => {
+                expect(getProviderFromUrl('postgres://user:pass@localhost:5432/mydb')).toBe('postgresql');
+            });
+
+            it('should return postgresql for postgresql:// URLs', () => {
+                expect(getProviderFromUrl('postgresql://user:pass@localhost:5432/mydb')).toBe('postgresql');
+            });
+
+            it('should return mysql for mysql:// URLs', () => {
+                expect(getProviderFromUrl('mysql://user:pass@localhost:3306/mydb')).toBe('mysql');
+            });
+
+            it('should return sqlite for file: URLs', () => {
+                expect(getProviderFromUrl('file:./test.db')).toBe('sqlite');
+            });
+
+            it('should return sqlite for sqlite: URLs', () => {
+                expect(getProviderFromUrl('sqlite:./test.db')).toBe('sqlite');
+            });
+
+            it('should throw for an unrecognizable URL', () => {
+                expect(() => getProviderFromUrl('mongodb://localhost/mydb')).toThrow(
+                    'Unable to determine database type from URL',
+                );
+            });
+        });
+
+        describe('resolveSchema', () => {
+            it('should throw helpful error without --introspect when DATABASE_URL is not set', async () => {
+                const originalEnv = process.env['DATABASE_URL'];
+                delete process.env['DATABASE_URL'];
+                try {
+                    await expect(
+                        resolveSchema({
+                            schema: '/nonexistent/path/schema.zmodel',
+                            port: 3000,
+                            signatureToleranceSecs: 60,
+                        }),
+                    ).rejects.toThrow('npx @zenstackhq/cli studio --introspect -d <databaseUrl>');
+                } finally {
+                    if (originalEnv !== undefined) process.env['DATABASE_URL'] = originalEnv;
+                }
+            });
+
+            it('should throw helpful error without --introspect when DATABASE_URL is set', async () => {
+                const originalEnv = process.env['DATABASE_URL'];
+                process.env['DATABASE_URL'] = 'postgres://localhost/testdb';
+                try {
+                    await expect(
+                        resolveSchema({
+                            schema: '/nonexistent/path/schema.zmodel',
+                            port: 3000,
+                            signatureToleranceSecs: 60,
+                        }),
+                    ).rejects.toThrow('npx @zenstackhq/cli studio --introspect');
+                } finally {
+                    if (originalEnv !== undefined) {
+                        process.env['DATABASE_URL'] = originalEnv;
+                    } else {
+                        delete process.env['DATABASE_URL'];
+                    }
+                }
+            });
+
+            it('should throw when --introspect is used without a database URL', async () => {
+                const originalEnv = process.env['DATABASE_URL'];
+                delete process.env['DATABASE_URL'];
+                try {
+                    await expect(
+                        resolveSchema({
+                            schema: '/nonexistent/path/schema.zmodel',
+                            port: 3000,
+                            signatureToleranceSecs: 60,
+                            introspect: true,
+                        }),
+                    ).rejects.toThrow('pass -d <url> or set DATABASE_URL');
+                } finally {
+                    if (originalEnv !== undefined) process.env['DATABASE_URL'] = originalEnv;
+                }
+            });
+
+            it('should return existing schema path when default schema file exists', async () => {
+                const fs = await import('node:fs');
+                const path = await import('node:path');
+                const os = await import('node:os');
+
+                // Create a temporary directory to act as cwd
+                const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zenstack-test-'));
+                const schemaDir = path.join(tmpDir, 'zenstack');
+                fs.mkdirSync(schemaDir, { recursive: true });
+                const schemaFile = path.join(schemaDir, 'schema.zmodel');
+                fs.writeFileSync(schemaFile, 'datasource db { provider = "sqlite" url = "file:./test.db" }');
+
+                const SQLite = (await import('better-sqlite3')).default;
+                const db = new SQLite(path.join(tmpDir, 'test.db'));
+                db.exec('CREATE TABLE test (id INTEGER NOT NULL PRIMARY KEY);');
+                db.close();
+
+                const originalCwd = process.cwd();
+                process.chdir(tmpDir);
+                try {
+                    const result = await resolveSchema({
+                        // no schema path — force the "not found" path
+                        schema: '/nonexistent/path/schema.zmodel',
+                        port: 3000,
+                        signatureToleranceSecs: 60,
+                        introspect: true,
+                        databaseUrl: 'file:./test.db',
+                    });
+                    expect(result).toBe(path.resolve('zenstack', 'schema.zmodel'));
+                } finally {
+                    process.chdir(originalCwd);
+                    fs.rmSync(tmpDir, { recursive: true, force: true });
+                }
+            });
+
+            it('should adjust relative sqlite database url when introspecting schema', async () => {
+                const fs = await import('node:fs');
+                const path = await import('node:path');
+                const os = await import('node:os');
+
+                const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zenstack-test-introspect-'));
+                const dbFile = path.join(tmpDir, 'test.db');
+
+                // Create dummy sqlite db
+                const SQLite = (await import('better-sqlite3')).default;
+                const db = new SQLite(dbFile);
+                db.exec('CREATE TABLE test (id INTEGER NOT NULL PRIMARY KEY);');
+                db.close();
+
+                const originalCwd = process.cwd();
+                process.chdir(tmpDir);
+                try {
+                    const result = await resolveSchema({
+                        schema: '/nonexistent/path/schema.zmodel',
+                        port: 3000,
+                        signatureToleranceSecs: 60,
+                        introspect: true,
+                        databaseUrl: 'file:./test.db',
+                    });
+                    expect(result).toBe(path.resolve('zenstack', 'schema.zmodel'));
+                    const content = fs.readFileSync(result, 'utf-8');
+                    expect(content).toContain("url = 'file:../test.db'");
+                } finally {
+                    process.chdir(originalCwd);
+                    fs.rmSync(tmpDir, { recursive: true, force: true });
+                }
+            });
         });
     });
 });

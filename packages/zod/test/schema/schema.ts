@@ -49,13 +49,12 @@ export class SchemaType implements SchemaDef {
                 },
                 age: {
                     name: "age",
-                    type: "Int",
-                    attributes: [{ name: "@gt", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }, { name: "@lte", args: [{ name: "value", value: ExpressionUtils.literal(150) }] }] as readonly AttributeApplication[]
+                    type: "Age",
+                    attributes: [{ name: "@lte", args: [{ name: "value", value: ExpressionUtils.literal(150) }] }] as readonly AttributeApplication[]
                 },
                 score: {
                     name: "score",
-                    type: "Float",
-                    attributes: [{ name: "@gte", args: [{ name: "value", value: ExpressionUtils.literal(0.0) }] }, { name: "@lt", args: [{ name: "value", value: ExpressionUtils.literal(100.0) }] }] as readonly AttributeApplication[]
+                    type: "Score"
                 },
                 bigNum: {
                     name: "bigNum",
@@ -82,6 +81,12 @@ export class SchemaType implements SchemaDef {
                     type: "String",
                     optional: true,
                     attributes: [{ name: "@time" }] as readonly AttributeApplication[]
+                },
+                extId: {
+                    name: "extId",
+                    type: "String",
+                    optional: true,
+                    attributes: [{ name: "@uuid" }] as readonly AttributeApplication[]
                 },
                 createdAt: {
                     name: "createdAt",
@@ -113,6 +118,11 @@ export class SchemaType implements SchemaDef {
                     type: "Post",
                     array: true,
                     relation: { opposite: "author" }
+                },
+                contacts: {
+                    name: "contacts",
+                    type: "Contact",
+                    array: true
                 }
             },
             attributes: [
@@ -144,8 +154,9 @@ export class SchemaType implements SchemaDef {
                 },
                 tags: {
                     name: "tags",
-                    type: "String",
-                    array: true
+                    type: "PostTag",
+                    array: true,
+                    attributes: [{ name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(2) }, { name: "max", value: ExpressionUtils.literal(3) }] }] as readonly AttributeApplication[]
                 },
                 author: {
                     name: "author",
@@ -166,6 +177,27 @@ export class SchemaType implements SchemaDef {
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "String" }
+            }
+        },
+        Holder: {
+            name: "Holder",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "Int",
+                    id: true,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                },
+                labels: {
+                    name: "labels",
+                    type: "Label",
+                    array: true
+                }
+            },
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "Int" }
             }
         },
         Product: {
@@ -202,13 +234,6 @@ export class SchemaType implements SchemaDef {
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "String" }
-            },
-            computedFields: {
-                finalPrice(_context: {
-                    modelAlias: string;
-                }): number {
-                    throw new Error("This is a stub for computed field");
-                }
             }
         },
         Asset: {
@@ -343,12 +368,77 @@ export class SchemaType implements SchemaDef {
                     name: "zip",
                     type: "String",
                     optional: true
+                },
+                type: {
+                    name: "type",
+                    type: "String"
                 }
             },
             attributes: [
+                { name: "@@validate", args: [{ name: "value", value: ExpressionUtils.binary(ExpressionUtils.field("type"), "in", ExpressionUtils.array("AddressType", [ExpressionUtils.literal("RESIDENTIAL"), ExpressionUtils.literal("COMMERCIAL")])) }] },
                 { name: "@@validate", args: [{ name: "value", value: ExpressionUtils.binary(ExpressionUtils.binary(ExpressionUtils.field("zip"), "==", ExpressionUtils._null()), "||", ExpressionUtils.binary(ExpressionUtils.call("length", [ExpressionUtils.field("zip")]), "==", ExpressionUtils.literal(5))) }, { name: "message", value: ExpressionUtils.literal("Zip code must be exactly 5 characters") }, { name: "path", value: ExpressionUtils.array("String", [ExpressionUtils.literal("zip")]) }] },
                 { name: "@@meta", args: [{ name: "name", value: ExpressionUtils.literal("description") }, { name: "value", value: ExpressionUtils.literal("A mailing address") }] }
             ] as readonly AttributeApplication[]
+        },
+        Label: {
+            name: "Label",
+            base: "String",
+            fields: {
+                this: {
+                    name: "this",
+                    type: "String",
+                    attributes: [{ name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(1) }, { name: "max", value: ExpressionUtils.literal(12) }] }] as readonly AttributeApplication[]
+                }
+            }
+        },
+        Age: {
+            name: "Age",
+            base: "Int",
+            fields: {
+                this: {
+                    name: "this",
+                    type: "Int",
+                    attributes: [{ name: "@gt", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[]
+                }
+            }
+        },
+        Score: {
+            name: "Score",
+            base: "Float",
+            fields: {
+                this: {
+                    name: "this",
+                    type: "Float"
+                }
+            },
+            attributes: [
+                { name: "@@validate", args: [{ name: "value", value: ExpressionUtils.binary(ExpressionUtils._this(), ">=", ExpressionUtils.literal(0.0)) }] },
+                { name: "@@validate", args: [{ name: "value", value: ExpressionUtils.binary(ExpressionUtils._this(), "<", ExpressionUtils.literal(100.0)) }] }
+            ] as readonly AttributeApplication[]
+        },
+        Contact: {
+            name: "Contact",
+            base: "String",
+            fields: {
+                this: {
+                    name: "this",
+                    type: "String"
+                }
+            },
+            attributes: [
+                { name: "@@validate", args: [{ name: "value", value: ExpressionUtils.binary(ExpressionUtils.call("isPhone", [ExpressionUtils._this()]), "||", ExpressionUtils.call("isEmail", [ExpressionUtils._this()])) }] }
+            ] as readonly AttributeApplication[]
+        },
+        PostTag: {
+            name: "PostTag",
+            base: "String",
+            fields: {
+                this: {
+                    name: "this",
+                    type: "String",
+                    attributes: [{ name: "@lower" }, { name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(1) }, { name: "max", value: ExpressionUtils.literal(12) }] }] as readonly AttributeApplication[]
+                }
+            }
         }
     } as const;
     enums = {
@@ -362,6 +452,13 @@ export class SchemaType implements SchemaDef {
             attributes: [
                 { name: "@@meta", args: [{ name: "name", value: ExpressionUtils.literal("description") }, { name: "value", value: ExpressionUtils.literal("User account status") }] }
             ] as readonly AttributeApplication[]
+        },
+        AddressType: {
+            name: "AddressType",
+            values: {
+                RESIDENTIAL: "RESIDENTIAL",
+                COMMERCIAL: "COMMERCIAL"
+            }
         }
     } as const;
     authType = "User" as const;

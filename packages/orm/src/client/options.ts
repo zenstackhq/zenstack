@@ -1,12 +1,23 @@
-import type { GetModel, GetModelFields, GetModels, ProcedureDef, ScalarFields, SchemaDef } from '@zenstackhq/schema';
+import type {
+    FieldIsArray,
+    GetModelField,
+    GetModelFields,
+    GetModelFieldType,
+    GetModels,
+    ModelFieldIsOptional,
+    ProcedureDef,
+    ScalarFields,
+    SchemaDef,
+} from '@zenstackhq/schema';
 import type { Dialect, Expression, ExpressionBuilder, KyselyConfig, OperandExpression } from 'kysely';
 import type { FilterPropertyToKind } from './constants';
 import type { ClientContract, CRUD_EXT } from './contract';
-import type { GetProcedureNames, ProcedureHandlerFunc } from './crud-types';
+import type { ComputedFieldArgs, FieldHasComputedArgs, GetProcedureNames, ProcedureHandlerFunc } from './crud-types';
 import type { BaseCrudDialect } from './crud/dialects/base-dialect';
 import type { AllCrudOperations } from './crud/operations/base';
 import type { AnyPlugin } from './plugin';
 import type { ToKyselySchema } from './query-builder';
+import type { WrapType } from '../utils/type-utils';
 
 export type ZModelFunctionContext<Schema extends SchemaDef> = {
     /**
@@ -140,6 +151,17 @@ type FieldSlicingOptions = {
  */
 export type QueryOptions<Schema extends SchemaDef> = {
     /**
+     * Type-checking options for query arguments.
+     */
+    typing?: {
+        /**
+         * Recursively rejects unknown properties in query arguments. This is opt-in because the
+         * additional precision requires more work from the TypeScript checker.
+         */
+        exactQueryArgs?: boolean;
+    };
+
+    /**
      * Options for omitting fields in ORM query results.
      */
     omit?: OmitConfig<Schema>;
@@ -158,7 +180,7 @@ export type QueryOptions<Schema extends SchemaDef> = {
 
 /**
  * Projects a (typically inferred) client options type down to only the members that influence
- * ORM typing - the {@link QueryOptions} fields (`omit`, `allowQueryTimeOmitOverride`, `slicing`).
+ * ORM typing - the {@link QueryOptions} fields (`typing`, `omit`, `allowQueryTimeOmitOverride`, `slicing`).
  *
  * The full options object inferred at `new ZenStackClient(...)` carries heavy function types for
  * `computedFields` and `procedures`. Those are never read by the model/operation types, but if the
@@ -272,21 +294,88 @@ export type OmitConfig<Schema extends SchemaDef> = {
     };
 };
 
+/**
+ * Context object passed to computed field implementations.
+ */
+export type ComputedFieldContext<Schema extends SchemaDef> = {
+    /**
+     * The alias name that can be used to refer to the containing model
+     */
+    modelAlias: string;
+
+    /**
+     * The ZenStack client executing the query. Useful for reading per-client state,
+     * e.g. the auth context set via `$setAuth`.
+     */
+    client: ClientContract<Schema>;
+};
+
+/**
+ * The computed fields a model declares itself, keyed by name. A computed field inherited from a
+ * delegate base is excluded: it's configured once, on the base model.
+ */
+type OwnComputedFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = keyof {
+    [Field in GetModelFields<Schema, Model> as GetModelField<Schema, Model, Field> extends { computed: true }
+        ? GetModelField<Schema, Model, Field> extends { originModel: string }
+            ? never
+            : Field
+        : never]: Field;
+};
+
+/**
+ * Implementations of the schema's computed fields, keyed by (uncapitalized) model name and then
+ * by field name. Everything is derived from the field definitions: which fields need an
+ * implementation, the query-time `args` of a parameterized field (from its `params` metadata,
+ * the same source the query input types use), and the value type the expression must produce.
+ */
 export type ComputedFieldsOptions<Schema extends SchemaDef> = {
-    [Model in GetModels<Schema> as 'computedFields' extends keyof GetModel<Schema, Model>
-        ? Uncapitalize<Model>
-        : never]: {
-        [Field in keyof Schema['models'][Model]['computedFields']]: Schema['models'][Model]['computedFields'][Field] extends infer Func
-            ? Func extends (...args: any[]) => infer R
-                ? (
-                      // inject a first parameter for expression builder
-                      p: ExpressionBuilder<ToKyselySchema<Schema>, Model>,
-                      ...args: Parameters<Func>
-                  ) => OperandExpression<R> // wrap the return type with Kysely `OperandExpression`
-                : never
-            : never;
+    [Model in GetModels<Schema> as [OwnComputedFields<Schema, Model>] extends [never] ? never : Uncapitalize<Model>]: {
+        [Field in OwnComputedFields<Schema, Model>]: (
+            // inject a first parameter for expression builder
+            p: ExpressionBuilder<ToKyselySchema<Schema>, Model>,
+            // runtime-provided context
+            context: ComputedFieldContext<Schema>,
+            // query-time args of a parameterized field
+            ...args: ComputedFieldImplArgs<Schema, Model, Field>
+        ) => OperandExpression<ComputedFieldResultType<Schema, Model, Field>>;
     };
 };
+
+/**
+ * The trailing parameter list of a computed field implementation: `[args]` for a parameterized
+ * field, empty otherwise.
+ */
+type ComputedFieldImplArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+> = FieldHasComputedArgs<Schema, Model, Field> extends true ? [args: ComputedFieldArgs<Schema, Model, Field>] : [];
+
+/**
+ * The value type a computed field's expression must produce, from the field's declared type.
+ * Scalars map to their JS types (`Decimal` is accepted as `number`); `DateTime`, `Json`,
+ * `Bytes`, enums and type defs are `unknown`, since their database-level representation differs
+ * from the ORM result type. An optional field also accepts `null`, a list field an array.
+ */
+type ComputedFieldResultType<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+> = WrapType<
+    ComputedFieldBaseType<GetModelFieldType<Schema, Model, Field>>,
+    ModelFieldIsOptional<Schema, Model, Field>,
+    FieldIsArray<Schema, Model, Field>
+>;
+
+type ComputedFieldBaseType<T> = T extends 'String'
+    ? string
+    : T extends 'Boolean'
+      ? boolean
+      : T extends 'Int' | 'Float' | 'Decimal'
+        ? number
+        : T extends 'BigInt'
+          ? bigint
+          : unknown;
 
 export type HasComputedFields<Schema extends SchemaDef> =
     string extends GetModels<Schema> ? false : keyof ComputedFieldsOptions<Schema> extends never ? false : true;

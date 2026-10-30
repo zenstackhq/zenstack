@@ -23,12 +23,14 @@ enum Role {
             provider: 'postgresql',
         });
 
-        await expect(client.user.create({
-            data: {
-                id: 1,
-                roles: ['AUTHOR'],
-            },
-        })).resolves.toMatchObject({
+        await expect(
+            client.user.create({
+                data: {
+                    id: 1,
+                    roles: ['AUTHOR'],
+                },
+            }),
+        ).resolves.toMatchObject({
             id: 1,
             roles: ['AUTHOR'],
         });

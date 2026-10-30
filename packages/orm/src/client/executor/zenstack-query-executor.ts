@@ -1,5 +1,5 @@
 import { invariant } from '@zenstackhq/common-helpers';
-import type { ModelDef, SchemaDef, TypeDefDef } from '@zenstackhq/schema';
+import type { SchemaDef } from '@zenstackhq/schema';
 import type { QueryId } from 'kysely';
 import {
     AndNode,
@@ -37,7 +37,7 @@ import { getCrudDialect } from '../crud/dialects';
 import type { BaseCrudDialect } from '../crud/dialects/base-dialect';
 import { createDBQueryError, createInternalError, ORMError } from '../errors';
 import type { AfterEntityMutationCallback, OnKyselyQueryCallback } from '../plugin';
-import { requireIdFields, stripAlias } from '../query-utils';
+import { requireIdFields, schemaHasMappedNames, stripAlias } from '../query-utils';
 import { QueryNameMapper } from './name-mapper';
 import { TempAliasTransformer } from './temp-alias-transformer';
 import type { ZenStackDriver } from './zenstack-driver';
@@ -86,28 +86,30 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
         private readonly connectionProvider: ConnectionProvider,
         plugins: KyselyPlugin[] = [],
         private suppressMutationHooks: boolean = false,
+        nameMapper?: QueryNameMapper,
     ) {
         super(compiler, adapter, connectionProvider, plugins);
 
-        if (
-            client.$schema.provider.type === 'postgresql' || // postgres queries need to be schema-qualified
-            this.schemaHasMappedNames(client.$schema)
-        ) {
-            this.nameMapper = new QueryNameMapper(client as unknown as ClientContract<SchemaDef>);
-        }
+        // A `QueryNameMapper` is derived purely from the client's `$schema` and `$options`, and building
+        // it is O(models x fields) (plus an O(models x relations) pass for postgres). Reuse the one from
+        // the executor/client we're derived from when it was built from the same schema and options,
+        // otherwise every derived executor rebuilds whole-schema state. See issue #2773.
+        this.nameMapper =
+            nameMapper ??
+            (client.$schema.provider.type === 'postgresql' || // postgres queries need to be schema-qualified
+            schemaHasMappedNames(client.$schema)
+                ? new QueryNameMapper(client.$contract)
+                : undefined);
 
-        this.dialect = getCrudDialect(client.$schema, client.$options);
+        this.dialect = getCrudDialect(client.$contract);
     }
 
-    private schemaHasMappedNames(schema: SchemaDef) {
-        const hasMapAttr = (decl: ModelDef | TypeDefDef) => {
-            if (decl.attributes?.some((attr) => attr.name === '@@map')) {
-                return true;
-            }
-            return Object.values(decl.fields).some((field) => field.attributes?.some((attr) => attr.name === '@map'));
-        };
-
-        return Object.values(schema.models).some(hasMapAttr) || Object.values(schema.typeDefs ?? []).some(hasMapAttr);
+    /**
+     * The name mapper built for this executor's schema, if the schema needs one. Exposed so that
+     * derived clients built from the same schema and options can reuse it instead of rebuilding it.
+     */
+    getNameMapper() {
+        return this.nameMapper;
     }
 
     private get kysely() {
@@ -123,7 +125,12 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
     }
 
     private get hasEntityMutationPluginsWithAfterMutationHooks() {
-        return (this.client.$options.plugins ?? []).some((plugin) => plugin.onEntityMutation?.afterEntityMutation);
+        return (this.client.$options.plugins ?? []).some((plugin) => {
+            if (!plugin.onEntityMutation) return false;
+            if (plugin.onEntityMutation['$all']?.afterEntityMutation) return true;
+            const models = Object.keys(this.client.$schema.models);
+            return models.some((model) => (plugin.onEntityMutation as any)?.[model]?.afterEntityMutation);
+        });
     }
 
     private get hasOnKyselyHooks() {
@@ -210,7 +217,7 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
             proceed = async (query: RootOperationNode) => {
                 const _p = (q: RootOperationNode) => _proceed(q);
                 const hookResult = await hook!({
-                    client: this.client as unknown as ClientContract<SchemaDef>,
+                    client: this.client.$contract,
                     schema: this.client.$schema,
                     query,
                     proceed: _p,
@@ -351,18 +358,34 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
         if (this.options.plugins) {
             for (const plugin of this.options.plugins) {
                 const onEntityMutation = plugin.onEntityMutation;
-                if (!onEntityMutation?.beforeEntityMutation) {
+                if (!onEntityMutation) {
                     continue;
                 }
 
-                await onEntityMutation.beforeEntityMutation({
-                    model: mutationInfo.model,
-                    action: mutationInfo.action,
-                    queryNode,
-                    loadBeforeMutationEntities,
-                    client,
-                    queryId,
-                });
+                // all-model hook
+                if (onEntityMutation['$all']?.beforeEntityMutation) {
+                    await onEntityMutation['$all'].beforeEntityMutation({
+                        model: mutationInfo.model,
+                        action: mutationInfo.action,
+                        queryNode,
+                        loadBeforeMutationEntities,
+                        client,
+                        queryId,
+                    });
+                }
+
+                // per-model hook
+                const modelHooks = (onEntityMutation as Record<string, any>)[mutationInfo.model];
+                if (modelHooks?.beforeEntityMutation) {
+                    await modelHooks.beforeEntityMutation({
+                        model: mutationInfo.model,
+                        action: mutationInfo.action,
+                        queryNode,
+                        loadBeforeMutationEntities,
+                        client,
+                        queryId,
+                    });
+                }
             }
         }
     }
@@ -373,22 +396,29 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
 
         const hooks: AfterEntityMutationCallback<SchemaDef>[] = [];
 
-        // tsc perf
         for (const plugin of this.options.plugins ?? []) {
             const onEntityMutation = plugin.onEntityMutation;
 
-            if (!onEntityMutation?.afterEntityMutation) {
-                continue;
-            }
-            if (filterFor === 'inTx' && !onEntityMutation.runAfterMutationWithinTransaction) {
+            if (!onEntityMutation) {
                 continue;
             }
 
-            if (filterFor === 'outTx' && onEntityMutation.runAfterMutationWithinTransaction) {
-                continue;
+            // all-model hook
+            if (onEntityMutation['$all']?.afterEntityMutation) {
+                const runInTx = onEntityMutation['$all'].runAfterMutationWithinTransaction ?? false;
+                if (filterFor === 'all' || (filterFor === 'inTx' && runInTx) || (filterFor === 'outTx' && !runInTx)) {
+                    hooks.push(onEntityMutation['$all'].afterEntityMutation.bind(plugin));
+                }
             }
 
-            hooks.push(onEntityMutation.afterEntityMutation.bind(plugin));
+            // per-model hook
+            const modelHooks = (onEntityMutation as Record<string, any>)[mutationInfo.model];
+            if (modelHooks?.afterEntityMutation) {
+                const runInTx = modelHooks.runAfterMutationWithinTransaction ?? false;
+                if (filterFor === 'all' || (filterFor === 'inTx' && runInTx) || (filterFor === 'outTx' && !runInTx)) {
+                    hooks.push(modelHooks.afterEntityMutation.bind(plugin));
+                }
+            }
         }
 
         if (hooks.length === 0) {
@@ -420,8 +450,11 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
         }
 
         if (this.dialect.supportsReturning) {
-            // entities are returned in the query result
-            return queryResult.rows as Record<string, unknown>[];
+            // entities are returned in the query result; shallow-copy the rows so that
+            // hooks (which may run after the ORM has post-processed the query result
+            // in place, e.g., when deferred to after transaction commit) always see
+            // raw database rows
+            return (queryResult.rows as Record<string, unknown>[]).map((row) => ({ ...row }));
         } else {
             const mutatedIds = InsertQueryNode.is(queryNode)
                 ? this.getInsertIds(mutationInfo.model, queryNode, queryResult)
@@ -660,7 +693,7 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
         if (inTx) {
             innerClient.forceTransaction();
         }
-        return innerClient as unknown as ClientContract<SchemaDef>;
+        return innerClient.$contract;
     }
 
     private andNodes(condition1: WhereNode | undefined, condition2: WhereNode | undefined) {
@@ -770,6 +803,7 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             this.connectionProvider,
             [...this.plugins, plugin],
             this.suppressMutationHooks,
+            this.nameMapper,
         );
     }
 
@@ -782,6 +816,7 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             this.connectionProvider,
             [...this.plugins, ...plugins],
             this.suppressMutationHooks,
+            this.nameMapper,
         );
     }
 
@@ -794,6 +829,7 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             this.connectionProvider,
             [plugin, ...this.plugins],
             this.suppressMutationHooks,
+            this.nameMapper,
         );
     }
 
@@ -806,6 +842,7 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             this.connectionProvider,
             [],
             this.suppressMutationHooks,
+            this.nameMapper,
         );
     }
 
@@ -818,6 +855,7 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             connectionProvider,
             this.plugins as KyselyPlugin[],
             this.suppressMutationHooks,
+            this.nameMapper,
         );
         // replace client with a new one associated with the new executor
         newExecutor.client = this.client.withExecutor(newExecutor);

@@ -5,16 +5,16 @@
 
 /* eslint-disable */
 
-import { schema as $schema, type SchemaType as $Schema } from "./schema";
-import type { ModelResult as $ModelResult, TypeDefResult as $TypeDefResult } from "@zenstackhq/orm";
-export type User = $ModelResult<$Schema, "User">;
-export type Post = $ModelResult<$Schema, "Post">;
-export type Profile = $ModelResult<$Schema, "Profile">;
-export type Tag = $ModelResult<$Schema, "Tag">;
-export type Region = $ModelResult<$Schema, "Region">;
-export type Meta = $ModelResult<$Schema, "Meta">;
-export type Identity = $TypeDefResult<$Schema, "Identity">;
-export type IdentityProvider = $TypeDefResult<$Schema, "IdentityProvider">;
+import { schema as $schema, type SchemaType as $Schema } from './schema';
+import type { ModelResult as $ModelResult, TypeDefResult as $TypeDefResult } from '@zenstackhq/orm';
+export type User = $ModelResult<$Schema, 'User'>;
+export type Post = $ModelResult<$Schema, 'Post'>;
+export type Profile = $ModelResult<$Schema, 'Profile'>;
+export type Tag = $ModelResult<$Schema, 'Tag'>;
+export type Region = $ModelResult<$Schema, 'Region'>;
+export type Meta = $ModelResult<$Schema, 'Meta'>;
+export type Identity = $TypeDefResult<$Schema, 'Identity'>;
+export type IdentityProvider = $TypeDefResult<$Schema, 'IdentityProvider'>;
 export const Role = $schema.enums.Role.values;
 export type Role = (typeof Role)[keyof typeof Role];
 export const Status = $schema.enums.Status.values;

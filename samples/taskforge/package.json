@@ -1,6 +1,6 @@
 {
     "name": "taskforge",
-    "version": "3.8.3",
+    "version": "3.10.0",
     "type": "module",
     "private": true,
     "description": "A CLI for a team collaboration / project-tracking platform, built on ZenStack v3 (ORM) and better-auth.",
@@ -18,12 +18,12 @@
         "@zenstackhq/better-auth": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
         "@zenstackhq/schema": "workspace:*",
-        "better-auth": "^1.4.21",
+        "better-auth": "^1.7.12",
         "better-sqlite3": "catalog:",
         "commander": "^14.0.2"
     },
     "devDependencies": {
-        "@better-auth/cli": "^1.4.21",
+        "auth": "^1.7.12",
         "@types/better-sqlite3": "catalog:",
         "@types/node": "catalog:",
         "@zenstackhq/cli": "workspace:*"

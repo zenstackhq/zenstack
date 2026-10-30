@@ -6,6 +6,7 @@ import { match, P } from 'ts-pattern';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
 import type { OrArray } from '../../../utils/type-utils';
 import { AggregateOperators, DELEGATE_JOINED_FIELD_PREFIX, LOGICAL_COMBINATORS } from '../../constants';
+import type { ClientContract } from '../../contract';
 import type {
     BooleanFilter,
     BytesFilter,
@@ -27,6 +28,7 @@ import {
     getModelFields,
     getRelationForeignKeyFieldPairs,
     isEnum,
+    isPrimitiveTypeDef,
     isTypeDef,
     makeDefaultOrderBy,
     requireField,
@@ -36,15 +38,40 @@ import {
     tmpAlias,
 } from '../../query-utils';
 
+/**
+ * Arguments for constructing a CRUD dialect: either the client executing the queries — schema
+ * and options are derived from it, and it's handed to computed field implementations — or a
+ * standalone schema/options pair for uses that have no client (e.g. output transformation).
+ */
+export type CrudDialectArgs<Schema extends SchemaDef> =
+    | [client: ClientContract<Schema>]
+    | [schema: Schema, options: ClientOptions<Schema>];
+
 export abstract class BaseCrudDialect<Schema extends SchemaDef> {
     protected eb = expressionBuilder<any, any>();
 
-    constructor(
-        protected readonly schema: Schema,
-        protected readonly options: ClientOptions<Schema>,
-    ) {}
+    protected readonly schema: Schema;
+    protected readonly options: ClientOptions<Schema>;
 
-    // #region capability flags
+    /**
+     * The client executing the query. Unset only when the dialect was constructed from a
+     * standalone schema/options pair, in which case it cannot evaluate computed fields.
+     */
+    protected readonly client: ClientContract<Schema> | undefined;
+
+    constructor(...args: CrudDialectArgs<Schema>) {
+        if (args.length === 1) {
+            const [client] = args;
+            this.client = client;
+            this.schema = client.$schema;
+            this.options = client.$options;
+        } else {
+            [this.schema, this.options] = args;
+            this.client = undefined;
+        }
+    }
+
+    // #region capability flags1
 
     /**
      * Whether the dialect supports updating with a limit on the number of updated rows.
@@ -177,6 +204,12 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                         if (typeof ob !== 'object' || ob === null) return undefined;
                         if ('_fuzzyRelevance' in ob) return '_fuzzyRelevance';
                         if ('_ftsRelevance' in ob) return '_ftsRelevance';
+                        // a parameterized computed field orders by `{ args, sort }`; its sort
+                        // key is not a real column, so it can't participate in a cursor compare
+                        const argsEntry = Object.entries(ob).find(
+                            ([, v]) => v !== null && typeof v === 'object' && 'args' in (v as object),
+                        );
+                        if (argsEntry) return argsEntry[0];
                         return undefined;
                     })
                     .find((k) => k !== undefined);
@@ -230,19 +263,40 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             if (fieldDef.relation) {
                 result = this.and(result, this.buildRelationFilter(model, modelAlias, key, fieldDef, payload));
             } else {
+                // a parameterized computed field carries its query-time `args` alongside the filter
+                // operators; pull them out so they reach the implementation, and filter on the rest
+                let computedArgs: unknown;
+                let filterPayload = payload;
+                if (
+                    fieldDef.computed &&
+                    fieldDef.params &&
+                    payload &&
+                    typeof payload === 'object' &&
+                    'args' in payload
+                ) {
+                    computedArgs = (payload as any).args;
+                    const { args: _args, ...rest } = payload as any;
+                    filterPayload = rest;
+                }
                 // if the field is from a base model, build a reference from that model
-                const fieldRef = this.fieldRef(fieldDef.originModel ?? model, key, fieldDef.originModel ?? modelAlias);
+                const fieldRef = this.fieldRef(
+                    fieldDef.originModel ?? model,
+                    key,
+                    this.delegateFieldAlias(model, modelAlias, fieldDef),
+                    true,
+                    computedArgs,
+                );
                 if (fieldDef.array) {
-                    result = this.and(result, this.buildArrayFilter(fieldRef, fieldDef, payload));
+                    result = this.and(result, this.buildArrayFilter(fieldRef, fieldDef, filterPayload));
                 } else {
-                    result = this.and(result, this.buildPrimitiveFilter(fieldRef, fieldDef, payload));
+                    result = this.and(result, this.buildPrimitiveFilter(fieldRef, fieldDef, filterPayload));
                 }
             }
         }
 
         // call expression builder and combine the results
         if ('$expr' in _where && typeof _where['$expr'] === 'function') {
-            result = this.and(result, _where['$expr'](this.eb));
+            result = this.and(result, _where['$expr'](this.eb, { modelAlias }));
         }
 
         return result;
@@ -274,10 +328,10 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                 const _order = negateOrderBy ? (order === 'asc' ? 'desc' : 'asc') : order;
                 const op = j === i ? (_order === 'asc' ? '>=' : '<=') : '=';
                 // Fields inherited from a delegate base live on the base table, which is
-                // joined with its model name as alias. See buildSelectModel/buildDelegateJoin.
+                // joined under `delegateJoinAlias`. See buildSelectModel/buildDelegateJoin.
                 const fieldDef = requireField(this.schema, model, field);
-                const outerAlias = fieldDef.originModel ?? modelAlias;
-                const subSelectAlias = fieldDef.originModel ?? subQueryAlias;
+                const outerAlias = this.delegateFieldAlias(model, modelAlias, fieldDef);
+                const subSelectAlias = this.delegateFieldAlias(model, subQueryAlias, fieldDef);
                 andFilters.push(
                     this.eb(
                         this.eb.ref(`${outerAlias}.${field}`),
@@ -377,12 +431,13 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             this.schema,
             model,
             // if field is from a base, use the base model to join
-            fieldDef.originModel ?? modelAlias,
+            this.delegateFieldAlias(model, modelAlias, fieldDef),
             field,
             joinAlias,
         );
-        const baseJoin = this.eb
-            .selectFrom(`${fieldDef.type} as ${joinAlias}`)
+        // use `buildSelectModel` so that delegate base tables are joined - the filter may
+        // reference fields inherited from a base, which live on the base table
+        const baseJoin = this.buildSelectModel(fieldDef.type, joinAlias)
             .select(this.eb.lit(1).as('_'))
             .where(() =>
                 this.and(...joinPairs.map(([left, right]) => this.eb(this.eb.ref(left), '=', this.eb.ref(right)))),
@@ -604,15 +659,25 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             return this.buildEnumFilter(fieldRef, fieldDef, payload);
         }
 
+        let type = fieldDef.type;
+
         if (isTypeDef(this.schema, fieldDef.type)) {
-            if (payload instanceof DbNullClass || payload instanceof JsonNullClass || payload instanceof AnyNullClass) {
-                // null sentinel passed directly (e.g. where: { field: DbNull }) — treat like { equals: sentinel }
-                return this.buildJsonValueFilterClause(fieldRef, payload);
+            if (isPrimitiveTypeDef(this.schema, fieldDef.type)) {
+                type = this.schema['typeDefs']![fieldDef.type]!['base']!;
+            } else {
+                if (
+                    payload instanceof DbNullClass ||
+                    payload instanceof JsonNullClass ||
+                    payload instanceof AnyNullClass
+                ) {
+                    // null sentinel passed directly (e.g. where: { field: DbNull }) — treat like { equals: sentinel }
+                    return this.buildJsonValueFilterClause(fieldRef, payload);
+                }
+                return this.buildJsonFilter(fieldRef, payload, fieldDef);
             }
-            return this.buildJsonFilter(fieldRef, payload, fieldDef);
         }
 
-        return match(fieldDef.type as BuiltinType)
+        return match(type as BuiltinType)
             .with('String', () => this.buildStringFilter(fieldRef, payload, fieldDef))
             .with(P.union('Int', 'Float', 'Decimal', 'BigInt'), (type) =>
                 this.buildNumberFilter(fieldRef, type, payload),
@@ -785,15 +850,18 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                 const fieldDef = typeDef.fields[key];
                 invariant(fieldDef, `Field "${key}" not found in type definition "${typeDefName}"`);
                 const fieldReceiver = this.buildJsonPathSelection(receiver, `$.${key}`);
-                if (isTypeDef(this.schema, fieldDef.type)) {
+                if (isTypeDef(this.schema, fieldDef.type) && !isPrimitiveTypeDef(this.schema, fieldDef.type)) {
                     clauses.push(this.buildTypedJsonFilter(fieldReceiver, value, fieldDef.type, !!fieldDef.array));
                 } else {
                     if (fieldDef.array) {
                         clauses.push(this.buildArrayFilter(fieldReceiver, fieldDef, value));
                     } else {
+                        const effectiveType = isPrimitiveTypeDef(this.schema, fieldDef.type)
+                            ? this.schema.typeDefs![fieldDef.type]!.base!
+                            : fieldDef.type;
                         let _receiver = fieldReceiver;
-                        if (fieldDef.type === 'String') {
-                            // trim quotes for string fields
+                        if (effectiveType === 'String' || isEnum(this.schema, effectiveType)) {
+                            // trim quotes for string and enum fields (enums are stored as JSON strings)
                             _receiver = this.trimTextQuotes(this.castText(fieldReceiver));
                         }
                         clauses.push(this.buildPrimitiveFilter(_receiver, fieldDef, value));
@@ -1113,11 +1181,17 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
         let result = query;
 
-        const buildFieldRef = (model: string, field: string, modelAlias: string) => {
+        const buildFieldRef = (model: string, field: string, modelAlias: string, computedArgs?: unknown) => {
             const fieldDef = requireField(this.schema, model, field);
             return fieldDef.originModel
-                ? this.fieldRef(fieldDef.originModel, field, fieldDef.originModel)
-                : this.fieldRef(model, field, modelAlias);
+                ? this.fieldRef(
+                      fieldDef.originModel,
+                      field,
+                      this.delegateJoinAlias(model, modelAlias, fieldDef.originModel),
+                      true,
+                      computedArgs,
+                  )
+                : this.fieldRef(model, field, modelAlias, true, computedArgs);
         };
 
         enumerate(orderBy).forEach((orderBy, index) => {
@@ -1215,12 +1289,25 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
         // order by to-one relation
         const joinAlias = tmpAlias(`${modelAlias}$ob$${index}`);
-        const joined = query.leftJoin(`${relationModel} as ${joinAlias}`, (join) => {
-            const joinPairs = buildJoinPairs(this.schema, model, modelAlias, field, joinAlias);
+        let joined = query.leftJoin(`${relationModel} as ${joinAlias}`, (join) => {
+            const joinPairs = buildJoinPairs(
+                this.schema,
+                model,
+                // if field is from a base, use the base model to join
+                this.delegateFieldAlias(model, modelAlias, fieldDef),
+                field,
+                joinAlias,
+            );
             return join.on((eb) =>
                 this.and(...joinPairs.map(([left, right]) => eb(this.eb.ref(left), '=', this.eb.ref(right)))),
             );
         });
+        // join delegate bases so that the ordering can reference inherited fields
+        let joinBase = requireModel(this.schema, relationModel).baseModel;
+        while (joinBase) {
+            joined = this.buildDelegateJoin(relationModel, joinAlias, joinBase, joined);
+            joinBase = requireModel(this.schema, joinBase).baseModel;
+        }
         return this.buildOrderBy(joined, relationModel, joinAlias, value, negated, take);
     }
 
@@ -1231,9 +1318,11 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         field: string,
         value: any,
         negated: boolean,
-        buildFieldRef: (model: string, field: string, modelAlias: string) => Expression<any>,
+        buildFieldRef: (model: string, field: string, modelAlias: string, computedArgs?: unknown) => Expression<any>,
     ): SelectQueryBuilder<any, any, any> {
-        const fieldRef = buildFieldRef(model, field, modelAlias);
+        // a parameterized computed field carries its query-time args alongside `sort`/`nulls`
+        const computedArgs = value && typeof value === 'object' && 'args' in value ? value.args : undefined;
+        const fieldRef = buildFieldRef(model, field, modelAlias, computedArgs);
         if (value === 'asc' || value === 'desc') {
             return query.orderBy(fieldRef, this.negateSort(value, negated));
         }
@@ -1255,16 +1344,26 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         field: AggregateOperators,
         value: any,
         negated: boolean,
-        buildFieldRef: (model: string, field: string, modelAlias: string) => Expression<any>,
+        buildFieldRef: (model: string, field: string, modelAlias: string, computedArgs?: unknown) => Expression<any>,
     ): SelectQueryBuilder<any, any, any> {
-        invariant(typeof value === 'object', `invalid orderBy value for field "${field}"`);
+        if (!isPlainObject(value)) {
+            throw createInvalidInputError(`invalid orderBy value for field "${field}"`);
+        }
         let result = query;
-        for (const [k, v] of Object.entries<SortOrder>(value)) {
-            invariant(v === 'asc' || v === 'desc', `invalid orderBy value for field "${field}"`);
-            result = result.orderBy(
-                (eb) => aggregate(eb, buildFieldRef(model, k, modelAlias), field),
-                this.negateSort(v, negated),
-            );
+        for (const [k, v] of Object.entries<any>(value)) {
+            // entry value is either a plain sort order, or an object carrying `sort`/`nulls` and
+            // the query-time `args` of a parameterized computed field
+            const sort = isPlainObject(v) ? v['sort'] : v;
+            if (sort !== 'asc' && sort !== 'desc') {
+                throw createInvalidInputError(`invalid orderBy value for field "${field}"`);
+            }
+            const computedArgs = isPlainObject(v) && 'args' in v ? v['args'] : undefined;
+            const aggExpr = aggregate(this.eb, buildFieldRef(model, k, modelAlias, computedArgs), field);
+            const nulls = isPlainObject(v) ? v['nulls'] : undefined;
+            result =
+                nulls === 'first' || nulls === 'last'
+                    ? this.buildOrderByField(result, aggExpr, this.negateSort(sort, negated), nulls)
+                    : result.orderBy(aggExpr, this.negateSort(sort, negated));
         }
         return result;
     }
@@ -1365,11 +1464,27 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         query: SelectQueryBuilder<any, any, any>,
         omit: Record<string, boolean | undefined> | undefined | null,
         modelAlias: string,
+        options?: {
+            /**
+             * When false, query-level, client-level, and schema-level omit settings are all
+             * ignored for the model's own fields and every field is selected. Omission is
+             * still applied to the JSON packed from delegate descendants, since those fields
+             * are never referenced by joins or ordering and the packed JSON is copied to
+             * the final result as-is.
+             */
+            applyOmit?: boolean;
+        },
     ) {
         let result = query;
+        const applyOmit = options?.applyOmit ?? true;
 
         for (const fieldDef of getModelFields(this.schema, model, { inherited: true, computed: true })) {
-            if (this.shouldOmitField(omit, model, fieldDef.name)) {
+            if (applyOmit && this.shouldOmitField(omit, model, fieldDef.name)) {
+                continue;
+            }
+            // parameterized computed fields can't be auto-selected — they require
+            // query-time args, so they're only usable in `orderBy`
+            if (fieldDef.computed && fieldDef.params) {
                 continue;
             }
             result = this.buildSelectField(result, model, modelAlias, fieldDef.name);
@@ -1379,13 +1494,18 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         const descendants = getDelegateDescendantModels(this.schema, model);
         for (const subModel of descendants) {
             result = this.buildDelegateJoin(model, modelAlias, subModel.name, result);
+            const subModelAlias = this.delegateJoinAlias(model, modelAlias, subModel.name);
             result = result.select(() => {
                 const jsonObject: Record<string, Expression<any>> = {};
                 for (const fieldDef of getModelFields(this.schema, subModel.name, { computed: true })) {
                     if (this.shouldOmitField(omit, subModel.name, fieldDef.name)) {
                         continue;
                     }
-                    jsonObject[fieldDef.name] = this.fieldRef(subModel.name, fieldDef.name, subModel.name);
+                    // parameterized computed fields require query-time args; not auto-selected
+                    if (fieldDef.computed && fieldDef.params) {
+                        continue;
+                    }
+                    jsonObject[fieldDef.name] = this.fieldRef(subModel.name, fieldDef.name, subModelAlias);
                 }
                 return this.buildJsonObject(jsonObject).as(`${DELEGATE_JOINED_FIELD_PREFIX}${subModel.name}`);
             });
@@ -1423,12 +1543,11 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         let subQuery = this.buildSelectModel(model, subQueryAlias);
 
         if (selectAllFields) {
-            subQuery = this.buildSelectAllFields(
-                model,
-                subQuery,
-                typeof payload === 'object' ? payload?.omit : undefined,
-                subQueryAlias,
-            );
+            // omission (query-level, client-level, or schema-level) is intentionally not
+            // applied here: this select feeds a derived subquery whose columns are needed by
+            // nested relation joins (PK/FK fields) and by ordering of the aggregated result,
+            // and the outer JSON object projection handles omission on its own
+            subQuery = this.buildSelectAllFields(model, subQuery, undefined, subQueryAlias, { applyOmit: false });
         }
 
         if (payload && typeof payload === 'object') {
@@ -1443,31 +1562,52 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         model: string,
         modelAlias: string,
         field: string,
+        computedArgs?: unknown,
     ): SelectQueryBuilder<any, any, any> {
         const fieldDef = requireField(this.schema, model, field);
 
-        // if field is defined on a delegate base, the base model is joined with its
-        // model name from outer query, so we should use it directly as the alias
+        // if field is defined on a delegate base, it's selected from the joined base table
         const fieldModel = fieldDef.originModel ?? model;
-        const alias = fieldDef.originModel ?? modelAlias;
+        const alias = this.delegateFieldAlias(model, modelAlias, fieldDef);
 
-        return query.select(() => this.fieldRef(fieldModel, field, alias).as(field));
+        // `computedArgs` is set for a parameterized computed field selected via `select`/`include`
+        return query.select(() => this.fieldRef(fieldModel, field, alias, true, computedArgs).as(field));
     }
 
     buildDelegateJoin(
         thisModel: string,
         thisModelAlias: string,
-        otherModelAlias: string,
+        otherModel: string,
         query: SelectQueryBuilder<any, any, any>,
     ) {
         const idFields = requireIdFields(this.schema, thisModel);
-        query = query.leftJoin(otherModelAlias, (qb) => {
+        const otherModelAlias = this.delegateJoinAlias(thisModel, thisModelAlias, otherModel);
+        const table = otherModelAlias === otherModel ? otherModel : `${otherModel} as ${otherModelAlias}`;
+        query = query.leftJoin(table, (qb) => {
             for (const idField of idFields) {
                 qb = qb.onRef(`${thisModelAlias}.${idField}`, '=', `${otherModelAlias}.${idField}`);
             }
             return qb;
         });
         return query;
+    }
+
+    /**
+     * Gets the alias under which a delegate base or sub model is joined to a model selected as `modelAlias`.
+     * A model selected under its own name (a top-level query) has them joined under their own model names.
+     * A model selected under another alias (a relation subquery) has them joined under aliases derived from
+     * it, so they never shadow a table of an enclosing query in the same delegate hierarchy.
+     */
+    delegateJoinAlias(model: string, modelAlias: string, joinedModel: string) {
+        return modelAlias === model ? joinedModel : tmpAlias(`${modelAlias}$${joinedModel}`);
+    }
+
+    /**
+     * Gets the alias of the table holding a field of a model selected as `modelAlias`: the joined base
+     * table for a field inherited from a delegate base, otherwise the model's own table.
+     */
+    delegateFieldAlias(model: string, modelAlias: string, fieldDef: FieldDef) {
+        return fieldDef.originModel ? this.delegateJoinAlias(model, modelAlias, fieldDef.originModel) : modelAlias;
     }
 
     buildCountJson(model: string, eb: ExpressionBuilder<any, any>, parentAlias: string, payload: any) {
@@ -1586,7 +1726,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         return this.eb.not(this.and(...args));
     }
 
-    fieldRef(model: string, field: string, modelAlias?: string, inlineComputedField = true) {
+    fieldRef(model: string, field: string, modelAlias?: string, inlineComputedField = true, computedArgs?: unknown) {
         const fieldDef = requireField(this.schema, model, field);
 
         if (!fieldDef.computed) {
@@ -1609,7 +1749,13 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             if (!computer) {
                 throw createConfigError(`Computed field "${field}" implementation not provided for model "${model}"`);
             }
-            return computer(this.eb, { modelAlias });
+            // every query issued through the ORM builds the dialect from a client, and a dialect
+            // built from a standalone schema/options pair never inlines computed fields
+            invariant(this.client, `computed field "${field}" of model "${model}" needs a client to be evaluated`);
+            // `computedArgs` is the query-time args of a parameterized computed field (undefined
+            // otherwise), forwarded as the implementation's 3rd argument. The result is parenthesized
+            // as it gets embedded into larger expressions: `where: { isMine: true }` → `(<expr>) = $n`.
+            return this.eb.parens(computer(this.eb, { modelAlias, client: this.client }, computedArgs));
         }
     }
 
@@ -1617,8 +1763,8 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         modelDef: ModelDef,
         payload: boolean | FindArgs<Schema, GetModels<Schema>, any, true>,
     ) {
-        if (modelDef.computedFields) {
-            // computed fields requires explicit select
+        if (Object.values(modelDef.fields).some((f) => f.computed)) {
+            // computed fields require explicit select
             return false;
         }
 

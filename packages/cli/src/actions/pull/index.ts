@@ -1,12 +1,6 @@
 import type { ZModelServices } from '@zenstackhq/language';
 import colors from 'colors';
-import {
-    isEnum,
-    type DataField,
-    type DataModel,
-    type Enum,
-    type Model,
-} from '@zenstackhq/language/ast';
+import { isEnum, type DataField, type DataModel, type Enum, type Model } from '@zenstackhq/language/ast';
 import {
     DataFieldAttributeFactory,
     DataFieldFactory,
@@ -79,8 +73,12 @@ export function syncEnums({
         // For providers that don't support native enums (e.g., SQLite), carry over
         // enum declarations from the existing schema as-is by deep-cloning the AST nodes.
         // A dummy buildReference is used since we don't need cross-reference resolution.
-        const dummyBuildReference = (_node: AstNode, _property: string, _refNode: CstNode | undefined, refText: string): Reference<AstNode> =>
-            ({ $refText: refText }) as Reference<AstNode>;
+        const dummyBuildReference = (
+            _node: AstNode,
+            _property: string,
+            _refNode: CstNode | undefined,
+            refText: string,
+        ): Reference<AstNode> => ({ $refText: refText }) as Reference<AstNode>;
 
         oldModel.declarations
             .filter((d) => isEnum(d))
@@ -181,7 +179,6 @@ export function syncTable({
     }
 
     table.columns.forEach((column) => {
-
         const { name, modified } = resolveNameCasing(options.fieldCasing, column.name);
 
         const builtinType = provider.getBuiltinType(column.datatype);
@@ -259,9 +256,10 @@ export function syncTable({
                     b.setDecl(uniqueAttribute);
                     // Only add map if the unique constraint name differs from default patterns
                     // Default patterns: TableName_columnName_key (Prisma) or just columnName (MySQL)
-                    const isDefaultName = !column.unique_name
-                        || column.unique_name === `${table.name}_${column.name}_key`
-                        || column.unique_name === column.name;
+                    const isDefaultName =
+                        !column.unique_name ||
+                        column.unique_name === `${table.name}_${column.name}_key` ||
+                        column.unique_name === column.name;
                     if (!isDefaultName) {
                         b.addArg((ab) => ab.StringLiteral.setValue(column.unique_name!), 'map');
                     }
@@ -296,9 +294,7 @@ export function syncTable({
         );
     }
 
-    const hasUniqueConstraint =
-        table.columns.some((c) => c.unique || c.pk) ||
-        table.indexes.some((i) => i.unique);
+    const hasUniqueConstraint = table.columns.some((c) => c.unique || c.pk) || table.indexes.some((i) => i.unique);
     if (!hasUniqueConstraint) {
         modelFactory.addAttribute((a) => a.setDecl(getAttributeRef('@@ignore', services)));
         modelFactory.addComment(
@@ -342,8 +338,7 @@ export function syncTable({
             return;
         }
 
-        modelFactory.addAttribute((builder) =>
-        {
+        modelFactory.addAttribute((builder) => {
             const attr = builder
                 .setDecl(index.unique ? modelUniqueAttribute : modelindexAttribute)
                 .addArg((argBuilder) => {
@@ -364,16 +359,14 @@ export function syncTable({
                     return arrayExpr;
                 });
 
-                const suffix = index.unique ? '_key' : '_idx';
+            const suffix = index.unique ? '_key' : '_idx';
 
-                if(index.name !== `${table.name}_${index.columns.map(c => c.name).join('_')}${suffix}`){
-                    attr.addArg((argBuilder) => argBuilder.StringLiteral.setValue(index.name), 'map');
-                }
+            if (index.name !== `${table.name}_${index.columns.map((c) => c.name).join('_')}${suffix}`) {
+                attr.addArg((argBuilder) => argBuilder.StringLiteral.setValue(index.name), 'map');
+            }
 
-            return attr
-        }
-
-        );
+            return attr;
+        });
     });
     if (table.schema && table.schema !== '' && table.schema !== defaultSchema) {
         modelFactory.addAttribute((b) =>
@@ -450,7 +443,9 @@ export function syncRelation({
 
     // Derive a relation field name from the FK scalar field: if the field ends with "Id",
     // strip the suffix and use the remainder (e.g., "authorId" -> "author").
-    const sourceNameFromReference = firstSourceField.name.toLowerCase().endsWith('id') ? `${resolveNameCasing(options.fieldCasing, firstSourceField.name.slice(0, -2)).name}${relation.type === 'many'? 's' : ''}` : undefined;
+    const sourceNameFromReference = firstSourceField.name.toLowerCase().endsWith('id')
+        ? `${resolveNameCasing(options.fieldCasing, firstSourceField.name.slice(0, -2)).name}${relation.type === 'many' ? 's' : ''}`
+        : undefined;
 
     // Check if the derived name would clash with an existing field
     const sourceFieldFromReference = sourceModel.fields.find((f) => f.name === sourceNameFromReference);
@@ -462,7 +457,7 @@ export function syncRelation({
         options.fieldCasing,
         similarRelations > 0
             ? `${fieldPrefix}${lowerCaseFirst(sourceModel.name)}_${firstColumn}`
-            : `${(!sourceFieldFromReference? sourceNameFromReference : undefined) || lowerCaseFirst(resolveNameCasing(options.fieldCasing, targetModel.name).name)}${relation.type === 'many'? 's' : ''}`,
+            : `${(!sourceFieldFromReference ? sourceNameFromReference : undefined) || lowerCaseFirst(resolveNameCasing(options.fieldCasing, targetModel.name).name)}${relation.type === 'many' ? 's' : ''}`,
     );
 
     if (sourceModel.fields.find((f) => f.name === sourceFieldName)) {
@@ -525,7 +520,8 @@ export function syncRelation({
 
         // Check if the FK constraint name differs from the default pattern
         const defaultFkName = `${relation.table}_${relation.columns.join('_')}_fkey`;
-        if (relation.fk_name && relation.fk_name !== defaultFkName) ab.addArg((ab) => ab.StringLiteral.setValue(relation.fk_name), 'map');
+        if (relation.fk_name && relation.fk_name !== defaultFkName)
+            ab.addArg((ab) => ab.StringLiteral.setValue(relation.fk_name), 'map');
 
         return ab;
     });
@@ -537,7 +533,7 @@ export function syncRelation({
         options.fieldCasing,
         similarRelations > 0
             ? `${oppositeFieldPrefix}${lowerCaseFirst(sourceModel.name)}_${firstColumn}`
-            : `${lowerCaseFirst(resolveNameCasing(options.fieldCasing, sourceModel.name).name)}${relation.references.type === 'many'? 's' : ''}`,
+            : `${lowerCaseFirst(resolveNameCasing(options.fieldCasing, sourceModel.name).name)}${relation.references.type === 'many' ? 's' : ''}`,
     );
 
     if (targetModel.fields.find((f) => f.name === oppositeFieldName)) {
@@ -573,13 +569,7 @@ export function syncRelation({
  * mapping via field references and consolidates the synthetic enums back into
  * the original shared enum so the merge phase can match them correctly.
  */
-export function consolidateEnums({
-    newModel,
-    oldModel,
-}: {
-    newModel: Model;
-    oldModel: Model;
-}) {
+export function consolidateEnums({ newModel, oldModel }: { newModel: Model; oldModel: Model }) {
     const newEnums = newModel.declarations.filter((d) => isEnum(d)) as Enum[];
     const newDataModels = newModel.declarations.filter((d) => d.$type === 'DataModel') as DataModel[];
     const oldDataModels = oldModel.declarations.filter((d) => d.$type === 'DataModel') as DataModel[];

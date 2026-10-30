@@ -22,6 +22,7 @@ import {
     isModel,
     isReferenceExpr,
     isStringLiteral,
+    isThisExpr,
     isTypeDef,
 } from '../generated/ast';
 import {
@@ -29,6 +30,8 @@ import {
     getAttributeArg,
     getContainingDataModel,
     getDataSourceProvider,
+    getNumberLiteral,
+    getPrimitiveTypeDefThisField,
     getStringLiteral,
     hasAttribute,
     isAuthOrAuthMemberAccess,
@@ -37,6 +40,9 @@ import {
     isComputedField,
     isDataFieldReference,
     isDelegateModel,
+    isManyToManyField,
+    isNativeTypeMappingAttribute,
+    isPrimitiveTypeDef,
     isRelationshipField,
     mapBuiltinTypeToExpressionType,
     resolved,
@@ -46,6 +52,75 @@ import type { AstValidator } from './common';
 
 // a registry of function handlers marked with @check
 const attributeCheckers = new Map<string, PropertyDescriptor>();
+
+const datasourceProviderSupportedNativeTypes: Record<string, Set<string>> = {
+    sqlite: new Set(),
+
+    postgresql: new Set([
+        '@db.Text',
+        '@db.Char',
+        '@db.VarChar',
+        '@db.Bit',
+        '@db.VarBit',
+        '@db.Uuid',
+        '@db.Xml',
+        '@db.Inet',
+        '@db.Citext',
+        '@db.Boolean',
+        '@db.Int',
+        '@db.Integer',
+        '@db.SmallInt',
+        '@db.Oid',
+        '@db.BigInt',
+        '@db.DoublePrecision',
+        '@db.Real',
+        '@db.Decimal',
+        '@db.Money',
+        '@db.Timestamp',
+        '@db.Timestamptz',
+        '@db.Date',
+        '@db.Time',
+        '@db.Timetz',
+        '@db.Json',
+        '@db.JsonB',
+        '@db.ByteA',
+    ]),
+
+    mysql: new Set([
+        '@db.Text',
+        '@db.Char',
+        '@db.VarChar',
+        '@db.TinyText',
+        '@db.MediumText',
+        '@db.LongText',
+        '@db.Bit',
+        '@db.TinyInt',
+        '@db.Int',
+        '@db.SmallInt',
+        '@db.MediumInt',
+        '@db.Year',
+        '@db.UnsignedInt',
+        '@db.UnsignedSmallInt',
+        '@db.UnsignedMediumInt',
+        '@db.UnsignedTinyInt',
+        '@db.BigInt',
+        '@db.UnsignedBigInt',
+        '@db.Float',
+        '@db.Double',
+        '@db.Decimal',
+        '@db.Timestamp',
+        '@db.DateTime',
+        '@db.Date',
+        '@db.Time',
+        '@db.Json',
+        '@db.LongBlob',
+        '@db.Blob',
+        '@db.MediumBlob',
+        '@db.TinyBlob',
+        '@db.Binary',
+        '@db.VarBinary',
+    ]),
+};
 
 // function handler decorator
 function check(name: string) {
@@ -70,6 +145,14 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
         }
 
         const targetDecl = attr.$container;
+        if (
+            (isPrimitiveTypeDef(targetDecl) || isPrimitiveTypeDef(targetDecl.$container)) &&
+            !hasAttribute(attr.decl.ref!, '@@@validation')
+        ) {
+            accept('error', `attribute "${decl.name}" cannot be used with primitive type defs`, { node: attr });
+            return;
+        }
+
         if (decl.name === '@@@targetField' && !isAttribute(targetDecl)) {
             accept('error', `attribute "${decl.name}" can only be used on attribute declarations`, { node: attr });
             return;
@@ -77,6 +160,21 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
 
         if (isDataField(targetDecl) && !isValidAttributeTarget(decl, targetDecl)) {
             accept('error', `attribute "${decl.name}" cannot be used on this type of field`, { node: attr });
+        }
+
+        if (isNativeTypeMappingAttribute(decl)) {
+            const zmodel = AstUtils.getContainerOfType(attr, isModel);
+            if (zmodel) {
+                const provider = getDataSourceProvider(zmodel);
+                if (provider) {
+                    const supportedNativeTypes = datasourceProviderSupportedNativeTypes[provider];
+                    if (!supportedNativeTypes?.has(decl.name)) {
+                        accept('error', `attribute "${decl.name}" cannot be used with the "${provider}" provider`, {
+                            node: attr,
+                        });
+                    }
+                }
+            }
         }
 
         this.checkDeprecation(attr, accept);
@@ -262,18 +360,28 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
             });
             return;
         }
-        this.validatePolicyKinds(kind, ['read', 'update', 'all'], attr, accept);
+        const kinds = this.validatePolicyKinds(kind, ['read', 'update', 'all'], attr, accept);
 
         const expr = attr.args[1]?.value;
         if (expr && AstUtils.streamAst(expr).some((node) => isBeforeInvocation(node))) {
             accept('error', `"before()" is not allowed in field-level policies`, { node: expr });
         }
 
-        // relation fields are not allowed
+        // relation fields are not allowed, except for many-to-many fields which only support 'update'
         const field = attr.$container as DataField;
 
         if (isRelationshipField(field)) {
-            accept('error', `Field-level policies are not allowed for relation fields.`, { node: attr });
+            if (isManyToManyField(field)) {
+                if (kinds.some((k) => k !== 'update')) {
+                    accept('error', `Only 'update' policies are allowed on many-to-many relation fields`, {
+                        node: attr,
+                    });
+                }
+            } else {
+                accept('error', `Field-level policies are only allowed for implicit many-to-many relation fields`, {
+                    node: attr,
+                });
+            }
         }
 
         if (isComputedField(field)) {
@@ -284,13 +392,24 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
     @check('@@validate')
     private _checkValidate(attr: AttributeApplication, accept: ValidationAcceptor) {
         const condition = attr.args[0]?.value;
-        if (
-            condition &&
-            AstUtils.streamAst(condition).some(
-                (node) => isDataFieldReference(node) && isDataModel(node.$resolvedType?.decl),
-            )
-        ) {
-            accept('error', `\`@@validate\` condition cannot use relation fields`, { node: condition });
+        if (condition) {
+            if (
+                AstUtils.streamAst(condition).some(
+                    (node) => isDataFieldReference(node) && isDataModel(node.$resolvedType?.decl),
+                )
+            ) {
+                accept('error', `\`@@validate\` condition cannot use relation fields`, { node: condition });
+                return;
+            }
+
+            if (isPrimitiveTypeDef(attr.$container) && AstUtils.streamAst(condition).some((node) => isThisExpr(node))) {
+                const thisField = getPrimitiveTypeDefThisField(attr.$container);
+                if (!thisField) {
+                    accept('error', 'primitive type def cannot reference `this` field without declaring it', {
+                        node: condition,
+                    });
+                }
+            }
         }
     }
 
@@ -375,6 +494,18 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
         }
     }
 
+    @check('@uuid')
+    private _checkUuid(attr: AttributeApplication, accept: ValidationAcceptor) {
+        const versionArg = attr.args.find((arg) => arg.$resolvedParam?.name === 'version');
+        if (!versionArg) {
+            return;
+        }
+        const version = getNumberLiteral(versionArg.value);
+        if (version !== undefined && version !== 4 && version !== 7) {
+            accept('error', `\`@uuid\` version must be \`4\` or \`7\``, { node: versionArg });
+        }
+    }
+
     @check('@@schema')
     private _checkSchema(attr: AttributeApplication, accept: ValidationAcceptor) {
         const schemaName = getStringLiteral(attr.args[0]?.value);
@@ -394,6 +525,15 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
                     node: attr,
                 });
             }
+        }
+    }
+
+    @check('@@strict')
+    private _checkStrict(attr: AttributeApplication, accept: ValidationAcceptor) {
+        if (!isTypeDef(attr.$container)) {
+            accept('error', `attribute "@@strict" can only be used on type definitions`, {
+                node: attr,
+            });
         }
     }
 
@@ -546,10 +686,16 @@ function assignableToAttributeParam(
             // attribute parameter type is ContextType, need to infer type from
             // the attribute's container
             if (isDataField(attr.$container)) {
-                if (!attr.$container?.type?.type) {
-                    return genericError;
+                if (attr.$container.type.reference?.ref && isPrimitiveTypeDef(attr.$container.type.reference.ref)) {
+                    dstType = mapBuiltinTypeToExpressionType(attr.$container.type.reference.ref.base!);
+                } else {
+                    if (!attr.$container?.type?.type) {
+                        return genericError;
+                    }
+
+                    dstType = mapBuiltinTypeToExpressionType(attr.$container.type.type);
                 }
-                dstType = mapBuiltinTypeToExpressionType(attr.$container.type.type);
+
                 dstIsArray = attr.$container.type.array;
             } else {
                 dstType = 'Any';
@@ -590,34 +736,35 @@ function isValidAttributeTarget(attrDecl: Attribute, targetDecl: DataField) {
         .filter((name): name is string => !!name);
 
     let allowed = false;
+    const targetDeclType = targetDecl.$resolvedType?.decl ?? targetDecl.type.type;
     for (const allowedType of fieldTypes) {
         switch (allowedType) {
             case 'StringField':
-                allowed = allowed || targetDecl.type.type === 'String';
+                allowed = allowed || targetDeclType === 'String';
                 break;
             case 'IntField':
-                allowed = allowed || targetDecl.type.type === 'Int';
+                allowed = allowed || targetDeclType === 'Int';
                 break;
             case 'BigIntField':
-                allowed = allowed || targetDecl.type.type === 'BigInt';
+                allowed = allowed || targetDeclType === 'BigInt';
                 break;
             case 'FloatField':
-                allowed = allowed || targetDecl.type.type === 'Float';
+                allowed = allowed || targetDeclType === 'Float';
                 break;
             case 'DecimalField':
-                allowed = allowed || targetDecl.type.type === 'Decimal';
+                allowed = allowed || targetDeclType === 'Decimal';
                 break;
             case 'BooleanField':
-                allowed = allowed || targetDecl.type.type === 'Boolean';
+                allowed = allowed || targetDeclType === 'Boolean';
                 break;
             case 'DateTimeField':
-                allowed = allowed || targetDecl.type.type === 'DateTime';
+                allowed = allowed || targetDeclType === 'DateTime';
                 break;
             case 'JsonField':
-                allowed = allowed || targetDecl.type.type === 'Json';
+                allowed = allowed || targetDeclType === 'Json';
                 break;
             case 'BytesField':
-                allowed = allowed || targetDecl.type.type === 'Bytes';
+                allowed = allowed || targetDeclType === 'Bytes';
                 break;
             case 'ModelField':
                 allowed = allowed || isDataModel(targetDecl.type.reference?.ref);

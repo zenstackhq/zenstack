@@ -4,7 +4,9 @@ import SuperJSON from 'superjson';
  * Supports the SuperJSON request payload format used by api handlers
  * `{ meta: { serialization }, ...json }`.
  */
-export async function processSuperJsonRequestPayload(payload: unknown) : Promise<{ result: unknown; error: string | undefined; }> {
+export async function processSuperJsonRequestPayload(
+    payload: unknown,
+): Promise<{ result: unknown; error: string | undefined }> {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload) || !('meta' in (payload as any))) {
         return { result: payload, error: undefined };
     }

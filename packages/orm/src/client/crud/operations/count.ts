@@ -18,10 +18,21 @@ export class CountOperationHandler<Schema extends SchemaDef> extends BaseOperati
                 .where(() => this.dialect.buildFilter(this.model, this.model, parsedArgs?.where));
 
             if (parsedArgs?.select && typeof parsedArgs.select === 'object') {
-                // select fields
+                // select fields (a parameterized computed field carries its query-time `args`)
                 for (const [key, value] of Object.entries(parsedArgs.select)) {
-                    if (key !== '_all' && value === true) {
+                    if (key === '_all') {
+                        continue;
+                    }
+                    if (value === true) {
                         subQuery = this.dialect.buildSelectField(subQuery, this.model, this.model, key);
+                    } else if (value && typeof value === 'object' && 'args' in value) {
+                        subQuery = this.dialect.buildSelectField(
+                            subQuery,
+                            this.model,
+                            this.model,
+                            key,
+                            (value as any).args,
+                        );
                     }
                 }
             } else {

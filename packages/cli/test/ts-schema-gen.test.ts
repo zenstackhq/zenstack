@@ -445,7 +445,7 @@ model User {
         });
     });
 
-    it('supports lite schema generation', async () => {
+    it('strips non-lite attributes from lite schemas', async () => {
         const { schemaLite } = await generateTsSchema(
             `
 model User {
@@ -455,6 +455,10 @@ model User {
 
     @@map('users')
 }
+
+type Profile {
+    id String @id
+}
         `,
             undefined,
             undefined,
@@ -463,8 +467,119 @@ model User {
         );
 
         expect(schemaLite!.models['User']!.attributes).toBeUndefined();
-        expect(schemaLite!.models['User']!.fields['id']!.attributes).toBeUndefined();
+
+        expect(schemaLite!.models['User']!.fields['id']!.attributes).toMatchObject([
+            {
+                name: '@default',
+                args: [
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'call',
+                            function: 'uuid',
+                            args: undefined,
+                        },
+                    },
+                ],
+            },
+        ]);
+
         expect(schemaLite!.models['User']!.fields['email']!.attributes).toBeUndefined();
+        expect(schemaLite!.typeDefs!['Profile']!.fields['id']!.attributes).toBeUndefined();
+    });
+
+    it('does not strip lite attributes from lite schemas', async () => {
+        const { schemaLite } = await generateTsSchema(
+            `
+model User {
+    id String @id @default(uuid())
+    name String
+    email String @unique @email @meta('description', 'HTML email address.')
+
+    @@map('users')
+    @@meta('description', 'A registered user.')
+}
+
+type Profile {
+    bio String
+
+    @@meta('description', 'The profile of a user.')
+}
+        `,
+            undefined,
+            undefined,
+            undefined,
+            true,
+        );
+
+        expect(schemaLite!.models['User']!.fields['email']?.attributes).toMatchObject([
+            {
+                name: '@email',
+            },
+            {
+                name: '@meta',
+                args: [
+                    {
+                        name: 'name',
+                        value: {
+                            kind: 'literal',
+                            value: 'description',
+                        },
+                    },
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'literal',
+                            value: 'HTML email address.',
+                        },
+                    },
+                ],
+            },
+        ]);
+
+        expect(schemaLite!.models['User']!.attributes).toMatchObject([
+            {
+                name: '@@meta',
+                args: [
+                    {
+                        name: 'name',
+                        value: {
+                            kind: 'literal',
+                            value: 'description',
+                        },
+                    },
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'literal',
+                            value: 'A registered user.',
+                        },
+                    },
+                ],
+            },
+        ]);
+
+        expect(schemaLite!.typeDefs!['Profile']!.attributes).toMatchObject([
+            {
+                name: '@@meta',
+                args: [
+                    {
+                        name: 'name',
+                        value: {
+                            kind: 'literal',
+                            value: 'description',
+                        },
+                    },
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'literal',
+                            value: 'The profile of a user.',
+                        },
+                    },
+                ],
+            },
+        ]);
     });
 
     it('supports ignorable fields for @updatedAt', async () => {
@@ -491,7 +606,7 @@ model Post {
 
         expect(schema).toMatchObject({
             provider: {
-                type: 'sqlite'
+                type: 'sqlite',
             },
             models: {
                 User: {
@@ -503,7 +618,7 @@ model Post {
                             id: true,
                             attributes: [
                                 {
-                                    name: '@id'
+                                    name: '@id',
                                 },
                                 {
                                     name: '@default',
@@ -512,20 +627,20 @@ model Post {
                                             name: 'value',
                                             value: {
                                                 kind: 'call',
-                                                function: 'uuid'
-                                            }
-                                        }
-                                    ]
-                                }
+                                                function: 'uuid',
+                                            },
+                                        },
+                                    ],
+                                },
                             ],
                             default: {
                                 kind: 'call',
-                                function: 'uuid'
-                            }
+                                function: 'uuid',
+                            },
                         },
                         name: {
                             name: 'name',
-                            type: 'String'
+                            type: 'String',
                         },
                         email: {
                             name: 'email',
@@ -533,9 +648,9 @@ model Post {
                             unique: true,
                             attributes: [
                                 {
-                                    name: '@unique'
-                                }
-                            ]
+                                    name: '@unique',
+                                },
+                            ],
                         },
                         createdAt: {
                             name: 'createdAt',
@@ -548,24 +663,22 @@ model Post {
                                             name: 'value',
                                             value: {
                                                 kind: 'call',
-                                                function: 'now'
-                                            }
-                                        }
-                                    ]
-                                }
+                                                function: 'now',
+                                            },
+                                        },
+                                    ],
+                                },
                             ],
                             default: {
                                 kind: 'call',
-                                function: 'now'
-                            }
+                                function: 'now',
+                            },
                         },
                         updatedAt: {
                             name: 'updatedAt',
                             type: 'DateTime',
                             updatedAt: {
-                                ignore: [
-                                    'email'
-                                ]
+                                ignore: ['email'],
                             },
                             attributes: [
                                 {
@@ -578,23 +691,23 @@ model Post {
                                                 items: [
                                                     {
                                                         kind: 'field',
-                                                        field: 'email'
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                }
-                            ]
+                                                        field: 'email',
+                                                    },
+                                                ],
+                                            },
+                                        },
+                                    ],
+                                },
+                            ],
                         },
                         posts: {
                             name: 'posts',
                             type: 'Post',
                             array: true,
                             relation: {
-                                opposite: 'author'
-                            }
-                        }
+                                opposite: 'author',
+                            },
+                        },
                     },
                     attributes: [
                         {
@@ -604,23 +717,21 @@ model Post {
                                     name: 'name',
                                     value: {
                                         kind: 'literal',
-                                        value: 'users'
-                                    }
-                                }
-                            ]
-                        }
+                                        value: 'users',
+                                    },
+                                },
+                            ],
+                        },
                     ],
-                    idFields: [
-                        'id'
-                    ],
+                    idFields: ['id'],
                     uniqueFields: {
                         id: {
-                            type: 'String'
+                            type: 'String',
                         },
                         email: {
-                            type: 'String'
-                        }
-                    }
+                            type: 'String',
+                        },
+                    },
                 },
                 Post: {
                     name: 'Post',
@@ -631,7 +742,7 @@ model Post {
                             id: true,
                             attributes: [
                                 {
-                                    name: '@id'
+                                    name: '@id',
                                 },
                                 {
                                     name: '@default',
@@ -640,20 +751,20 @@ model Post {
                                             name: 'value',
                                             value: {
                                                 kind: 'call',
-                                                function: 'cuid'
-                                            }
-                                        }
-                                    ]
-                                }
+                                                function: 'cuid',
+                                            },
+                                        },
+                                    ],
+                                },
                             ],
                             default: {
                                 kind: 'call',
-                                function: 'cuid'
-                            }
+                                function: 'cuid',
+                            },
                         },
                         title: {
                             name: 'title',
-                            type: 'String'
+                            type: 'String',
                         },
                         published: {
                             name: 'published',
@@ -666,13 +777,13 @@ model Post {
                                             name: 'value',
                                             value: {
                                                 kind: 'literal',
-                                                value: false
-                                            }
-                                        }
-                                    ]
-                                }
+                                                value: false,
+                                            },
+                                        },
+                                    ],
+                                },
                             ],
-                            default: false
+                            default: false,
                         },
                         author: {
                             name: 'author',
@@ -688,10 +799,10 @@ model Post {
                                                 items: [
                                                     {
                                                         kind: 'field',
-                                                        field: 'authorId'
-                                                    }
-                                                ]
-                                            }
+                                                        field: 'authorId',
+                                                    },
+                                                ],
+                                            },
                                         },
                                         {
                                             name: 'references',
@@ -700,52 +811,265 @@ model Post {
                                                 items: [
                                                     {
                                                         kind: 'field',
-                                                        field: 'id'
-                                                    }
-                                                ]
-                                            }
+                                                        field: 'id',
+                                                    },
+                                                ],
+                                            },
                                         },
                                         {
                                             name: 'onDelete',
                                             value: {
                                                 kind: 'literal',
-                                                value: 'Cascade'
-                                            }
-                                        }
-                                    ]
-                                }
+                                                value: 'Cascade',
+                                            },
+                                        },
+                                    ],
+                                },
                             ],
                             relation: {
                                 opposite: 'posts',
-                                fields: [
-                                    'authorId'
-                                ],
-                                references: [
-                                    'id'
-                                ],
-                                onDelete: 'Cascade'
-                            }
+                                fields: ['authorId'],
+                                references: ['id'],
+                                onDelete: 'Cascade',
+                            },
                         },
                         authorId: {
                             name: 'authorId',
                             type: 'String',
-                            foreignKeyFor: [
-                                'author'
-                            ]
-                        }
+                            foreignKeyFor: ['author'],
+                        },
                     },
-                    idFields: [
-                        'id'
-                    ],
+                    idFields: ['id'],
                     uniqueFields: {
                         id: {
-                            type: 'String'
-                        }
-                    }
-                }
+                            type: 'String',
+                        },
+                    },
+                },
             },
             authType: 'User',
-            plugins: {}
+            plugins: {},
         });
-    })
+    });
+
+    it('supports implicit conversions from enums to arrays', async () => {
+        const { schema } = await generateTsSchema(`
+enum PostStatus {
+    DRAFT
+    ACTIVE
+    CANCELLED
+}
+
+model User {
+    id Int @id @default(autoincrement())
+}
+
+model Post {
+    id     String @id
+    status String
+
+    @@validate(status in PostStatus)
+}
+            `);
+
+        expect(schema.models['Post']?.attributes).toMatchObject([
+            {
+                name: '@@validate',
+                args: [
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'binary',
+                            op: 'in',
+                            left: {
+                                kind: 'field',
+                                field: 'status',
+                            },
+                            right: {
+                                kind: 'array',
+                                type: 'PostStatus',
+                                items: [
+                                    {
+                                        kind: 'literal',
+                                        value: 'DRAFT',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'ACTIVE',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'CANCELLED',
+                                    },
+                                ],
+                            },
+                            binding: undefined,
+                        },
+                    },
+                ],
+            },
+        ]);
+    });
+
+    it('emits enum names (not @map values) when converting enums to arrays', async () => {
+        // enum values are represented by their names at runtime (TS values, auth(), Zod);
+        // the ORM's name mapper translates them to `@map`-ed values at SQL execution time
+        const { schema } = await generateTsSchema(`
+enum PostStatus {
+    DRAFT @map('draft')
+    ACTIVE @map('active')
+    CANCELLED @map('cancelled')
+}
+
+model User {
+    id Int @id @default(autoincrement())
+}
+
+model Post {
+    id     String @id
+    status String
+
+    @@validate(status in PostStatus)
+}
+            `);
+
+        expect(schema.models['Post']?.attributes).toMatchObject([
+            {
+                name: '@@validate',
+                args: [
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'binary',
+                            op: 'in',
+                            left: {
+                                kind: 'field',
+                                field: 'status',
+                            },
+                            right: {
+                                kind: 'array',
+                                type: 'PostStatus',
+                                items: [
+                                    {
+                                        kind: 'literal',
+                                        value: 'DRAFT',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'ACTIVE',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'CANCELLED',
+                                    },
+                                ],
+                            },
+                            binding: undefined,
+                        },
+                    },
+                ],
+            },
+        ]);
+    });
+
+    it('supports @@strict for type defs', async () => {
+        const { schema } = await generateTsSchema(`
+model User {
+    id      String   @id @default(uuid())
+    profile Profile? @json
+}
+
+type Profile {
+    bio String
+
+    @@strict
+}
+            `);
+
+        expect(schema.typeDefs).toMatchObject({
+            Profile: {
+                strict: true,
+            },
+        });
+    });
+
+    it('supports @@strict inherited from mixins', async () => {
+        const { schema } = await generateTsSchema(`
+model User {
+    id      String   @id @default(uuid())
+    profile Profile? @json
+}
+
+type Strict {
+    @@strict
+}
+
+type Profile with Strict {
+    bio String
+}
+            `);
+
+        expect(schema.typeDefs).toMatchObject({
+            Profile: {
+                strict: true,
+            },
+        });
+    });
+
+    it('supports primitive type defs', async () => {
+        const { schema } = await generateTsSchema(`
+            model User {
+                id   Int      @id
+                name UserName
+            }
+
+            type UserName with String {
+                this String
+            }
+            `);
+
+        expect(schema).toMatchObject({
+            models: {
+                User: {
+                    name: 'User',
+                    fields: {
+                        id: {
+                            name: 'id',
+                            type: 'Int',
+                            id: true,
+                            attributes: [
+                                {
+                                    name: '@id',
+                                },
+                            ],
+                        },
+                        name: {
+                            name: 'name',
+                            type: 'UserName',
+                        },
+                    },
+                    idFields: ['id'],
+                    uniqueFields: {
+                        id: {
+                            type: 'Int',
+                        },
+                    },
+                },
+            },
+            typeDefs: {
+                UserName: {
+                    name: 'UserName',
+                    base: 'String',
+                    fields: {
+                        this: {
+                            name: 'this',
+                            type: 'String',
+                        },
+                    },
+                },
+            },
+            authType: 'User',
+            plugins: {},
+        });
+    });
 });

@@ -9,6 +9,9 @@ model users {
   id String @id() @default(cuid())
   tz Int @default(-6) @db.SmallInt()
 }`,
+            {
+                provider: 'postgresql',
+            },
         );
         await expect(db.users.create({ data: {} })).resolves.toMatchObject({ tz: -6 });
     });

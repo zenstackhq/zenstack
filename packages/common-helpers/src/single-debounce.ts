@@ -1,4 +1,8 @@
-export function singleDebounce(cb: () => void | PromiseLike<void>, debounceMc: number, reRunOnInProgressCall: boolean = false) {
+export function singleDebounce(
+    cb: () => void | PromiseLike<void>,
+    debounceMc: number,
+    reRunOnInProgressCall: boolean = false,
+) {
     let timeout: ReturnType<typeof setTimeout> | undefined;
     let inProgress = false;
     let pendingInProgress = false;
@@ -30,5 +34,5 @@ export function singleDebounce(cb: () => void | PromiseLike<void>, debounceMc: n
         clearTimeout(timeout);
 
         timeout = setTimeout(run, debounceMc);
-    }
+    };
 }

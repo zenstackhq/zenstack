@@ -44,10 +44,21 @@ import { createZenStackPromise, type ZenStackPromise } from './promise';
 import { fieldHasDefaultValue, getField, isUnsupportedField, requireModel } from './query-utils';
 import { ResultProcessor } from './result-processor';
 
+// tracks `onEntityMutation` objects that have already been validated/warned about,
+// so that derived clients (e.g., from `$use` or transactions) don't warn repeatedly
+const warnedPlugins = new WeakSet<object>();
+
 type ExtResultFieldDef = {
     needs: Record<string, true>;
     compute: (data: Record<string, any>) => unknown;
 };
+
+/**
+ * Returns the name mapper held by a ZenStack executor, or undefined for a plain kysely one.
+ */
+function getExecutorNameMapper(executor: QueryExecutor | undefined) {
+    return executor instanceof ZenStackQueryExecutor ? executor.getNameMapper() : undefined;
+}
 
 /**
  * ZenStack ORM client.
@@ -84,6 +95,10 @@ export class ClientImpl {
             ...this.$options.functions,
         };
 
+        if (this.$options.plugins) {
+            this.$options.plugins = this.normalizePlugins(this.$options.plugins);
+        }
+
         this.validateOptions(baseClient, options);
 
         // here we use kysely's props constructor so we can pass a custom query executor
@@ -98,15 +113,29 @@ export class ClientImpl {
                         baseClient.kyselyProps.dialect.createQueryCompiler(),
                         baseClient.kyselyProps.dialect.createAdapter(),
                         new DefaultConnectionProvider(baseClient.kyselyProps.driver),
+                        [],
+                        false,
+                        // A name mapper is derived purely from `$schema` and `$options`, so it can be
+                        // reused when neither changed - which is the case for derived clients like the
+                        // one `$transaction` creates. Rebuilding it is O(models x fields). See #2773.
+                        // Deliberately an identity check: `$use`/`$setOptions` and friends pass a new
+                        // options object, and the mapper's dialect is built from those options.
+                        baseClient.$schema === schema && baseClient.$options === options
+                            ? getExecutorNameMapper(baseClient.kyselyProps.executor)
+                            : undefined,
                     ),
             };
             this.kyselyRaw = baseClient.kyselyRaw;
             this.auth = baseClient.auth;
             this.slowQueries = baseClient.slowQueries;
         } else {
-            const driver = new ZenStackDriver(options.dialect.createDriver(), new Log(this.$options.log ?? []));
-            const compiler = options.dialect.createQueryCompiler();
             const adapter = options.dialect.createAdapter();
+            const driver = new ZenStackDriver(
+                options.dialect.createDriver(),
+                new Log(this.$options.log ?? []),
+                adapter,
+            );
+            const compiler = options.dialect.createQueryCompiler();
             const connectionProvider = new DefaultConnectionProvider(driver);
 
             this.kyselyProps = {
@@ -141,6 +170,104 @@ export class ClientImpl {
         return createClientProxy(this);
     }
 
+    /**
+     * Normalizes plugin definitions for backward compatibility and validates
+     * `onEntityMutation` keys. Legacy plugins that define hooks directly under
+     * `onEntityMutation` (instead of under `$all`) are converted to the new shape
+     * with a one-time warning.
+     */
+    private normalizePlugins(plugins: AnyPlugin[]): AnyPlugin[] {
+        let changed = false;
+        const result = plugins.map((plugin) => {
+            const normalized = this.normalizeEntityMutationHooks(plugin);
+            if (normalized !== plugin) {
+                changed = true;
+            }
+            return normalized;
+        });
+        return changed ? result : plugins;
+    }
+
+    private normalizeEntityMutationHooks(plugin: AnyPlugin): AnyPlugin {
+        const hooks = plugin.onEntityMutation as Record<string, unknown> | undefined;
+        if (!hooks || typeof hooks !== 'object') {
+            return plugin;
+        }
+
+        const legacyKeys = ['beforeEntityMutation', 'afterEntityMutation', 'runAfterMutationWithinTransaction'];
+        const presentLegacyKeys = legacyKeys.filter((key) => key in hooks);
+
+        const unknownKeys = Object.keys(hooks).filter(
+            (key) => key !== '$all' && !legacyKeys.includes(key) && !(key in this.$schema.models),
+        );
+
+        const warnOnce = (message: string) => {
+            if (!warnedPlugins.has(hooks)) {
+                console.warn(message);
+            }
+        };
+
+        if (unknownKeys.length > 0) {
+            warnOnce(
+                `Plugin "${plugin.id}" defines "onEntityMutation" hooks for unknown keys: ${unknownKeys
+                    .map((k) => `"${k}"`)
+                    .join(', ')}. Valid keys are "$all" and model names. These hooks will never be invoked.`,
+            );
+        }
+
+        if (presentLegacyKeys.length === 0) {
+            warnedPlugins.add(hooks);
+            return plugin;
+        }
+
+        warnOnce(
+            `Plugin "${plugin.id}" defines "onEntityMutation" hooks in a deprecated shape. ` +
+                `Hooks that apply to all models should be nested under "$all": ` +
+                `{ onEntityMutation: { $all: { beforeEntityMutation, afterEntityMutation, runAfterMutationWithinTransaction } } }. ` +
+                `The legacy shape is still supported but will be removed in a future release.`,
+        );
+        warnedPlugins.add(hooks);
+
+        const legacy: Record<string, unknown> = {};
+        const rest: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(hooks)) {
+            if (legacyKeys.includes(key)) {
+                legacy[key] = value;
+            } else {
+                rest[key] = value;
+            }
+        }
+
+        // bind legacy callbacks to the original plugin object to preserve `this`
+        for (const key of ['beforeEntityMutation', 'afterEntityMutation']) {
+            if (typeof legacy[key] === 'function') {
+                legacy[key] = (legacy[key] as Function).bind(plugin);
+            }
+        }
+
+        const normalizedHooks = {
+            ...rest,
+            $all: {
+                // explicitly nested `$all` (if any) takes precedence over legacy keys
+                ...legacy,
+                ...(rest['$all'] as object | undefined),
+            },
+        };
+        // mark the normalized hooks as validated so derived clients don't warn again
+        warnedPlugins.add(normalizedHooks);
+
+        // create a copy that preserves the plugin's prototype chain (plugins may be class
+        // instances with hooks defined on the prototype), overriding only `onEntityMutation`
+        const copy = Object.create(Object.getPrototypeOf(plugin), Object.getOwnPropertyDescriptors(plugin));
+        Object.defineProperty(copy, 'onEntityMutation', {
+            value: normalizedHooks,
+            enumerable: true,
+            configurable: true,
+            writable: true,
+        });
+        return copy as AnyPlugin;
+    }
+
     private validateOptions(baseClient: ClientImpl | undefined, options: ClientOptions<SchemaDef>) {
         if (!baseClient && !options.skipValidationForComputedFields) {
             // validate computed fields configuration once for the root client
@@ -167,26 +294,28 @@ export class ClientImpl {
             'computedFields' in options ? (options.computedFields as Record<string, any> | undefined) : undefined;
 
         for (const [modelName, modelDef] of Object.entries(this.$schema.models)) {
-            if (modelDef.computedFields) {
-                for (const fieldName of Object.keys(modelDef.computedFields)) {
-                    // check both uncapitalized (current) and original (backward compat) model name
-                    const modelConfig =
-                        computedFieldsConfig?.[lowerCaseFirst(modelName)] ?? computedFieldsConfig?.[modelName];
-                    const fieldConfig = modelConfig?.[fieldName];
-                    // Check if the computed field has a configuration
-                    if (fieldConfig === null || fieldConfig === undefined) {
-                        throw createConfigError(
-                            `Computed field "${fieldName}" in model "${modelName}" does not have a configuration. ` +
-                                `Please provide an implementation in the computedFields option.`,
-                        );
-                    }
-                    // Check that the configuration is a function
-                    if (typeof fieldConfig !== 'function') {
-                        throw createConfigError(
-                            `Computed field "${fieldName}" in model "${modelName}" has an invalid configuration: ` +
-                                `expected a function but received ${typeof fieldConfig}.`,
-                        );
-                    }
+            for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+                // a computed field inherited from a delegate base is configured on the base model
+                if (!fieldDef.computed || fieldDef.originModel) {
+                    continue;
+                }
+                // check both uncapitalized (current) and original (backward compat) model name
+                const modelConfig =
+                    computedFieldsConfig?.[lowerCaseFirst(modelName)] ?? computedFieldsConfig?.[modelName];
+                const fieldConfig = modelConfig?.[fieldName];
+                // Check if the computed field has a configuration
+                if (fieldConfig === null || fieldConfig === undefined) {
+                    throw createConfigError(
+                        `Computed field "${fieldName}" in model "${modelName}" does not have a configuration. ` +
+                            `Please provide an implementation in the computedFields option.`,
+                    );
+                }
+                // Check that the configuration is a function
+                if (typeof fieldConfig !== 'function') {
+                    throw createConfigError(
+                        `Computed field "${fieldName}" in model "${modelName}" has an invalid configuration: ` +
+                            `expected a function but received ${typeof fieldConfig}.`,
+                    );
                 }
             }
         }
@@ -252,7 +381,7 @@ export class ClientImpl {
     ): Promise<any> {
         if (this.kysely.isTransaction) {
             // proceed directly if already in a transaction
-            return callback(this as unknown as ClientContract<SchemaDef>);
+            return callback(this.$contract);
         } else {
             // otherwise, create a new transaction, clone the client, and execute the callback
             let txBuilder = this.kysely.transaction();
@@ -262,7 +391,7 @@ export class ClientImpl {
             return txBuilder.execute((tx) => {
                 const txClient = new ClientImpl(this.schema, this.$options, this);
                 txClient.kysely = tx;
-                return callback(txClient as unknown as ClientContract<SchemaDef>);
+                return callback(txClient.$contract);
             });
         }
     }
@@ -284,7 +413,7 @@ export class ClientImpl {
             const result: any[] = [];
             for (const promise of arg) {
                 const cb = this.getPromiseCallback(promise);
-                result.push(await cb(txClient as unknown as ClientContract<SchemaDef>));
+                result.push(await cb(txClient.$contract));
             }
             return result;
         };
@@ -439,6 +568,17 @@ export class ClientImpl {
 
     get $auth() {
         return this.auth;
+    }
+
+    /**
+     * This client viewed through its public typed contract. `ClientImpl` is intentionally
+     * untyped internally — the model accessors are added by the runtime proxy — so this
+     * getter is the single sanctioned bridge to `ClientContract`. The proxy invokes it
+     * with the proxy as `this` (`Reflect.get` with receiver), so the returned reference
+     * keeps the model accessors.
+     */
+    get $contract(): ClientContract<SchemaDef> {
+        return this as unknown as ClientContract<SchemaDef>;
     }
 
     $setOptions<Options extends ClientOptions<SchemaDef>>(options: Options): ClientContract<SchemaDef, Options> {

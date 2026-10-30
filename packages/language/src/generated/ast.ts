@@ -354,7 +354,8 @@ export interface DataField extends langium.AstNode {
     readonly $type: 'DataField';
     attributes: Array<DataFieldAttribute>;
     comments: Array<string>;
-    name: RegularIDWithTypeNames;
+    name: DataFieldName;
+    params: Array<DataFieldParam>;
     type: DataFieldType;
 }
 
@@ -363,6 +364,7 @@ export const DataField = {
     attributes: 'attributes',
     comments: 'comments',
     name: 'name',
+    params: 'params',
     type: 'type'
 } as const;
 
@@ -385,6 +387,31 @@ export const DataFieldAttribute = {
 
 export function isDataFieldAttribute(item: unknown): item is DataFieldAttribute {
     return reflection.isInstance(item, DataFieldAttribute.$type);
+}
+
+export type DataFieldName = 'this' | RegularIDWithTypeNames;
+
+export function isDataFieldName(item: unknown): item is DataFieldName {
+    return isRegularIDWithTypeNames(item) || item === 'this';
+}
+
+export interface DataFieldParam extends langium.AstNode {
+    readonly $container: DataField;
+    readonly $type: 'DataFieldParam';
+    name: RegularID;
+    optional: boolean;
+    type: FunctionParamType;
+}
+
+export const DataFieldParam = {
+    $type: 'DataFieldParam',
+    name: 'name',
+    optional: 'optional',
+    type: 'type'
+} as const;
+
+export function isDataFieldParam(item: unknown): item is DataFieldParam {
+    return reflection.isInstance(item, DataFieldParam.$type);
 }
 
 export interface DataFieldType extends langium.AstNode {
@@ -414,6 +441,7 @@ export interface DataModel extends langium.AstNode {
     readonly $container: Model;
     readonly $type: 'DataModel';
     attributes: Array<DataModelAttribute>;
+    base?: BuiltinType;
     baseModel?: langium.Reference<DataModel>;
     comments: Array<string>;
     fields: Array<DataField>;
@@ -427,6 +455,7 @@ export interface DataModel extends langium.AstNode {
 export const DataModel = {
     $type: 'DataModel',
     attributes: 'attributes',
+    base: 'base',
     baseModel: 'baseModel',
     comments: 'comments',
     fields: 'fields',
@@ -589,7 +618,7 @@ export function isFunctionParam(item: unknown): item is FunctionParam {
 }
 
 export interface FunctionParamType extends langium.AstNode {
-    readonly $container: FunctionDecl | FunctionParam | Procedure | ProcedureParam;
+    readonly $container: DataFieldParam | FunctionDecl | FunctionParam | Procedure | ProcedureParam;
     readonly $type: 'FunctionParamType';
     array: boolean;
     reference?: langium.Reference<TypeDeclaration>;
@@ -881,7 +910,7 @@ export function isReferenceExpr(item: unknown): item is ReferenceExpr {
     return reflection.isInstance(item, ReferenceExpr.$type);
 }
 
-export type ReferenceTarget = CollectionPredicateBinding | DataField | EnumField | FunctionParam;
+export type ReferenceTarget = CollectionPredicateBinding | DataField | Enum | EnumField | FunctionParam;
 
 export const ReferenceTarget = {
     $type: 'ReferenceTarget'
@@ -947,6 +976,7 @@ export interface TypeDef extends langium.AstNode {
     readonly $container: Model;
     readonly $type: 'TypeDef';
     attributes: Array<DataModelAttribute>;
+    base?: BuiltinType;
     comments: Array<string>;
     fields: Array<DataField>;
     mixins: Array<langium.Reference<TypeDef>>;
@@ -956,6 +986,7 @@ export interface TypeDef extends langium.AstNode {
 export const TypeDef = {
     $type: 'TypeDef',
     attributes: 'attributes',
+    base: 'base',
     comments: 'comments',
     fields: 'fields',
     mixins: 'mixins',
@@ -1016,6 +1047,7 @@ export type ZModelAstType = {
     ConfigInvocationExpr: ConfigInvocationExpr
     DataField: DataField
     DataFieldAttribute: DataFieldAttribute
+    DataFieldParam: DataFieldParam
     DataFieldType: DataFieldType
     DataModel: DataModel
     DataModelAttribute: DataModelAttribute
@@ -1261,6 +1293,10 @@ export class ZModelAstReflection extends langium.AbstractAstReflection {
                 name: {
                     name: DataField.name
                 },
+                params: {
+                    name: DataField.params,
+                    defaultValue: []
+                },
                 type: {
                     name: DataField.type
                 }
@@ -1277,6 +1313,22 @@ export class ZModelAstReflection extends langium.AbstractAstReflection {
                 decl: {
                     name: DataFieldAttribute.decl,
                     referenceType: Attribute.$type
+                }
+            },
+            superTypes: []
+        },
+        DataFieldParam: {
+            name: DataFieldParam.$type,
+            properties: {
+                name: {
+                    name: DataFieldParam.name
+                },
+                optional: {
+                    name: DataFieldParam.optional,
+                    defaultValue: false
+                },
+                type: {
+                    name: DataFieldParam.type
                 }
             },
             superTypes: []
@@ -1311,6 +1363,9 @@ export class ZModelAstReflection extends langium.AbstractAstReflection {
                 attributes: {
                     name: DataModel.attributes,
                     defaultValue: []
+                },
+                base: {
+                    name: DataModel.base
                 },
                 baseModel: {
                     name: DataModel.baseModel,
@@ -1385,7 +1440,7 @@ export class ZModelAstReflection extends langium.AbstractAstReflection {
                     name: Enum.name
                 }
             },
-            superTypes: [AbstractDeclaration.$type, TypeDeclaration.$type]
+            superTypes: [AbstractDeclaration.$type, ReferenceTarget.$type, TypeDeclaration.$type]
         },
         EnumField: {
             name: EnumField.$type,
@@ -1722,6 +1777,9 @@ export class ZModelAstReflection extends langium.AbstractAstReflection {
                 attributes: {
                     name: TypeDef.attributes,
                     defaultValue: []
+                },
+                base: {
+                    name: TypeDef.base
                 },
                 comments: {
                     name: TypeDef.comments,

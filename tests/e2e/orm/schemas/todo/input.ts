@@ -5,111 +5,148 @@
 
 /* eslint-disable */
 
-import { type SchemaType as $Schema } from "./schema";
-import type { FindManyArgs as $FindManyArgs, FindUniqueArgs as $FindUniqueArgs, FindFirstArgs as $FindFirstArgs, ExistsArgs as $ExistsArgs, CreateArgs as $CreateArgs, CreateManyArgs as $CreateManyArgs, CreateManyAndReturnArgs as $CreateManyAndReturnArgs, UpdateArgs as $UpdateArgs, UpdateManyArgs as $UpdateManyArgs, UpdateManyAndReturnArgs as $UpdateManyAndReturnArgs, UpsertArgs as $UpsertArgs, DeleteArgs as $DeleteArgs, DeleteManyArgs as $DeleteManyArgs, CountArgs as $CountArgs, AggregateArgs as $AggregateArgs, GroupByArgs as $GroupByArgs, WhereInput as $WhereInput, SelectInput as $SelectInput, IncludeInput as $IncludeInput, OmitInput as $OmitInput, QueryOptions as $QueryOptions } from "@zenstackhq/orm";
-import type { SimplifiedPlainResult as $Result, SelectIncludeOmit as $SelectIncludeOmit } from "@zenstackhq/orm";
-export type SpaceFindManyArgs = $FindManyArgs<$Schema, "Space">;
-export type SpaceFindUniqueArgs = $FindUniqueArgs<$Schema, "Space">;
-export type SpaceFindFirstArgs = $FindFirstArgs<$Schema, "Space">;
-export type SpaceExistsArgs = $ExistsArgs<$Schema, "Space">;
-export type SpaceCreateArgs = $CreateArgs<$Schema, "Space">;
-export type SpaceCreateManyArgs = $CreateManyArgs<$Schema, "Space">;
-export type SpaceCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "Space">;
-export type SpaceUpdateArgs = $UpdateArgs<$Schema, "Space">;
-export type SpaceUpdateManyArgs = $UpdateManyArgs<$Schema, "Space">;
-export type SpaceUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "Space">;
-export type SpaceUpsertArgs = $UpsertArgs<$Schema, "Space">;
-export type SpaceDeleteArgs = $DeleteArgs<$Schema, "Space">;
-export type SpaceDeleteManyArgs = $DeleteManyArgs<$Schema, "Space">;
-export type SpaceCountArgs = $CountArgs<$Schema, "Space">;
-export type SpaceAggregateArgs = $AggregateArgs<$Schema, "Space">;
-export type SpaceGroupByArgs = $GroupByArgs<$Schema, "Space">;
-export type SpaceWhereInput = $WhereInput<$Schema, "Space">;
-export type SpaceSelect = $SelectInput<$Schema, "Space">;
-export type SpaceInclude = $IncludeInput<$Schema, "Space">;
-export type SpaceOmit = $OmitInput<$Schema, "Space">;
-export type SpaceGetPayload<Args extends $SelectIncludeOmit<$Schema, "Space", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "Space", Args, Options>;
-export type SpaceUserFindManyArgs = $FindManyArgs<$Schema, "SpaceUser">;
-export type SpaceUserFindUniqueArgs = $FindUniqueArgs<$Schema, "SpaceUser">;
-export type SpaceUserFindFirstArgs = $FindFirstArgs<$Schema, "SpaceUser">;
-export type SpaceUserExistsArgs = $ExistsArgs<$Schema, "SpaceUser">;
-export type SpaceUserCreateArgs = $CreateArgs<$Schema, "SpaceUser">;
-export type SpaceUserCreateManyArgs = $CreateManyArgs<$Schema, "SpaceUser">;
-export type SpaceUserCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "SpaceUser">;
-export type SpaceUserUpdateArgs = $UpdateArgs<$Schema, "SpaceUser">;
-export type SpaceUserUpdateManyArgs = $UpdateManyArgs<$Schema, "SpaceUser">;
-export type SpaceUserUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "SpaceUser">;
-export type SpaceUserUpsertArgs = $UpsertArgs<$Schema, "SpaceUser">;
-export type SpaceUserDeleteArgs = $DeleteArgs<$Schema, "SpaceUser">;
-export type SpaceUserDeleteManyArgs = $DeleteManyArgs<$Schema, "SpaceUser">;
-export type SpaceUserCountArgs = $CountArgs<$Schema, "SpaceUser">;
-export type SpaceUserAggregateArgs = $AggregateArgs<$Schema, "SpaceUser">;
-export type SpaceUserGroupByArgs = $GroupByArgs<$Schema, "SpaceUser">;
-export type SpaceUserWhereInput = $WhereInput<$Schema, "SpaceUser">;
-export type SpaceUserSelect = $SelectInput<$Schema, "SpaceUser">;
-export type SpaceUserInclude = $IncludeInput<$Schema, "SpaceUser">;
-export type SpaceUserOmit = $OmitInput<$Schema, "SpaceUser">;
-export type SpaceUserGetPayload<Args extends $SelectIncludeOmit<$Schema, "SpaceUser", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "SpaceUser", Args, Options>;
-export type UserFindManyArgs = $FindManyArgs<$Schema, "User">;
-export type UserFindUniqueArgs = $FindUniqueArgs<$Schema, "User">;
-export type UserFindFirstArgs = $FindFirstArgs<$Schema, "User">;
-export type UserExistsArgs = $ExistsArgs<$Schema, "User">;
-export type UserCreateArgs = $CreateArgs<$Schema, "User">;
-export type UserCreateManyArgs = $CreateManyArgs<$Schema, "User">;
-export type UserCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "User">;
-export type UserUpdateArgs = $UpdateArgs<$Schema, "User">;
-export type UserUpdateManyArgs = $UpdateManyArgs<$Schema, "User">;
-export type UserUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "User">;
-export type UserUpsertArgs = $UpsertArgs<$Schema, "User">;
-export type UserDeleteArgs = $DeleteArgs<$Schema, "User">;
-export type UserDeleteManyArgs = $DeleteManyArgs<$Schema, "User">;
-export type UserCountArgs = $CountArgs<$Schema, "User">;
-export type UserAggregateArgs = $AggregateArgs<$Schema, "User">;
-export type UserGroupByArgs = $GroupByArgs<$Schema, "User">;
-export type UserWhereInput = $WhereInput<$Schema, "User">;
-export type UserSelect = $SelectInput<$Schema, "User">;
-export type UserInclude = $IncludeInput<$Schema, "User">;
-export type UserOmit = $OmitInput<$Schema, "User">;
-export type UserGetPayload<Args extends $SelectIncludeOmit<$Schema, "User", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "User", Args, Options>;
-export type ListFindManyArgs = $FindManyArgs<$Schema, "List">;
-export type ListFindUniqueArgs = $FindUniqueArgs<$Schema, "List">;
-export type ListFindFirstArgs = $FindFirstArgs<$Schema, "List">;
-export type ListExistsArgs = $ExistsArgs<$Schema, "List">;
-export type ListCreateArgs = $CreateArgs<$Schema, "List">;
-export type ListCreateManyArgs = $CreateManyArgs<$Schema, "List">;
-export type ListCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "List">;
-export type ListUpdateArgs = $UpdateArgs<$Schema, "List">;
-export type ListUpdateManyArgs = $UpdateManyArgs<$Schema, "List">;
-export type ListUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "List">;
-export type ListUpsertArgs = $UpsertArgs<$Schema, "List">;
-export type ListDeleteArgs = $DeleteArgs<$Schema, "List">;
-export type ListDeleteManyArgs = $DeleteManyArgs<$Schema, "List">;
-export type ListCountArgs = $CountArgs<$Schema, "List">;
-export type ListAggregateArgs = $AggregateArgs<$Schema, "List">;
-export type ListGroupByArgs = $GroupByArgs<$Schema, "List">;
-export type ListWhereInput = $WhereInput<$Schema, "List">;
-export type ListSelect = $SelectInput<$Schema, "List">;
-export type ListInclude = $IncludeInput<$Schema, "List">;
-export type ListOmit = $OmitInput<$Schema, "List">;
-export type ListGetPayload<Args extends $SelectIncludeOmit<$Schema, "List", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "List", Args, Options>;
-export type TodoFindManyArgs = $FindManyArgs<$Schema, "Todo">;
-export type TodoFindUniqueArgs = $FindUniqueArgs<$Schema, "Todo">;
-export type TodoFindFirstArgs = $FindFirstArgs<$Schema, "Todo">;
-export type TodoExistsArgs = $ExistsArgs<$Schema, "Todo">;
-export type TodoCreateArgs = $CreateArgs<$Schema, "Todo">;
-export type TodoCreateManyArgs = $CreateManyArgs<$Schema, "Todo">;
-export type TodoCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "Todo">;
-export type TodoUpdateArgs = $UpdateArgs<$Schema, "Todo">;
-export type TodoUpdateManyArgs = $UpdateManyArgs<$Schema, "Todo">;
-export type TodoUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "Todo">;
-export type TodoUpsertArgs = $UpsertArgs<$Schema, "Todo">;
-export type TodoDeleteArgs = $DeleteArgs<$Schema, "Todo">;
-export type TodoDeleteManyArgs = $DeleteManyArgs<$Schema, "Todo">;
-export type TodoCountArgs = $CountArgs<$Schema, "Todo">;
-export type TodoAggregateArgs = $AggregateArgs<$Schema, "Todo">;
-export type TodoGroupByArgs = $GroupByArgs<$Schema, "Todo">;
-export type TodoWhereInput = $WhereInput<$Schema, "Todo">;
-export type TodoSelect = $SelectInput<$Schema, "Todo">;
-export type TodoInclude = $IncludeInput<$Schema, "Todo">;
-export type TodoOmit = $OmitInput<$Schema, "Todo">;
-export type TodoGetPayload<Args extends $SelectIncludeOmit<$Schema, "Todo", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "Todo", Args, Options>;
+import { type SchemaType as $Schema } from './schema';
+import type {
+    FindManyArgs as $FindManyArgs,
+    FindUniqueArgs as $FindUniqueArgs,
+    FindFirstArgs as $FindFirstArgs,
+    ExistsArgs as $ExistsArgs,
+    CreateArgs as $CreateArgs,
+    CreateManyArgs as $CreateManyArgs,
+    CreateManyAndReturnArgs as $CreateManyAndReturnArgs,
+    UpdateArgs as $UpdateArgs,
+    UpdateManyArgs as $UpdateManyArgs,
+    UpdateManyAndReturnArgs as $UpdateManyAndReturnArgs,
+    UpsertArgs as $UpsertArgs,
+    DeleteArgs as $DeleteArgs,
+    DeleteManyArgs as $DeleteManyArgs,
+    CountArgs as $CountArgs,
+    AggregateArgs as $AggregateArgs,
+    GroupByArgs as $GroupByArgs,
+    WhereInput as $WhereInput,
+    SelectInput as $SelectInput,
+    IncludeInput as $IncludeInput,
+    OmitInput as $OmitInput,
+    QueryOptions as $QueryOptions,
+} from '@zenstackhq/orm';
+import type { SimplifiedPlainResult as $Result, SelectIncludeOmit as $SelectIncludeOmit } from '@zenstackhq/orm';
+export type SpaceFindManyArgs = $FindManyArgs<$Schema, 'Space'>;
+export type SpaceFindUniqueArgs = $FindUniqueArgs<$Schema, 'Space'>;
+export type SpaceFindFirstArgs = $FindFirstArgs<$Schema, 'Space'>;
+export type SpaceExistsArgs = $ExistsArgs<$Schema, 'Space'>;
+export type SpaceCreateArgs = $CreateArgs<$Schema, 'Space'>;
+export type SpaceCreateManyArgs = $CreateManyArgs<$Schema, 'Space'>;
+export type SpaceCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'Space'>;
+export type SpaceUpdateArgs = $UpdateArgs<$Schema, 'Space'>;
+export type SpaceUpdateManyArgs = $UpdateManyArgs<$Schema, 'Space'>;
+export type SpaceUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'Space'>;
+export type SpaceUpsertArgs = $UpsertArgs<$Schema, 'Space'>;
+export type SpaceDeleteArgs = $DeleteArgs<$Schema, 'Space'>;
+export type SpaceDeleteManyArgs = $DeleteManyArgs<$Schema, 'Space'>;
+export type SpaceCountArgs = $CountArgs<$Schema, 'Space'>;
+export type SpaceAggregateArgs = $AggregateArgs<$Schema, 'Space'>;
+export type SpaceGroupByArgs = $GroupByArgs<$Schema, 'Space'>;
+export type SpaceWhereInput = $WhereInput<$Schema, 'Space'>;
+export type SpaceSelect = $SelectInput<$Schema, 'Space'>;
+export type SpaceInclude = $IncludeInput<$Schema, 'Space'>;
+export type SpaceOmit = $OmitInput<$Schema, 'Space'>;
+export type SpaceGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'Space', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'Space', Args, Options>;
+export type SpaceUserFindManyArgs = $FindManyArgs<$Schema, 'SpaceUser'>;
+export type SpaceUserFindUniqueArgs = $FindUniqueArgs<$Schema, 'SpaceUser'>;
+export type SpaceUserFindFirstArgs = $FindFirstArgs<$Schema, 'SpaceUser'>;
+export type SpaceUserExistsArgs = $ExistsArgs<$Schema, 'SpaceUser'>;
+export type SpaceUserCreateArgs = $CreateArgs<$Schema, 'SpaceUser'>;
+export type SpaceUserCreateManyArgs = $CreateManyArgs<$Schema, 'SpaceUser'>;
+export type SpaceUserCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'SpaceUser'>;
+export type SpaceUserUpdateArgs = $UpdateArgs<$Schema, 'SpaceUser'>;
+export type SpaceUserUpdateManyArgs = $UpdateManyArgs<$Schema, 'SpaceUser'>;
+export type SpaceUserUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'SpaceUser'>;
+export type SpaceUserUpsertArgs = $UpsertArgs<$Schema, 'SpaceUser'>;
+export type SpaceUserDeleteArgs = $DeleteArgs<$Schema, 'SpaceUser'>;
+export type SpaceUserDeleteManyArgs = $DeleteManyArgs<$Schema, 'SpaceUser'>;
+export type SpaceUserCountArgs = $CountArgs<$Schema, 'SpaceUser'>;
+export type SpaceUserAggregateArgs = $AggregateArgs<$Schema, 'SpaceUser'>;
+export type SpaceUserGroupByArgs = $GroupByArgs<$Schema, 'SpaceUser'>;
+export type SpaceUserWhereInput = $WhereInput<$Schema, 'SpaceUser'>;
+export type SpaceUserSelect = $SelectInput<$Schema, 'SpaceUser'>;
+export type SpaceUserInclude = $IncludeInput<$Schema, 'SpaceUser'>;
+export type SpaceUserOmit = $OmitInput<$Schema, 'SpaceUser'>;
+export type SpaceUserGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'SpaceUser', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'SpaceUser', Args, Options>;
+export type UserFindManyArgs = $FindManyArgs<$Schema, 'User'>;
+export type UserFindUniqueArgs = $FindUniqueArgs<$Schema, 'User'>;
+export type UserFindFirstArgs = $FindFirstArgs<$Schema, 'User'>;
+export type UserExistsArgs = $ExistsArgs<$Schema, 'User'>;
+export type UserCreateArgs = $CreateArgs<$Schema, 'User'>;
+export type UserCreateManyArgs = $CreateManyArgs<$Schema, 'User'>;
+export type UserCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'User'>;
+export type UserUpdateArgs = $UpdateArgs<$Schema, 'User'>;
+export type UserUpdateManyArgs = $UpdateManyArgs<$Schema, 'User'>;
+export type UserUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'User'>;
+export type UserUpsertArgs = $UpsertArgs<$Schema, 'User'>;
+export type UserDeleteArgs = $DeleteArgs<$Schema, 'User'>;
+export type UserDeleteManyArgs = $DeleteManyArgs<$Schema, 'User'>;
+export type UserCountArgs = $CountArgs<$Schema, 'User'>;
+export type UserAggregateArgs = $AggregateArgs<$Schema, 'User'>;
+export type UserGroupByArgs = $GroupByArgs<$Schema, 'User'>;
+export type UserWhereInput = $WhereInput<$Schema, 'User'>;
+export type UserSelect = $SelectInput<$Schema, 'User'>;
+export type UserInclude = $IncludeInput<$Schema, 'User'>;
+export type UserOmit = $OmitInput<$Schema, 'User'>;
+export type UserGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'User', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'User', Args, Options>;
+export type ListFindManyArgs = $FindManyArgs<$Schema, 'List'>;
+export type ListFindUniqueArgs = $FindUniqueArgs<$Schema, 'List'>;
+export type ListFindFirstArgs = $FindFirstArgs<$Schema, 'List'>;
+export type ListExistsArgs = $ExistsArgs<$Schema, 'List'>;
+export type ListCreateArgs = $CreateArgs<$Schema, 'List'>;
+export type ListCreateManyArgs = $CreateManyArgs<$Schema, 'List'>;
+export type ListCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'List'>;
+export type ListUpdateArgs = $UpdateArgs<$Schema, 'List'>;
+export type ListUpdateManyArgs = $UpdateManyArgs<$Schema, 'List'>;
+export type ListUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'List'>;
+export type ListUpsertArgs = $UpsertArgs<$Schema, 'List'>;
+export type ListDeleteArgs = $DeleteArgs<$Schema, 'List'>;
+export type ListDeleteManyArgs = $DeleteManyArgs<$Schema, 'List'>;
+export type ListCountArgs = $CountArgs<$Schema, 'List'>;
+export type ListAggregateArgs = $AggregateArgs<$Schema, 'List'>;
+export type ListGroupByArgs = $GroupByArgs<$Schema, 'List'>;
+export type ListWhereInput = $WhereInput<$Schema, 'List'>;
+export type ListSelect = $SelectInput<$Schema, 'List'>;
+export type ListInclude = $IncludeInput<$Schema, 'List'>;
+export type ListOmit = $OmitInput<$Schema, 'List'>;
+export type ListGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'List', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'List', Args, Options>;
+export type TodoFindManyArgs = $FindManyArgs<$Schema, 'Todo'>;
+export type TodoFindUniqueArgs = $FindUniqueArgs<$Schema, 'Todo'>;
+export type TodoFindFirstArgs = $FindFirstArgs<$Schema, 'Todo'>;
+export type TodoExistsArgs = $ExistsArgs<$Schema, 'Todo'>;
+export type TodoCreateArgs = $CreateArgs<$Schema, 'Todo'>;
+export type TodoCreateManyArgs = $CreateManyArgs<$Schema, 'Todo'>;
+export type TodoCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'Todo'>;
+export type TodoUpdateArgs = $UpdateArgs<$Schema, 'Todo'>;
+export type TodoUpdateManyArgs = $UpdateManyArgs<$Schema, 'Todo'>;
+export type TodoUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'Todo'>;
+export type TodoUpsertArgs = $UpsertArgs<$Schema, 'Todo'>;
+export type TodoDeleteArgs = $DeleteArgs<$Schema, 'Todo'>;
+export type TodoDeleteManyArgs = $DeleteManyArgs<$Schema, 'Todo'>;
+export type TodoCountArgs = $CountArgs<$Schema, 'Todo'>;
+export type TodoAggregateArgs = $AggregateArgs<$Schema, 'Todo'>;
+export type TodoGroupByArgs = $GroupByArgs<$Schema, 'Todo'>;
+export type TodoWhereInput = $WhereInput<$Schema, 'Todo'>;
+export type TodoSelect = $SelectInput<$Schema, 'Todo'>;
+export type TodoInclude = $IncludeInput<$Schema, 'Todo'>;
+export type TodoOmit = $OmitInput<$Schema, 'Todo'>;
+export type TodoGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'Todo', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'Todo', Args, Options>;

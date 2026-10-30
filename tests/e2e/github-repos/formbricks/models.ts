@@ -5,8 +5,8 @@
 
 /* eslint-disable */
 
-import { schema as $schema, type SchemaType as $Schema } from "./schema";
-import type { ModelResult as $ModelResult } from "@zenstackhq/orm";
+import { schema as $schema, type SchemaType as $Schema } from './schema';
+import type { ModelResult as $ModelResult } from '@zenstackhq/orm';
 /**
  * Represents a webhook endpoint for receiving survey-related events.
  * Webhooks can be configured to receive notifications about response creation, updates, and completion.
@@ -19,7 +19,7 @@ import type { ModelResult as $ModelResult } from "@zenstackhq/orm";
  * @property triggers - Types of events that trigger this webhook
  * @property surveyIds - List of surveys this webhook is monitoring
  */
-export type Webhook = $ModelResult<$Schema, "Webhook">;
+export type Webhook = $ModelResult<$Schema, 'Webhook'>;
 /**
  * Represents an attribute value associated with a contact.
  * Used to store custom properties and characteristics of contacts.
@@ -29,7 +29,7 @@ export type Webhook = $ModelResult<$Schema, "Webhook">;
  * @property contact - The contact this attribute belongs to
  * @property value - The actual value of the attribute
  */
-export type ContactAttribute = $ModelResult<$Schema, "ContactAttribute">;
+export type ContactAttribute = $ModelResult<$Schema, 'ContactAttribute'>;
 /**
  * Defines the possible attributes that can be assigned to contacts.
  * Acts as a schema for contact attributes within an environment.
@@ -41,7 +41,7 @@ export type ContactAttribute = $ModelResult<$Schema, "ContactAttribute">;
  * @property type - Whether this is a default or custom attribute
  * @property environment - The environment this attribute belongs to
  */
-export type ContactAttributeKey = $ModelResult<$Schema, "ContactAttributeKey">;
+export type ContactAttributeKey = $ModelResult<$Schema, 'ContactAttributeKey'>;
 /**
  * Represents a person or user who can receive and respond to surveys.
  * Contacts are environment-specific and can have multiple attributes and responses.
@@ -53,7 +53,7 @@ export type ContactAttributeKey = $ModelResult<$Schema, "ContactAttributeKey">;
  * @property attributes - Custom attributes associated with this contact
  * @property displays - Record of surveys shown to this contact
  */
-export type Contact = $ModelResult<$Schema, "Contact">;
+export type Contact = $ModelResult<$Schema, 'Contact'>;
 /**
  * Stores a user's response to a survey, including their answers and metadata.
  * Each response is linked to a specific survey and optionally to a contact.
@@ -67,7 +67,7 @@ export type Contact = $ModelResult<$Schema, "Contact">;
  * @property ttc - Time to completion metrics
  * @property meta - Additional metadata about the response
  */
-export type Response = $ModelResult<$Schema, "Response">;
+export type Response = $ModelResult<$Schema, 'Response'>;
 /**
  * Represents notes or comments added to survey responses by team members.
  * Used for internal communication and response analysis.
@@ -79,7 +79,7 @@ export type Response = $ModelResult<$Schema, "Response">;
  * @property isResolved - Whether the note has been marked as resolved
  * @property isEdited - Whether the note has been modified
  */
-export type ResponseNote = $ModelResult<$Schema, "ResponseNote">;
+export type ResponseNote = $ModelResult<$Schema, 'ResponseNote'>;
 /**
  * Represents a label that can be applied to survey responses.
  * Used for categorizing and organizing responses within an environment.
@@ -89,7 +89,7 @@ export type ResponseNote = $ModelResult<$Schema, "ResponseNote">;
  * @property responses - Survey responses tagged with this label
  * @property environment - The environment this tag belongs to
  */
-export type Tag = $ModelResult<$Schema, "Tag">;
+export type Tag = $ModelResult<$Schema, 'Tag'>;
 /**
  * Junction table linking tags to responses.
  * Enables many-to-many relationship between tags and responses.
@@ -97,7 +97,7 @@ export type Tag = $ModelResult<$Schema, "Tag">;
  * @property response - The tagged response
  * @property tag - The tag applied to the response
  */
-export type TagsOnResponses = $ModelResult<$Schema, "TagsOnResponses">;
+export type TagsOnResponses = $ModelResult<$Schema, 'TagsOnResponses'>;
 /**
  * Records when a survey is shown to a user.
  * Tracks survey display history and response status.
@@ -108,7 +108,7 @@ export type TagsOnResponses = $ModelResult<$Schema, "TagsOnResponses">;
  * @property status - Whether the survey was just seen or responded to
  * @property response - The associated response if one exists
  */
-export type Display = $ModelResult<$Schema, "Display">;
+export type Display = $ModelResult<$Schema, 'Display'>;
 /**
  * Links surveys to specific trigger actions.
  * Defines which user actions should cause a survey to be displayed.
@@ -121,7 +121,7 @@ export type Display = $ModelResult<$Schema, "Display">;
  * @property createdAt - When the trigger was created
  * @property updatedAt - When the trigger was last modified
  */
-export type SurveyTrigger = $ModelResult<$Schema, "SurveyTrigger">;
+export type SurveyTrigger = $ModelResult<$Schema, 'SurveyTrigger'>;
 /**
  * Defines targeting rules for surveys based on contact attributes.
  * Used to show surveys only to contacts matching specific criteria.
@@ -132,7 +132,7 @@ export type SurveyTrigger = $ModelResult<$Schema, "SurveyTrigger">;
  * @property condition - The comparison operator to use
  * @property value - The value to compare against
  */
-export type SurveyAttributeFilter = $ModelResult<$Schema, "SurveyAttributeFilter">;
+export type SurveyAttributeFilter = $ModelResult<$Schema, 'SurveyAttributeFilter'>;
 /**
  * Represents a complete survey configuration including questions, styling, and display rules.
  * Core model for the survey functionality in Formbricks.
@@ -147,7 +147,7 @@ export type SurveyAttributeFilter = $ModelResult<$Schema, "SurveyAttributeFilter
  * @property triggers - Actions that can trigger this survey
  * @property attributeFilters - Rules for targeting specific contacts
  */
-export type Survey = $ModelResult<$Schema, "Survey">;
+export type Survey = $ModelResult<$Schema, 'Survey'>;
 /**
  * Defines follow-up actions for survey responses.
  * Enables automated actions based on specific survey response conditions.
@@ -158,7 +158,7 @@ export type Survey = $ModelResult<$Schema, "Survey">;
  * @property trigger - Conditions that activate the follow-up
  * @property action - Actions to take when triggered
  */
-export type SurveyFollowUp = $ModelResult<$Schema, "SurveyFollowUp">;
+export type SurveyFollowUp = $ModelResult<$Schema, 'SurveyFollowUp'>;
 /**
  * Represents a user action that can trigger surveys.
  * Used to define points in the user journey where surveys can be shown.
@@ -170,7 +170,7 @@ export type SurveyFollowUp = $ModelResult<$Schema, "SurveyFollowUp">;
  * @property noCodeConfig - Configuration for no-code setup
  * @property environment - The environment this action belongs to
  */
-export type ActionClass = $ModelResult<$Schema, "ActionClass">;
+export type ActionClass = $ModelResult<$Schema, 'ActionClass'>;
 /**
  * Represents third-party service integrations.
  * Enables data flow between Formbricks and external services.
@@ -180,7 +180,7 @@ export type ActionClass = $ModelResult<$Schema, "ActionClass">;
  * @property environment - The environment this integration belongs to
  * @property config - Service-specific configuration details
  */
-export type Integration = $ModelResult<$Schema, "Integration">;
+export type Integration = $ModelResult<$Schema, 'Integration'>;
 /**
  * Tracks database schema migrations.
  * Used to manage and track the state of data structure changes.
@@ -191,7 +191,7 @@ export type Integration = $ModelResult<$Schema, "Integration">;
  * @property startedAt - When the migration began
  * @property finishedAt - When the migration completed
  */
-export type DataMigration = $ModelResult<$Schema, "DataMigration">;
+export type DataMigration = $ModelResult<$Schema, 'DataMigration'>;
 /**
  * Represents either a production or development environment within a project.
  * Each project has exactly two environments, serving as the main reference point
@@ -206,7 +206,7 @@ export type DataMigration = $ModelResult<$Schema, "DataMigration">;
  * @property actionClasses - Defined actions that can trigger surveys
  * @property attributeKeys - Custom attributes configuration
  */
-export type Environment = $ModelResult<$Schema, "Environment">;
+export type Environment = $ModelResult<$Schema, 'Environment'>;
 /**
  * Main grouping mechanism for resources in Formbricks.
  * Each organization can have multiple projects to separate different applications or products.
@@ -220,7 +220,7 @@ export type Environment = $ModelResult<$Schema, "Environment">;
  * @property recontactDays - Default recontact delay for surveys
  * @property placement - Default widget placement for in-app surveys
  */
-export type Project = $ModelResult<$Schema, "Project">;
+export type Project = $ModelResult<$Schema, 'Project'>;
 /**
  * Represents the top-level organizational hierarchy in Formbricks.
  * Self-hosting instances typically have a single organization, while Formbricks Cloud
@@ -234,7 +234,7 @@ export type Project = $ModelResult<$Schema, "Project">;
  * @property whitelabel - Whitelabel configuration for the organization
  * @property isAIEnabled - Controls access to AI-powered features
  */
-export type Organization = $ModelResult<$Schema, "Organization">;
+export type Organization = $ModelResult<$Schema, 'Organization'>;
 /**
  * Links users to organizations with specific roles.
  * Manages organization membership and permissions.
@@ -245,7 +245,7 @@ export type Organization = $ModelResult<$Schema, "Organization">;
  * @property accepted - Whether the user has accepted the membership
  * @property role - User's role within the organization (owner, manager, member, billing)
  */
-export type Membership = $ModelResult<$Schema, "Membership">;
+export type Membership = $ModelResult<$Schema, 'Membership'>;
 /**
  * Represents pending invitations to join an organization.
  * Used to manage the process of adding new users to an organization.
@@ -261,7 +261,7 @@ export type Membership = $ModelResult<$Schema, "Membership">;
  * @property role - Intended role for the invited user
  * @property teamIds - Teams the user will be added to upon acceptance
  */
-export type Invite = $ModelResult<$Schema, "Invite">;
+export type Invite = $ModelResult<$Schema, 'Invite'>;
 /**
  * Represents enhanced API authentication keys with organization-level ownership.
  * Used for authenticating API requests to Formbricks with more granular permissions.
@@ -274,7 +274,7 @@ export type Invite = $ModelResult<$Schema, "Invite">;
  * @property lastUsedAt - Timestamp of last usage
  * @property apiKeyEnvironments - Environments this key has access to
  */
-export type ApiKey = $ModelResult<$Schema, "ApiKey">;
+export type ApiKey = $ModelResult<$Schema, 'ApiKey'>;
 /**
  * Links API keys to environments with specific permissions.
  * Enables granular access control for API keys across environments.
@@ -284,7 +284,7 @@ export type ApiKey = $ModelResult<$Schema, "ApiKey">;
  * @property environment - The environment being accessed
  * @property permission - Level of access granted
  */
-export type ApiKeyEnvironment = $ModelResult<$Schema, "ApiKeyEnvironment">;
+export type ApiKeyEnvironment = $ModelResult<$Schema, 'ApiKeyEnvironment'>;
 /**
  * Stores third-party authentication account information.
  * Enables OAuth and other external authentication methods.
@@ -296,7 +296,7 @@ export type ApiKeyEnvironment = $ModelResult<$Schema, "ApiKeyEnvironment">;
  * @property access_token - OAuth access token
  * @property refresh_token - OAuth refresh token
  */
-export type Account = $ModelResult<$Schema, "Account">;
+export type Account = $ModelResult<$Schema, 'Account'>;
 /**
  * Represents a user in the Formbricks system.
  * Central model for user authentication and profile management.
@@ -310,7 +310,7 @@ export type Account = $ModelResult<$Schema, "Account">;
  * @property memberships - Organizations the user belongs to
  * @property notificationSettings - User's notification preferences
  */
-export type User = $ModelResult<$Schema, "User">;
+export type User = $ModelResult<$Schema, 'User'>;
 /**
  * Maps a short URL to its full destination.
  * Used for creating memorable, shortened URLs for surveys.
@@ -318,7 +318,7 @@ export type User = $ModelResult<$Schema, "User">;
  * @property id - Short identifier/slug for the URL
  * @property url - The full destination URL
  */
-export type ShortUrl = $ModelResult<$Schema, "ShortUrl">;
+export type ShortUrl = $ModelResult<$Schema, 'ShortUrl'>;
 /**
  * Defines a segment of contacts based on attributes.
  * Used for targeting surveys to specific user groups.
@@ -329,7 +329,7 @@ export type ShortUrl = $ModelResult<$Schema, "ShortUrl">;
  * @property isPrivate - Whether the segment is private
  * @property environment - The environment this segment belongs to
  */
-export type Segment = $ModelResult<$Schema, "Segment">;
+export type Segment = $ModelResult<$Schema, 'Segment'>;
 /**
  * Represents a supported language in the system.
  * Used for multilingual survey support.
@@ -339,7 +339,7 @@ export type Segment = $ModelResult<$Schema, "Segment">;
  * @property alias - Optional friendly name
  * @property project - The project this language is enabled for
  */
-export type Language = $ModelResult<$Schema, "Language">;
+export type Language = $ModelResult<$Schema, 'Language'>;
 /**
  * Links surveys to their supported languages.
  * Manages which languages are available for each survey.
@@ -349,7 +349,7 @@ export type Language = $ModelResult<$Schema, "Language">;
  * @property default - Whether this is the default language
  * @property enabled - Whether this language is currently active
  */
-export type SurveyLanguage = $ModelResult<$Schema, "SurveyLanguage">;
+export type SurveyLanguage = $ModelResult<$Schema, 'SurveyLanguage'>;
 /**
  * Stores analyzed insights from survey responses.
  * Used for tracking patterns and extracting meaningful information.
@@ -360,7 +360,7 @@ export type SurveyLanguage = $ModelResult<$Schema, "SurveyLanguage">;
  * @property description - Detailed explanation
  * @property vector - Embedding vector for similarity search
  */
-export type Insight = $ModelResult<$Schema, "Insight">;
+export type Insight = $ModelResult<$Schema, 'Insight'>;
 /**
  * Links insights to source documents.
  * Enables tracing insights back to original responses.
@@ -368,7 +368,7 @@ export type Insight = $ModelResult<$Schema, "Insight">;
  * @property document - The source document
  * @property insight - The derived insight
  */
-export type DocumentInsight = $ModelResult<$Schema, "DocumentInsight">;
+export type DocumentInsight = $ModelResult<$Schema, 'DocumentInsight'>;
 /**
  * Represents a processed text document from survey responses.
  * Used for analysis and insight generation.
@@ -380,7 +380,7 @@ export type DocumentInsight = $ModelResult<$Schema, "DocumentInsight">;
  * @property text - The document content
  * @property vector - Embedding vector for similarity search
  */
-export type Document = $ModelResult<$Schema, "Document">;
+export type Document = $ModelResult<$Schema, 'Document'>;
 /**
  * Represents a team within an organization.
  * Enables group-based access control and collaboration.
@@ -391,7 +391,7 @@ export type Document = $ModelResult<$Schema, "Document">;
  * @property teamUsers - Users who are part of this team
  * @property projectTeams - Projects this team has access to
  */
-export type Team = $ModelResult<$Schema, "Team">;
+export type Team = $ModelResult<$Schema, 'Team'>;
 /**
  * Links users to teams with specific roles.
  * Manages team membership and permissions.
@@ -400,7 +400,7 @@ export type Team = $ModelResult<$Schema, "Team">;
  * @property user - The team member
  * @property role - User's role within the team
  */
-export type TeamUser = $ModelResult<$Schema, "TeamUser">;
+export type TeamUser = $ModelResult<$Schema, 'TeamUser'>;
 /**
  * Defines team access to specific projects.
  * Manages project-level permissions for teams.
@@ -409,7 +409,7 @@ export type TeamUser = $ModelResult<$Schema, "TeamUser">;
  * @property team - The team receiving access
  * @property permission - Level of access granted
  */
-export type ProjectTeam = $ModelResult<$Schema, "ProjectTeam">;
+export type ProjectTeam = $ModelResult<$Schema, 'ProjectTeam'>;
 export const PipelineTriggers = $schema.enums.PipelineTriggers.values;
 export type PipelineTriggers = (typeof PipelineTriggers)[keyof typeof PipelineTriggers];
 export const WebhookSource = $schema.enums.WebhookSource.values;
@@ -421,7 +421,8 @@ export type SurveyStatus = (typeof SurveyStatus)[keyof typeof SurveyStatus];
 export const DisplayStatus = $schema.enums.DisplayStatus.values;
 export type DisplayStatus = (typeof DisplayStatus)[keyof typeof DisplayStatus];
 export const SurveyAttributeFilterCondition = $schema.enums.SurveyAttributeFilterCondition.values;
-export type SurveyAttributeFilterCondition = (typeof SurveyAttributeFilterCondition)[keyof typeof SurveyAttributeFilterCondition];
+export type SurveyAttributeFilterCondition =
+    (typeof SurveyAttributeFilterCondition)[keyof typeof SurveyAttributeFilterCondition];
 export const SurveyType = $schema.enums.SurveyType.values;
 export type SurveyType = (typeof SurveyType)[keyof typeof SurveyType];
 export const displayOptions = $schema.enums.displayOptions.values;

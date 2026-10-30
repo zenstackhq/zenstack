@@ -13,16 +13,19 @@ A simple blog application built with Nuxt, ZenStack ORM, and TanStack Query Vue 
 ## Getting Started
 
 1. Install dependencies:
+
 ```bash
 pnpm install
 ```
 
 2. Initialize the database and seed data:
+
 ```bash
 pnpm db:init
 ```
 
 3. Start the development server:
+
 ```bash
 pnpm dev
 ```
@@ -33,11 +36,11 @@ The app will be available at http://localhost:3302
 
 - `app/` - Nuxt app components and pages
 - `server/` - Nuxt server files
-  - `api/model/[...path].ts` - ZenStack API endpoint
-  - `utils/db.ts` - Database client
+    - `api/model/[...path].ts` - ZenStack API endpoint
+    - `utils/db.ts` - Database client
 - `zenstack/` - ZenStack schema and generated files
-  - `schema.zmodel` - Database schema definition
-  - `seed.ts` - Database seeding script
+    - `schema.zmodel` - Database schema definition
+    - `seed.ts` - Database seeding script
 
 ## Available Scripts
 

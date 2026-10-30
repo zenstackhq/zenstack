@@ -38,6 +38,7 @@ import {
     getStringLiteral,
     isAuthInvocation,
     isDelegateModel,
+    isPrimitiveTypeDef,
 } from '@zenstackhq/language/utils';
 import { AstUtils } from 'langium';
 import { match } from 'ts-pattern';
@@ -260,6 +261,10 @@ export class PrismaSchemaGenerator {
         return attr.decl.ref.attributes.some((a) => a.decl.ref?.name === '@@@prisma');
     }
 
+    private isNativeTypeMappingAttribute(attr: DataFieldAttribute) {
+        return attr.decl.$refText.startsWith('@db.') && this.isPrismaAttribute(attr);
+    }
+
     private getUnsupportedFieldType(fieldType: DataFieldType) {
         if (fieldType.unsupported) {
             const value = getStringLiteral(fieldType.unsupported.value);
@@ -282,7 +287,7 @@ export class PrismaSchemaGenerator {
         } else if (field.type.reference?.ref) {
             // model, enum, or type-def
             if (isTypeDef(field.type.reference.ref)) {
-                fieldType = 'Json';
+                fieldType = isPrimitiveTypeDef(field.type.reference.ref) ? field.type.reference.ref.base! : 'Json';
             } else {
                 fieldType = field.type.reference.ref.name;
             }
@@ -300,7 +305,11 @@ export class PrismaSchemaGenerator {
 
         const isArray =
             // typed-JSON fields should be translated to scalar Json type
-            isTypeDef(field.type.reference?.ref) ? false : field.type.array;
+            isTypeDef(field.type.reference?.ref)
+                ? isPrimitiveTypeDef(field.type.reference.ref)
+                    ? field.type.array
+                    : false
+                : field.type.array;
         const type = new ModelFieldType(fieldType, isArray, field.type.optional);
 
         const attributes = field.attributes
@@ -337,7 +346,13 @@ export class PrismaSchemaGenerator {
     }
 
     private makeFieldAttribute(attr: DataFieldAttribute) {
-        const attrName = attr.decl.ref!.name;
+        let attrName = attr.decl.ref!.name;
+        if (this.isNativeTypeMappingAttribute(attr)) {
+            const dataSource = this.zmodel.declarations.find(isDataSource);
+            if (dataSource) {
+                attrName = attrName.replace('@db', `@${dataSource.name}`);
+            }
+        }
         return new PrismaFieldAttribute(
             attrName,
             attr.args.map((arg) => this.makeAttributeArg(arg)),
@@ -386,19 +401,25 @@ export class PrismaSchemaGenerator {
             node.function.ref!.name,
 
             // strip format args from id functions
-            node.args.filter((_, i) => (
-                !(ID_FUNCTIONS.includes(node.function.ref!.name) && (node.function.ref!.name === 'ulid' && i === 0 || i === 1))
-            )).map((arg) => {
-                const val = match(arg.value)
-                    .when(isStringLiteral, (v) => `"${v.value}"`)
-                    .when(isLiteralExpr, (v) => v.value.toString())
-                    .when(isNullExpr, () => 'null')
-                    .otherwise(() => {
-                        throw new Error('Function call argument must be literal or null');
-                    });
+            node.args
+                .filter(
+                    (_, i) =>
+                        !(
+                            ID_FUNCTIONS.includes(node.function.ref!.name) &&
+                            ((node.function.ref!.name === 'ulid' && i === 0) || i === 1)
+                        ),
+                )
+                .map((arg) => {
+                    const val = match(arg.value)
+                        .when(isStringLiteral, (v) => `"${v.value}"`)
+                        .when(isLiteralExpr, (v) => v.value.toString())
+                        .when(isNullExpr, () => 'null')
+                        .otherwise(() => {
+                            throw new Error('Function call argument must be literal or null');
+                        });
 
-                return new PrismaFunctionCallArg(val);
-            }),
+                    return new PrismaFunctionCallArg(val);
+                }),
         );
     }
 

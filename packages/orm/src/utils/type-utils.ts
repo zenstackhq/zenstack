@@ -90,3 +90,30 @@ export type UnwrapTuplePromises<T extends readonly unknown[]> = {
 };
 
 export type Exact<T, Shape> = T extends Shape ? (Exclude<keyof T, keyof Shape> extends never ? T : never) : never;
+
+type _ExactLeaf = string | number | bigint | boolean | symbol | Date | Function | Decimal | Uint8Array;
+type _ObjectKeys<T> = T extends object ? keyof T : never;
+type _ObjectValue<T, K extends PropertyKey> = T extends object ? (K extends keyof T ? T[K] : never) : never;
+type _ArrayItem<T> = T extends readonly (infer Item)[] ? Item : never;
+
+type _NoExtraObject<T extends object, Shape, Keys extends PropertyKey = _ObjectKeys<Shape>> = string extends Keys
+    ? unknown
+    : {
+          [K in keyof T]: K extends Keys ? NoExtraProperties<T[K], _ObjectValue<Shape, K>> : never;
+      };
+
+/**
+ * Rejects unknown keys by walking only the finite inferred input. Expected unions are distributed
+ * only when looking up the current property, avoiding reconstruction of the input per union branch.
+ */
+export type NoExtraProperties<T, Shape> = unknown extends Shape
+    ? unknown
+    : T extends _ExactLeaf
+      ? T
+      : T extends readonly (infer Item)[]
+        ? [_ArrayItem<Shape>] extends [never]
+            ? never
+            : NoExtraProperties<Item, _ArrayItem<Shape>>[]
+        : T extends object
+          ? _NoExtraObject<T, Shape>
+          : T;

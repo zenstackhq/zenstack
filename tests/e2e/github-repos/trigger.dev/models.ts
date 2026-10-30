@@ -5,27 +5,27 @@
 
 /* eslint-disable */
 
-import { schema as $schema, type SchemaType as $Schema } from "./schema";
-import type { ModelResult as $ModelResult } from "@zenstackhq/orm";
-export type User = $ModelResult<$Schema, "User">;
-export type InvitationCode = $ModelResult<$Schema, "InvitationCode">;
+import { schema as $schema, type SchemaType as $Schema } from './schema';
+import type { ModelResult as $ModelResult } from '@zenstackhq/orm';
+export type User = $ModelResult<$Schema, 'User'>;
+export type InvitationCode = $ModelResult<$Schema, 'InvitationCode'>;
 /**
  * Used to generate PersonalAccessTokens, they're one-time use
  */
-export type AuthorizationCode = $ModelResult<$Schema, "AuthorizationCode">;
-export type PersonalAccessToken = $ModelResult<$Schema, "PersonalAccessToken">;
-export type Organization = $ModelResult<$Schema, "Organization">;
-export type OrgMember = $ModelResult<$Schema, "OrgMember">;
-export type OrgMemberInvite = $ModelResult<$Schema, "OrgMemberInvite">;
-export type RuntimeEnvironment = $ModelResult<$Schema, "RuntimeEnvironment">;
-export type Project = $ModelResult<$Schema, "Project">;
-export type SecretReference = $ModelResult<$Schema, "SecretReference">;
-export type SecretStore = $ModelResult<$Schema, "SecretStore">;
-export type DataMigration = $ModelResult<$Schema, "DataMigration">;
-export type BackgroundWorker = $ModelResult<$Schema, "BackgroundWorker">;
-export type BackgroundWorkerFile = $ModelResult<$Schema, "BackgroundWorkerFile">;
-export type BackgroundWorkerTask = $ModelResult<$Schema, "BackgroundWorkerTask">;
-export type TaskRun = $ModelResult<$Schema, "TaskRun">;
+export type AuthorizationCode = $ModelResult<$Schema, 'AuthorizationCode'>;
+export type PersonalAccessToken = $ModelResult<$Schema, 'PersonalAccessToken'>;
+export type Organization = $ModelResult<$Schema, 'Organization'>;
+export type OrgMember = $ModelResult<$Schema, 'OrgMember'>;
+export type OrgMemberInvite = $ModelResult<$Schema, 'OrgMemberInvite'>;
+export type RuntimeEnvironment = $ModelResult<$Schema, 'RuntimeEnvironment'>;
+export type Project = $ModelResult<$Schema, 'Project'>;
+export type SecretReference = $ModelResult<$Schema, 'SecretReference'>;
+export type SecretStore = $ModelResult<$Schema, 'SecretStore'>;
+export type DataMigration = $ModelResult<$Schema, 'DataMigration'>;
+export type BackgroundWorker = $ModelResult<$Schema, 'BackgroundWorker'>;
+export type BackgroundWorkerFile = $ModelResult<$Schema, 'BackgroundWorkerFile'>;
+export type BackgroundWorkerTask = $ModelResult<$Schema, 'BackgroundWorkerTask'>;
+export type TaskRun = $ModelResult<$Schema, 'TaskRun'>;
 /**
  * Used by the RunEngine during TaskRun execution
  * It has the required information to transactionally progress a run through states,
@@ -33,75 +33,75 @@ export type TaskRun = $ModelResult<$Schema, "TaskRun">;
  * It is optimised for performance and is designed to be cleared at some point,
  * so there are no cascading relationships to other models.
  */
-export type TaskRunExecutionSnapshot = $ModelResult<$Schema, "TaskRunExecutionSnapshot">;
-export type TaskRunCheckpoint = $ModelResult<$Schema, "TaskRunCheckpoint">;
+export type TaskRunExecutionSnapshot = $ModelResult<$Schema, 'TaskRunExecutionSnapshot'>;
+export type TaskRunCheckpoint = $ModelResult<$Schema, 'TaskRunCheckpoint'>;
 /**
  * A Waitpoint blocks a run from continuing until it's completed
  * If there's a waitpoint blocking a run, it shouldn't be in the queue
  */
-export type Waitpoint = $ModelResult<$Schema, "Waitpoint">;
-export type TaskRunWaitpoint = $ModelResult<$Schema, "TaskRunWaitpoint">;
-export type WaitpointTag = $ModelResult<$Schema, "WaitpointTag">;
-export type FeatureFlag = $ModelResult<$Schema, "FeatureFlag">;
-export type WorkerInstance = $ModelResult<$Schema, "WorkerInstance">;
-export type WorkerInstanceGroup = $ModelResult<$Schema, "WorkerInstanceGroup">;
-export type WorkerGroupToken = $ModelResult<$Schema, "WorkerGroupToken">;
-export type TaskRunTag = $ModelResult<$Schema, "TaskRunTag">;
+export type Waitpoint = $ModelResult<$Schema, 'Waitpoint'>;
+export type TaskRunWaitpoint = $ModelResult<$Schema, 'TaskRunWaitpoint'>;
+export type WaitpointTag = $ModelResult<$Schema, 'WaitpointTag'>;
+export type FeatureFlag = $ModelResult<$Schema, 'FeatureFlag'>;
+export type WorkerInstance = $ModelResult<$Schema, 'WorkerInstance'>;
+export type WorkerInstanceGroup = $ModelResult<$Schema, 'WorkerInstanceGroup'>;
+export type WorkerGroupToken = $ModelResult<$Schema, 'WorkerGroupToken'>;
+export type TaskRunTag = $ModelResult<$Schema, 'TaskRunTag'>;
 /**
  * This is used for triggerAndWait and batchTriggerAndWait. The taskRun is the child task, it points at a parent attempt or a batch
  */
-export type TaskRunDependency = $ModelResult<$Schema, "TaskRunDependency">;
+export type TaskRunDependency = $ModelResult<$Schema, 'TaskRunDependency'>;
 /**
  * deprecated, we hadn't included the project id in the unique constraint
  */
-export type TaskRunCounter = $ModelResult<$Schema, "TaskRunCounter">;
+export type TaskRunCounter = $ModelResult<$Schema, 'TaskRunCounter'>;
 /**
  * Used for the TaskRun number (e.g. #1,421)
  */
-export type TaskRunNumberCounter = $ModelResult<$Schema, "TaskRunNumberCounter">;
+export type TaskRunNumberCounter = $ModelResult<$Schema, 'TaskRunNumberCounter'>;
 /**
  * This is not used from engine v2+, attempts use the TaskRunExecutionSnapshot and TaskRun
  */
-export type TaskRunAttempt = $ModelResult<$Schema, "TaskRunAttempt">;
+export type TaskRunAttempt = $ModelResult<$Schema, 'TaskRunAttempt'>;
 /**
  * This is the unified otel span/log model that will eventually be replaced by clickhouse
  */
-export type TaskEvent = $ModelResult<$Schema, "TaskEvent">;
-export type TaskQueue = $ModelResult<$Schema, "TaskQueue">;
-export type BatchTaskRun = $ModelResult<$Schema, "BatchTaskRun">;
+export type TaskEvent = $ModelResult<$Schema, 'TaskEvent'>;
+export type TaskQueue = $ModelResult<$Schema, 'TaskQueue'>;
+export type BatchTaskRun = $ModelResult<$Schema, 'BatchTaskRun'>;
 /**
  * Used in engine V1 only
  */
-export type BatchTaskRunItem = $ModelResult<$Schema, "BatchTaskRunItem">;
-export type EnvironmentVariable = $ModelResult<$Schema, "EnvironmentVariable">;
-export type EnvironmentVariableValue = $ModelResult<$Schema, "EnvironmentVariableValue">;
-export type Checkpoint = $ModelResult<$Schema, "Checkpoint">;
-export type CheckpointRestoreEvent = $ModelResult<$Schema, "CheckpointRestoreEvent">;
-export type WorkerDeployment = $ModelResult<$Schema, "WorkerDeployment">;
-export type WorkerDeploymentPromotion = $ModelResult<$Schema, "WorkerDeploymentPromotion">;
+export type BatchTaskRunItem = $ModelResult<$Schema, 'BatchTaskRunItem'>;
+export type EnvironmentVariable = $ModelResult<$Schema, 'EnvironmentVariable'>;
+export type EnvironmentVariableValue = $ModelResult<$Schema, 'EnvironmentVariableValue'>;
+export type Checkpoint = $ModelResult<$Schema, 'Checkpoint'>;
+export type CheckpointRestoreEvent = $ModelResult<$Schema, 'CheckpointRestoreEvent'>;
+export type WorkerDeployment = $ModelResult<$Schema, 'WorkerDeployment'>;
+export type WorkerDeploymentPromotion = $ModelResult<$Schema, 'WorkerDeploymentPromotion'>;
 /**
  * Schedules can be attached to tasks to trigger them on a schedule
  */
-export type TaskSchedule = $ModelResult<$Schema, "TaskSchedule">;
+export type TaskSchedule = $ModelResult<$Schema, 'TaskSchedule'>;
 /**
  * An instance links a schedule with an environment
  */
-export type TaskScheduleInstance = $ModelResult<$Schema, "TaskScheduleInstance">;
-export type RuntimeEnvironmentSession = $ModelResult<$Schema, "RuntimeEnvironmentSession">;
-export type ProjectAlertChannel = $ModelResult<$Schema, "ProjectAlertChannel">;
-export type ProjectAlert = $ModelResult<$Schema, "ProjectAlert">;
-export type ProjectAlertStorage = $ModelResult<$Schema, "ProjectAlertStorage">;
-export type OrganizationIntegration = $ModelResult<$Schema, "OrganizationIntegration">;
+export type TaskScheduleInstance = $ModelResult<$Schema, 'TaskScheduleInstance'>;
+export type RuntimeEnvironmentSession = $ModelResult<$Schema, 'RuntimeEnvironmentSession'>;
+export type ProjectAlertChannel = $ModelResult<$Schema, 'ProjectAlertChannel'>;
+export type ProjectAlert = $ModelResult<$Schema, 'ProjectAlert'>;
+export type ProjectAlertStorage = $ModelResult<$Schema, 'ProjectAlertStorage'>;
+export type OrganizationIntegration = $ModelResult<$Schema, 'OrganizationIntegration'>;
 /**
  * Bulk actions, like canceling and replaying runs
  */
-export type BulkActionGroup = $ModelResult<$Schema, "BulkActionGroup">;
-export type BulkActionItem = $ModelResult<$Schema, "BulkActionItem">;
-export type RealtimeStreamChunk = $ModelResult<$Schema, "RealtimeStreamChunk">;
+export type BulkActionGroup = $ModelResult<$Schema, 'BulkActionGroup'>;
+export type BulkActionItem = $ModelResult<$Schema, 'BulkActionItem'>;
+export type RealtimeStreamChunk = $ModelResult<$Schema, 'RealtimeStreamChunk'>;
 /**
  * This is the unified otel span/log model that will eventually be replaced by clickhouse
  */
-export type TaskEventPartitioned = $ModelResult<$Schema, "TaskEventPartitioned">;
+export type TaskEventPartitioned = $ModelResult<$Schema, 'TaskEventPartitioned'>;
 export const AuthenticationMethod = $schema.enums.AuthenticationMethod.values;
 export type AuthenticationMethod = (typeof AuthenticationMethod)[keyof typeof AuthenticationMethod];
 export const OrgMemberRole = $schema.enums.OrgMemberRole.values;

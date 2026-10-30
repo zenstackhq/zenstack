@@ -970,13 +970,6 @@ export class SchemaType implements SchemaDef {
             uniqueFields: {
                 id: { type: "String" },
                 organizationId_slug: { organizationId: { type: "String" }, slug: { type: "String" } }
-            },
-            computedFields: {
-                openIssueCount(_context: {
-                    modelAlias: string;
-                }): number {
-                    throw new Error("This is a stub for computed field");
-                }
             }
         },
         ProjectMember: {
@@ -1261,13 +1254,6 @@ export class SchemaType implements SchemaDef {
             uniqueFields: {
                 id: { type: "String" },
                 projectId_number: { projectId: { type: "String" }, number: { type: "Int" } }
-            },
-            computedFields: {
-                commentCount(_context: {
-                    modelAlias: string;
-                }): number {
-                    throw new Error("This is a stub for computed field");
-                }
             }
         },
         Label: {

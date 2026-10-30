@@ -304,6 +304,9 @@ Arguments following -- are passed to the seed script. E.g.: "zen db seed -- --us
                     return parsed;
                 }),
         )
+        .addOption(
+            new Option('--introspect', 'Introspect the database to generate a schema when no schema file is found'),
+        )
         .addOption(noVersionCheckOption)
         .action(proxyAction);
 

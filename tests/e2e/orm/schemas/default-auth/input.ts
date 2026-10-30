@@ -5,69 +5,100 @@
 
 /* eslint-disable */
 
-import { type SchemaType as $Schema } from "./schema";
-import type { FindManyArgs as $FindManyArgs, FindUniqueArgs as $FindUniqueArgs, FindFirstArgs as $FindFirstArgs, ExistsArgs as $ExistsArgs, CreateArgs as $CreateArgs, CreateManyArgs as $CreateManyArgs, CreateManyAndReturnArgs as $CreateManyAndReturnArgs, UpdateArgs as $UpdateArgs, UpdateManyArgs as $UpdateManyArgs, UpdateManyAndReturnArgs as $UpdateManyAndReturnArgs, UpsertArgs as $UpsertArgs, DeleteArgs as $DeleteArgs, DeleteManyArgs as $DeleteManyArgs, CountArgs as $CountArgs, AggregateArgs as $AggregateArgs, GroupByArgs as $GroupByArgs, WhereInput as $WhereInput, SelectInput as $SelectInput, IncludeInput as $IncludeInput, OmitInput as $OmitInput, QueryOptions as $QueryOptions } from "@zenstackhq/orm";
-import type { SimplifiedPlainResult as $Result, SelectIncludeOmit as $SelectIncludeOmit } from "@zenstackhq/orm";
-export type UserFindManyArgs = $FindManyArgs<$Schema, "User">;
-export type UserFindUniqueArgs = $FindUniqueArgs<$Schema, "User">;
-export type UserFindFirstArgs = $FindFirstArgs<$Schema, "User">;
-export type UserExistsArgs = $ExistsArgs<$Schema, "User">;
-export type UserCreateArgs = $CreateArgs<$Schema, "User">;
-export type UserCreateManyArgs = $CreateManyArgs<$Schema, "User">;
-export type UserCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "User">;
-export type UserUpdateArgs = $UpdateArgs<$Schema, "User">;
-export type UserUpdateManyArgs = $UpdateManyArgs<$Schema, "User">;
-export type UserUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "User">;
-export type UserUpsertArgs = $UpsertArgs<$Schema, "User">;
-export type UserDeleteArgs = $DeleteArgs<$Schema, "User">;
-export type UserDeleteManyArgs = $DeleteManyArgs<$Schema, "User">;
-export type UserCountArgs = $CountArgs<$Schema, "User">;
-export type UserAggregateArgs = $AggregateArgs<$Schema, "User">;
-export type UserGroupByArgs = $GroupByArgs<$Schema, "User">;
-export type UserWhereInput = $WhereInput<$Schema, "User">;
-export type UserSelect = $SelectInput<$Schema, "User">;
-export type UserInclude = $IncludeInput<$Schema, "User">;
-export type UserOmit = $OmitInput<$Schema, "User">;
-export type UserGetPayload<Args extends $SelectIncludeOmit<$Schema, "User", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "User", Args, Options>;
-export type ProfileFindManyArgs = $FindManyArgs<$Schema, "Profile">;
-export type ProfileFindUniqueArgs = $FindUniqueArgs<$Schema, "Profile">;
-export type ProfileFindFirstArgs = $FindFirstArgs<$Schema, "Profile">;
-export type ProfileExistsArgs = $ExistsArgs<$Schema, "Profile">;
-export type ProfileCreateArgs = $CreateArgs<$Schema, "Profile">;
-export type ProfileCreateManyArgs = $CreateManyArgs<$Schema, "Profile">;
-export type ProfileCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "Profile">;
-export type ProfileUpdateArgs = $UpdateArgs<$Schema, "Profile">;
-export type ProfileUpdateManyArgs = $UpdateManyArgs<$Schema, "Profile">;
-export type ProfileUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "Profile">;
-export type ProfileUpsertArgs = $UpsertArgs<$Schema, "Profile">;
-export type ProfileDeleteArgs = $DeleteArgs<$Schema, "Profile">;
-export type ProfileDeleteManyArgs = $DeleteManyArgs<$Schema, "Profile">;
-export type ProfileCountArgs = $CountArgs<$Schema, "Profile">;
-export type ProfileAggregateArgs = $AggregateArgs<$Schema, "Profile">;
-export type ProfileGroupByArgs = $GroupByArgs<$Schema, "Profile">;
-export type ProfileWhereInput = $WhereInput<$Schema, "Profile">;
-export type ProfileSelect = $SelectInput<$Schema, "Profile">;
-export type ProfileInclude = $IncludeInput<$Schema, "Profile">;
-export type ProfileOmit = $OmitInput<$Schema, "Profile">;
-export type ProfileGetPayload<Args extends $SelectIncludeOmit<$Schema, "Profile", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "Profile", Args, Options>;
-export type AddressFindManyArgs = $FindManyArgs<$Schema, "Address">;
-export type AddressFindUniqueArgs = $FindUniqueArgs<$Schema, "Address">;
-export type AddressFindFirstArgs = $FindFirstArgs<$Schema, "Address">;
-export type AddressExistsArgs = $ExistsArgs<$Schema, "Address">;
-export type AddressCreateArgs = $CreateArgs<$Schema, "Address">;
-export type AddressCreateManyArgs = $CreateManyArgs<$Schema, "Address">;
-export type AddressCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "Address">;
-export type AddressUpdateArgs = $UpdateArgs<$Schema, "Address">;
-export type AddressUpdateManyArgs = $UpdateManyArgs<$Schema, "Address">;
-export type AddressUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "Address">;
-export type AddressUpsertArgs = $UpsertArgs<$Schema, "Address">;
-export type AddressDeleteArgs = $DeleteArgs<$Schema, "Address">;
-export type AddressDeleteManyArgs = $DeleteManyArgs<$Schema, "Address">;
-export type AddressCountArgs = $CountArgs<$Schema, "Address">;
-export type AddressAggregateArgs = $AggregateArgs<$Schema, "Address">;
-export type AddressGroupByArgs = $GroupByArgs<$Schema, "Address">;
-export type AddressWhereInput = $WhereInput<$Schema, "Address">;
-export type AddressSelect = $SelectInput<$Schema, "Address">;
-export type AddressInclude = $IncludeInput<$Schema, "Address">;
-export type AddressOmit = $OmitInput<$Schema, "Address">;
-export type AddressGetPayload<Args extends $SelectIncludeOmit<$Schema, "Address", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "Address", Args, Options>;
+import { type SchemaType as $Schema } from './schema';
+import type {
+    FindManyArgs as $FindManyArgs,
+    FindUniqueArgs as $FindUniqueArgs,
+    FindFirstArgs as $FindFirstArgs,
+    ExistsArgs as $ExistsArgs,
+    CreateArgs as $CreateArgs,
+    CreateManyArgs as $CreateManyArgs,
+    CreateManyAndReturnArgs as $CreateManyAndReturnArgs,
+    UpdateArgs as $UpdateArgs,
+    UpdateManyArgs as $UpdateManyArgs,
+    UpdateManyAndReturnArgs as $UpdateManyAndReturnArgs,
+    UpsertArgs as $UpsertArgs,
+    DeleteArgs as $DeleteArgs,
+    DeleteManyArgs as $DeleteManyArgs,
+    CountArgs as $CountArgs,
+    AggregateArgs as $AggregateArgs,
+    GroupByArgs as $GroupByArgs,
+    WhereInput as $WhereInput,
+    SelectInput as $SelectInput,
+    IncludeInput as $IncludeInput,
+    OmitInput as $OmitInput,
+    QueryOptions as $QueryOptions,
+} from '@zenstackhq/orm';
+import type { SimplifiedPlainResult as $Result, SelectIncludeOmit as $SelectIncludeOmit } from '@zenstackhq/orm';
+export type UserFindManyArgs = $FindManyArgs<$Schema, 'User'>;
+export type UserFindUniqueArgs = $FindUniqueArgs<$Schema, 'User'>;
+export type UserFindFirstArgs = $FindFirstArgs<$Schema, 'User'>;
+export type UserExistsArgs = $ExistsArgs<$Schema, 'User'>;
+export type UserCreateArgs = $CreateArgs<$Schema, 'User'>;
+export type UserCreateManyArgs = $CreateManyArgs<$Schema, 'User'>;
+export type UserCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'User'>;
+export type UserUpdateArgs = $UpdateArgs<$Schema, 'User'>;
+export type UserUpdateManyArgs = $UpdateManyArgs<$Schema, 'User'>;
+export type UserUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'User'>;
+export type UserUpsertArgs = $UpsertArgs<$Schema, 'User'>;
+export type UserDeleteArgs = $DeleteArgs<$Schema, 'User'>;
+export type UserDeleteManyArgs = $DeleteManyArgs<$Schema, 'User'>;
+export type UserCountArgs = $CountArgs<$Schema, 'User'>;
+export type UserAggregateArgs = $AggregateArgs<$Schema, 'User'>;
+export type UserGroupByArgs = $GroupByArgs<$Schema, 'User'>;
+export type UserWhereInput = $WhereInput<$Schema, 'User'>;
+export type UserSelect = $SelectInput<$Schema, 'User'>;
+export type UserInclude = $IncludeInput<$Schema, 'User'>;
+export type UserOmit = $OmitInput<$Schema, 'User'>;
+export type UserGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'User', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'User', Args, Options>;
+export type ProfileFindManyArgs = $FindManyArgs<$Schema, 'Profile'>;
+export type ProfileFindUniqueArgs = $FindUniqueArgs<$Schema, 'Profile'>;
+export type ProfileFindFirstArgs = $FindFirstArgs<$Schema, 'Profile'>;
+export type ProfileExistsArgs = $ExistsArgs<$Schema, 'Profile'>;
+export type ProfileCreateArgs = $CreateArgs<$Schema, 'Profile'>;
+export type ProfileCreateManyArgs = $CreateManyArgs<$Schema, 'Profile'>;
+export type ProfileCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'Profile'>;
+export type ProfileUpdateArgs = $UpdateArgs<$Schema, 'Profile'>;
+export type ProfileUpdateManyArgs = $UpdateManyArgs<$Schema, 'Profile'>;
+export type ProfileUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'Profile'>;
+export type ProfileUpsertArgs = $UpsertArgs<$Schema, 'Profile'>;
+export type ProfileDeleteArgs = $DeleteArgs<$Schema, 'Profile'>;
+export type ProfileDeleteManyArgs = $DeleteManyArgs<$Schema, 'Profile'>;
+export type ProfileCountArgs = $CountArgs<$Schema, 'Profile'>;
+export type ProfileAggregateArgs = $AggregateArgs<$Schema, 'Profile'>;
+export type ProfileGroupByArgs = $GroupByArgs<$Schema, 'Profile'>;
+export type ProfileWhereInput = $WhereInput<$Schema, 'Profile'>;
+export type ProfileSelect = $SelectInput<$Schema, 'Profile'>;
+export type ProfileInclude = $IncludeInput<$Schema, 'Profile'>;
+export type ProfileOmit = $OmitInput<$Schema, 'Profile'>;
+export type ProfileGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'Profile', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'Profile', Args, Options>;
+export type AddressFindManyArgs = $FindManyArgs<$Schema, 'Address'>;
+export type AddressFindUniqueArgs = $FindUniqueArgs<$Schema, 'Address'>;
+export type AddressFindFirstArgs = $FindFirstArgs<$Schema, 'Address'>;
+export type AddressExistsArgs = $ExistsArgs<$Schema, 'Address'>;
+export type AddressCreateArgs = $CreateArgs<$Schema, 'Address'>;
+export type AddressCreateManyArgs = $CreateManyArgs<$Schema, 'Address'>;
+export type AddressCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'Address'>;
+export type AddressUpdateArgs = $UpdateArgs<$Schema, 'Address'>;
+export type AddressUpdateManyArgs = $UpdateManyArgs<$Schema, 'Address'>;
+export type AddressUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'Address'>;
+export type AddressUpsertArgs = $UpsertArgs<$Schema, 'Address'>;
+export type AddressDeleteArgs = $DeleteArgs<$Schema, 'Address'>;
+export type AddressDeleteManyArgs = $DeleteManyArgs<$Schema, 'Address'>;
+export type AddressCountArgs = $CountArgs<$Schema, 'Address'>;
+export type AddressAggregateArgs = $AggregateArgs<$Schema, 'Address'>;
+export type AddressGroupByArgs = $GroupByArgs<$Schema, 'Address'>;
+export type AddressWhereInput = $WhereInput<$Schema, 'Address'>;
+export type AddressSelect = $SelectInput<$Schema, 'Address'>;
+export type AddressInclude = $IncludeInput<$Schema, 'Address'>;
+export type AddressOmit = $OmitInput<$Schema, 'Address'>;
+export type AddressGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'Address', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'Address', Args, Options>;

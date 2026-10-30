@@ -47,7 +47,7 @@ jobs:
 
         strategy:
             matrix:
-                node-version: [22.x]
+                node-version: [24.x]
                 provider: [sqlite, postgresql, mysql]
 
         steps:
@@ -57,7 +57,7 @@ jobs:
             - name: Install pnpm
               uses: pnpm/action-setup@v2
               with:
-                  version: 10.12.1
+                  version: 10.33.0
 
             - name: Use Node.js ${{ matrix.node-version }}
               uses: actions/setup-node@v4

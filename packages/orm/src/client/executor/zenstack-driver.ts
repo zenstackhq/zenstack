@@ -1,4 +1,13 @@
-import type { CompiledQuery, DatabaseConnection, Driver, Log, QueryResult, TransactionSettings } from 'kysely';
+import type {
+    CompiledQuery,
+    DatabaseConnection,
+    DialectAdapter,
+    Driver,
+    Log,
+    QueryResult,
+    TransactionSettings,
+} from 'kysely';
+import { ConnectionMutex } from './connection-mutex';
 
 /**
  * Copied from kysely's RuntimeDriver
@@ -6,6 +15,7 @@ import type { CompiledQuery, DatabaseConnection, Driver, Log, QueryResult, Trans
 export class ZenStackDriver implements Driver {
     readonly #driver: Driver;
     readonly #log: Log;
+    readonly #connectionMutex?: ConnectionMutex;
 
     #initPromise?: Promise<void>;
     #initDone: boolean;
@@ -13,10 +23,14 @@ export class ZenStackDriver implements Driver {
     #connections = new WeakSet<DatabaseConnection>();
     #txConnections = new WeakMap<DatabaseConnection, Array<() => Promise<unknown>>>();
 
-    constructor(driver: Driver, log: Log) {
+    constructor(driver: Driver, log: Log, adapter: DialectAdapter) {
         this.#initDone = false;
         this.#driver = driver;
         this.#log = log;
+
+        if (!adapter.supportsMultipleConnections) {
+            this.#connectionMutex = new ConnectionMutex();
+        }
     }
 
     async init(): Promise<void> {
@@ -48,21 +62,30 @@ export class ZenStackDriver implements Driver {
             await this.init();
         }
 
-        const connection = await this.#driver.acquireConnection();
+        await this.#connectionMutex?.obtainLock();
 
-        if (!this.#connections.has(connection)) {
-            if (this.#needsLogging()) {
-                this.#addLogging(connection);
+        try {
+            const connection = await this.#driver.acquireConnection();
+            if (!this.#connections.has(connection)) {
+                if (this.#needsLogging()) {
+                    this.#addLogging(connection);
+                }
+
+                this.#connections.add(connection);
             }
-
-            this.#connections.add(connection);
+            return connection;
+        } catch (error) {
+            this.#connectionMutex?.releaseLock();
+            throw error;
         }
-
-        return connection;
     }
 
     async releaseConnection(connection: DatabaseConnection): Promise<void> {
-        await this.#driver.releaseConnection(connection);
+        try {
+            await this.#driver.releaseConnection(connection);
+        } finally {
+            this.#connectionMutex?.releaseLock();
+        }
     }
 
     async beginTransaction(connection: DatabaseConnection, settings: TransactionSettings): Promise<void> {

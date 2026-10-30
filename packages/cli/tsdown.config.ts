@@ -1,5 +1,8 @@
 import { createConfig } from '@zenstackhq/tsdown-config';
 
 export default createConfig({
-    entry: { index: 'src/index.ts' },
+    entry: {
+        index: 'src/index.ts',
+        proxy: 'src/proxy.ts',
+    },
 });

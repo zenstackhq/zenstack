@@ -32,6 +32,19 @@ export class SchemaType implements SchemaDef {
                     type: "Role",
                     attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("USER") }] }] as readonly AttributeApplication[],
                     default: "USER" as FieldDefault
+                },
+                profile: {
+                    name: "profile",
+                    type: "Profile",
+                    optional: true,
+                    attributes: [{ name: "@json" }] as readonly AttributeApplication[]
+                },
+                age: {
+                    name: "age",
+                    type: "Age",
+                    optional: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(18) }] }] as readonly AttributeApplication[],
+                    default: 18 as FieldDefault
                 }
             },
             idFields: ["id"],
@@ -63,6 +76,30 @@ export class SchemaType implements SchemaDef {
                     name: "meta",
                     type: "Json",
                     optional: true
+                }
+            }
+        },
+        Profile: {
+            name: "Profile",
+            fields: {
+                bio: {
+                    name: "bio",
+                    type: "String"
+                }
+            },
+            attributes: [
+                { name: "@@strict" }
+            ] as readonly AttributeApplication[],
+            strict: true
+        },
+        Age: {
+            name: "Age",
+            base: "Int",
+            fields: {
+                this: {
+                    name: "this",
+                    type: "Int",
+                    attributes: [{ name: "@gte", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[]
                 }
             }
         }
@@ -108,12 +145,34 @@ export class SchemaType implements SchemaDef {
             params: {},
             returnType: "Overview"
         },
+        getAge: {
+            params: {
+                id: { name: "id", type: "Int" }
+            },
+            returnType: "Age"
+        },
+        setAge: {
+            params: {
+                id: { name: "id", type: "Int" },
+                age: { name: "age", type: "Age" }
+            },
+            returnType: "User",
+            mutation: true
+        },
         createMultiple: {
             params: {
                 names: { name: "names", array: true, type: "String" }
             },
             returnType: "User",
             returnArray: true,
+            mutation: true
+        },
+        updateProfile: {
+            params: {
+                userId: { name: "userId", type: "Int" },
+                profile: { name: "profile", type: "Profile" }
+            },
+            returnType: "Void",
             mutation: true
         }
     } as const;

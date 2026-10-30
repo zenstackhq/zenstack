@@ -31,7 +31,6 @@ export type ModelDef = {
     attributes?: readonly AttributeApplication[];
     uniqueFields: Record<string, UniqueFieldsInfo>;
     idFields: readonly string[];
-    computedFields?: Record<string, Function>;
     isDelegate?: boolean;
     subModels?: readonly string[];
     isView?: boolean;
@@ -82,6 +81,12 @@ export type FieldDef = {
     relation?: RelationInfo;
     foreignKeyFor?: readonly string[];
     computed?: boolean;
+    /**
+     * For a parameterized computed field, the parameters it declares (keyed by name). The
+     * corresponding arguments are supplied at query time wherever the field is used — `orderBy`,
+     * `where`/`having`, `select`/`include`, the aggregate inputs, and `groupBy`.
+     */
+    params?: Record<string, ProcedureParam>;
     originModel?: string;
     isDiscriminator?: boolean;
 };
@@ -123,6 +128,8 @@ export type EnumDef = {
 
 export type TypeDefDef = {
     name: string;
+    strict?: boolean;
+    base?: BuiltinType;
     fields: Record<string, FieldDef>;
     attributes?: readonly AttributeApplication[];
 };
@@ -277,6 +284,13 @@ export type TypeDefFieldIsArray<
     TypeDef extends GetTypeDefs<Schema>,
     Field extends GetTypeDefFields<Schema, TypeDef>,
 > = GetTypeDefField<Schema, TypeDef, Field>['array'] extends true ? true : false;
+
+export type TypeDefIsPrimitive<Schema extends SchemaDef, TypeDef extends GetTypeDefs<Schema>> = GetTypeDef<
+    Schema,
+    TypeDef
+>['base'] extends string
+    ? true
+    : false;
 
 export type FieldIsRelation<
     Schema extends SchemaDef,

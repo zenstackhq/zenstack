@@ -6,6 +6,7 @@ export default createConfig({
         schema: 'src/schema.ts',
         helpers: 'src/helpers.ts',
         'common-types': 'src/common-types.ts',
+        constants: 'src/constants.ts',
         'dialects/sqlite': 'src/dialects/sqlite.ts',
         'dialects/postgres': 'src/dialects/postgres.ts',
         'dialects/mysql': 'src/dialects/mysql.ts',
