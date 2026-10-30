@@ -20,8 +20,8 @@ model AuditLog {
 }
 
 model Note {
-    id      String @id @default(cuid())
-    ownerId String
+    id      String  @id @default(cuid())
+    ownerId String?
 
     @@allow('create', ownerId == auth().id)
     @@allow('read', true)
@@ -69,23 +69,37 @@ model Note {
         await expect(db.auditLog.findMany()).resolves.toHaveLength(0);
     });
 
-    it('still checks each row when the create filter references the row', async () => {
+    it('checks a row-dependent create filter for the whole batch in one query', async () => {
         const { db, policyChecks } = await createClient();
         const authDb = db.$setAuth({ id: 'u1', isSystem: true });
 
         await expect(
             authDb.note.createMany({
-                data: [{ ownerId: 'u1' }, { ownerId: 'u1' }],
+                data: Array.from({ length: 5 }, () => ({ ownerId: 'u1' })),
             }),
-        ).resolves.toMatchObject({ count: 2 });
-        expect(policyChecks()).toHaveLength(2);
+        ).resolves.toMatchObject({ count: 5 });
+        expect(policyChecks()).toHaveLength(1);
 
         // a single offending row still rejects the whole batch
         await expect(
             authDb.note.createMany({
-                data: [{ ownerId: 'u1' }, { ownerId: 'someone-else' }],
+                data: [{ ownerId: 'u1' }, { ownerId: 'someone-else' }, { ownerId: 'u1' }],
             }),
         ).rejects.toThrow(/rejected by access policies/i);
-        await expect(db.note.findMany()).resolves.toHaveLength(2);
+        expect(policyChecks()).toHaveLength(2);
+        await expect(db.note.findMany()).resolves.toHaveLength(5);
+    });
+
+    it('rejects the batch when the create filter evaluates to NULL for a row', async () => {
+        const { db } = await createClient();
+        const authDb = db.$setAuth({ id: 'u1', isSystem: true });
+
+        // `NULL = 'u1'` is neither true nor false
+        await expect(
+            authDb.note.createMany({
+                data: [{ ownerId: 'u1' }, { ownerId: null }],
+            }),
+        ).rejects.toThrow(/rejected by access policies/i);
+        await expect(db.note.findMany()).resolves.toHaveLength(0);
     });
 });

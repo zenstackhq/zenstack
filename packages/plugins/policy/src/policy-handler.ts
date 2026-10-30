@@ -38,7 +38,6 @@ import {
     ValueNode,
     ValuesNode,
     WhereNode,
-    type Expression as KyselyExpression,
     type OperationNode,
     type QueryResult,
     type RootOperationNode,
@@ -968,32 +967,30 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             ? this.unwrapCreateValueRows(node.values, mutationModel, fields, isManyToManyJoinTable)
             : [[]];
 
-        if (!isManyToManyJoinTable) {
-            // A create filter built only from `auth()` doesn't reference the row being inserted,
-            // so it holds for every row alike and checking it per row re-asks the same question.
-            const filter = this.buildPolicyFilter(mutationModel, undefined, 'create');
-            if (isTrueNode(filter)) {
-                return;
-            }
-        }
-
-        for (const values of valueRows) {
-            if (isManyToManyJoinTable) {
+        if (isManyToManyJoinTable) {
+            for (const values of valueRows) {
                 await this.enforcePreCreatePolicyForManyToManyJoinTable(
                     mutationModel,
                     fields,
                     values.map((v) => v.node),
                     proceed,
                 );
-            } else {
-                await this.enforcePreCreatePolicyForOne(
-                    mutationModel,
-                    fields,
-                    values.map((v) => v.node),
-                    proceed,
-                );
             }
+            return;
         }
+
+        const filter = this.buildPolicyFilter(mutationModel, undefined, 'create');
+        if (isTrueNode(filter)) {
+            return;
+        }
+
+        await this.enforcePreCreatePolicyForRows(
+            mutationModel,
+            fields,
+            valueRows.map((values) => values.map((v) => v.node)),
+            filter,
+            proceed,
+        );
     }
 
     private async enforcePreCreatePolicyForManyToManyJoinTable(
@@ -1059,52 +1056,33 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         }
     }
 
-    private async enforcePreCreatePolicyForOne(
+    private async enforcePreCreatePolicyForRows(
         model: string,
         fields: string[],
-        values: OperationNode[],
+        rows: OperationNode[][],
+        filter: OperationNode,
         proceed: ProceedKyselyQueryFunction,
     ) {
         const allFields = QueryUtils.getModelFields(this.client.$schema, model, { inherited: true });
-        const allValues: KyselyExpression<any>[] = [];
+        const fieldIndices = allFields.map((def) => fields.indexOf(def.name));
 
-        for (const def of allFields) {
-            const index = fields.indexOf(def.name);
-            if (index >= 0) {
-                allValues.push(new ExpressionWrapper(values[index]!));
-            } else {
-                // set non-provided fields to null
-                allValues.push(this.eb.lit(null));
-            }
-        }
+        // NULL literals rather than parameters: the check has to fit the INSERT's parameter limit
+        const allRows = rows.map((values) =>
+            fieldIndices.map((index) => (index >= 0 ? new ExpressionWrapper(values[index]!) : this.eb.lit(null))),
+        );
 
-        // create a `SELECT column1 as field1, column2 as field2, ... FROM (VALUES (...))` table for policy evaluation
-        const valuesTable = this.dialect.buildValuesTableSelect(allFields, [allValues]);
+        // create a `SELECT column1 as field1, column2 as field2, ... FROM (VALUES (...), ...)` table for policy evaluation
+        const valuesTable = this.dialect.buildValuesTableSelect(allFields, allRows);
 
-        const filter = this.buildPolicyFilter(model, undefined, 'create');
-
-        // check if the provided values satisfy the create policy
-
-        // `SELECT 1 FROM (VALUES (...)) AS t(column1, column2, ...) WHERE <filter>`
-        const preCreateInner = this.eb
+        // Every row must satisfy the filter. Counting the rows that do (rather than looking for one
+        // that doesn't) also rejects rows whose filter evaluates to NULL.
+        // `SELECT COUNT(1) = <row count> AS $condition FROM (VALUES ...) AS t(column1, column2, ...) WHERE <filter>`
+        const preCreateQuery = this.eb
             .selectFrom(valuesTable.as(model))
-            .select(this.eb.lit(1).as('_'))
+            .select(this.eb(this.eb.fn('COUNT', [this.eb.lit(1)]), '=', this.eb.lit(rows.length)).as('$condition'))
             .where(() => new ExpressionWrapper(filter));
 
-        const result = await proceed(
-            // `SELECT EXISTS(preCreateInner) AS $condition`
-            {
-                kind: 'SelectQueryNode',
-                selections: [
-                    SelectionNode.create(
-                        AliasNode.create(
-                            this.eb.exists(preCreateInner).toOperationNode(),
-                            IdentifierNode.create('$condition'),
-                        ),
-                    ),
-                ],
-            } satisfies SelectQueryNode,
-        );
+        const result = await proceed(preCreateQuery.toOperationNode());
         if (!result.rows[0]?.$condition) {
             throw createRejectedByPolicyError(model, RejectedByPolicyReason.NO_ACCESS);
         }
@@ -1145,7 +1123,8 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             if (itemsAreNodes) {
                 const itemNode = item as OperationNode;
                 if (DefaultInsertValueNode.is(itemNode)) {
-                    result.push({ node: ValueNode.create(null), raw: null });
+                    // inlined like the DEFAULT keyword it replaces, so it binds no parameter
+                    result.push({ node: ValueNode.createImmediate(null), raw: null });
                     continue;
                 }
                 const fieldDef = QueryUtils.requireField(this.client.$schema, model, fields[i]!);
@@ -1167,16 +1146,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
                     value = this.dialect.transformInput(item, fieldDef.type as BuiltinType, !!fieldDef.array);
                 }
 
-                // handle the case for list column
-                if (Array.isArray(value)) {
-                    const fieldDef = QueryUtils.requireField(this.client.$schema, model, fields[i]!);
-                    result.push({
-                        node: this.dialect.buildArrayValue(value, fieldDef.type).toOperationNode(),
-                        raw: value,
-                    });
-                } else {
-                    result.push({ node: ValueNode.create(value), raw: value });
-                }
+                result.push({ node: ValueNode.create(value), raw: value });
             }
         }
         return result;
