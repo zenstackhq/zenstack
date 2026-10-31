@@ -1,6 +1,12 @@
 import { invariant, lowerCaseFirst } from '@zenstackhq/common-helpers';
 import type { ProcedureDef, SchemaDef } from '@zenstackhq/schema';
-import type { QueryExecutor } from 'kysely';
+import type {
+    AbortableOperationOptions,
+    ConnectionProvider,
+    DatabaseConnection,
+    QueryExecutor,
+    TransactionBuilder,
+} from 'kysely';
 import {
     CompiledQuery,
     DefaultConnectionProvider,
@@ -62,6 +68,49 @@ function getExecutorNameMapper(executor: QueryExecutor | undefined) {
 }
 
 /**
+ * Provides the connection of a transaction started by `$transaction` to the clients derived from its
+ * transaction client. Once the transaction has ended it fails like Kysely's transaction executor, so a
+ * derived client kept past the transaction can't run on a connection that went back to the pool.
+ */
+class TransactionConnectionProvider implements ConnectionProvider {
+    private transactionExecutor: QueryExecutor | undefined;
+    private endedAs: 'committed' | 'rolled back' | undefined;
+
+    async run<DB, T>(txBuilder: TransactionBuilder<DB>, callback: (tx: Transaction<DB>) => Promise<T>): Promise<T> {
+        try {
+            return await txBuilder.execute(async (tx) => {
+                this.transactionExecutor = tx.getExecutor();
+                // ended as soon as the callback settles: Kysely commits or rolls back and then
+                // releases the connection before `execute` settles
+                try {
+                    const result = await callback(tx);
+                    this.endedAs = 'committed';
+                    return result;
+                } catch (err) {
+                    this.endedAs = 'rolled back';
+                    throw err;
+                }
+            });
+        } catch (err) {
+            // Kysely rolls back when the commit fails
+            this.endedAs = 'rolled back';
+            throw err;
+        }
+    }
+
+    async provideConnection<T>(
+        consumer: (connection: DatabaseConnection) => Promise<T>,
+        options?: AbortableOperationOptions,
+    ): Promise<T> {
+        if (this.endedAs) {
+            throw new Error(`Transaction is already ${this.endedAs}`);
+        }
+        invariant(this.transactionExecutor, 'transaction has not started');
+        return this.transactionExecutor.provideConnection(consumer, options);
+    }
+}
+
+/**
  * ZenStack ORM client.
  */
 export const ZenStackClient = function <Schema extends SchemaDef>(
@@ -79,6 +128,7 @@ export class ClientImpl {
     public readonly $schema: SchemaDef;
     readonly kyselyProps: KyselyProps;
     private auth: AuthType<SchemaDef> | undefined;
+    private transactionConnection: TransactionConnectionProvider | undefined;
     inputValidator: InputValidator<SchemaDef>;
     readonly slowQueries: QueryInfo[] = [];
 
@@ -113,7 +163,11 @@ export class ClientImpl {
                         baseClient.kyselyProps.driver as ZenStackDriver,
                         baseClient.kyselyProps.dialect.createQueryCompiler(),
                         baseClient.kyselyProps.dialect.createAdapter(),
-                        new DefaultConnectionProvider(baseClient.kyselyProps.driver),
+                        // a client derived from a derived client reaches the transaction's connection
+                        // through its base's executor
+                        baseClient.isTransaction
+                            ? (baseClient.transactionConnection ?? baseClient.$qb.getExecutor())
+                            : new DefaultConnectionProvider(baseClient.kyselyProps.driver),
                         [],
                         false,
                         // A name mapper is derived purely from `$schema` and `$options`, so it can be
@@ -157,9 +211,10 @@ export class ClientImpl {
         }
 
         if (baseClient?.isTransaction && !executor) {
-            // if we're creating a derived client from a transaction client and not replacing
-            // the executor, reuse the current kysely instance to retain the transaction context
-            this.kysely = baseClient.$qb;
+            // A client derived from a transaction client runs on the transaction's connection, but
+            // with its own executor: the executor resolves Kysely-level and entity mutation hooks
+            // and `$auth` from the client it is bound to.
+            this.kysely = new Transaction(this.kyselyProps);
         } else {
             this.kysely = new Kysely(this.kyselyProps);
         }
@@ -389,9 +444,11 @@ export class ClientImpl {
             if (options?.isolationLevel) {
                 txBuilder = txBuilder.setIsolationLevel(options.isolationLevel);
             }
-            return txBuilder.execute((tx) => {
+            const transactionConnection = new TransactionConnectionProvider();
+            return transactionConnection.run(txBuilder, (tx) => {
                 const txClient = new ClientImpl(this.schema, this.$options, this);
                 txClient.kysely = tx;
+                txClient.transactionConnection = transactionConnection;
                 return callback(txClient.$contract);
             });
         }
