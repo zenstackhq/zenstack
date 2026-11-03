@@ -331,7 +331,12 @@ export function collectFieldRefs(expr: Expression): Set<string> {
                 e.items.forEach(walk);
                 break;
             case 'member':
-                walk(e.receiver);
+                if (e.receiver.kind === 'this') {
+                    // `this.field` references `field`
+                    if (e.members[0]) refs.add(e.members[0]);
+                } else {
+                    walk(e.receiver);
+                }
                 break;
             // literal / null / this / binding — no field refs
         }
@@ -363,7 +368,18 @@ export function addCustomValidation(
     schema: z.ZodSchema,
     attributes: readonly AttributeApplication[] | undefined,
     presentFields?: ReadonlySet<string>,
-    options?: { partial?: boolean },
+    options?: {
+        /**
+         * The data holds only some of the model's fields, as in an update. A rule is then
+         * skipped when the data sends none of the fields it references.
+         */
+        partial?: boolean;
+        /**
+         * Maps each relation field to the foreign-key fields it sets. In partial mode, a
+         * relation field in the data counts as sending its foreign keys.
+         */
+        relationForeignKeys?: Record<string, readonly string[]>;
+    },
 ): z.ZodSchema {
     const attrs = attributes?.filter((a) => a.name === '@@validate');
     if (!attrs || attrs.length === 0) {
@@ -391,9 +407,28 @@ export function addCustomValidation(
         if (pathExpr && ExpressionUtils.isArray(pathExpr)) {
             path = pathExpr.items.map((e) => ExpressionUtils.getLiteralValue(e) as string);
         }
-        result = applyValidation(result, expr, message, path, options?.partial ?? false);
+        result = applyValidation(
+            result,
+            expr,
+            message,
+            path,
+            options?.partial ? partialTriggerFields(expr, options.relationForeignKeys) : undefined,
+        );
     }
     return result;
+}
+
+// The fields whose presence in partial data means a rule must be checked: the fields the rule
+// references, plus every relation field that sets one of them.
+function partialTriggerFields(expr: Expression, relationForeignKeys: Record<string, readonly string[]> = {}) {
+    const refs = collectFieldRefs(expr);
+    const triggers = [...refs];
+    for (const [relation, foreignKeys] of Object.entries(relationForeignKeys)) {
+        if (foreignKeys.some((fk) => refs.has(fk))) {
+            triggers.push(relation);
+        }
+    }
+    return triggers;
 }
 
 function applyValidation(
@@ -401,7 +436,7 @@ function applyValidation(
     expr: Expression,
     message: string | undefined,
     path: string[] | undefined,
-    partial: boolean,
+    partialTriggers: string[] | undefined,
 ) {
     const options: Parameters<typeof schema.refine>[1] = {};
     if (message) {
@@ -410,9 +445,11 @@ function applyValidation(
     if (path) {
         options.path = path;
     }
-    const refs = partial ? [...collectFieldRefs(expr)] : [];
     return schema.refine((data) => {
-        if (partial && !refs.some((ref) => typeof data === 'object' && data !== null && ref in data)) {
+        if (
+            partialTriggers &&
+            !partialTriggers.some((field) => typeof data === 'object' && data !== null && field in data)
+        ) {
             return true;
         }
         return Boolean(evalExpression(data, expr));
