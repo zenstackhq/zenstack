@@ -105,6 +105,10 @@ export class ZenStackDriver implements Driver {
     }
 
     async releaseConnection(connection: DatabaseConnection): Promise<void> {
+        // Forget the holder's log first: a pool (e.g. pg-pool) can hand the connection to a queued
+        // acquisition during release, and queries run on it before that acquisition records its own log
+        // (such as a dialect's `onReserveConnection` hook) must not be logged with the previous holder's log.
+        this.#state.connectionLogs.delete(connection);
         try {
             await this.#state.driver.releaseConnection(connection);
         } finally {
