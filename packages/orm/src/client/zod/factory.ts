@@ -2117,11 +2117,16 @@ export class ZodSchemaFactory<
             }
         });
 
+        // an update payload holds only the fields it changes
         const uncheckedUpdateSchema = this.extraValidationsEnabled
-            ? ZodUtils.addCustomValidation(z.strictObject(uncheckedVariantFields), modelDef.attributes)
+            ? ZodUtils.addCustomValidation(z.strictObject(uncheckedVariantFields), modelDef.attributes, undefined, {
+                  partial: true,
+              })
             : z.strictObject(uncheckedVariantFields);
         const checkedUpdateSchema = this.extraValidationsEnabled
-            ? ZodUtils.addCustomValidation(z.strictObject(checkedVariantFields), modelDef.attributes)
+            ? ZodUtils.addCustomValidation(z.strictObject(checkedVariantFields), modelDef.attributes, undefined, {
+                  partial: true,
+              })
             : z.strictObject(checkedVariantFields);
         const result = !hasRelation ? uncheckedUpdateSchema : z.union([uncheckedUpdateSchema, checkedUpdateSchema]);
 

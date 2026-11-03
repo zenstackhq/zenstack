@@ -351,6 +351,10 @@ export function collectFieldRefs(expr: Expression): Set<string> {
  * Omit `presentFields` (or pass `undefined`) to apply all rules
  * unconditionally, which is the correct behaviour for full-model schemas.
  *
+ * Pass `options.partial` when the data is an update payload, which holds only
+ * the fields it changes. A rule is then skipped for data that sends none of
+ * the fields it references: the update cannot change the rule's result.
+ *
  * Note: `@@validate` conditions are restricted by the ZModel compiler to
  * scalar fields of the same model only — relation fields are a compile error.
  * A flat field-name set is therefore sufficient.
@@ -359,6 +363,7 @@ export function addCustomValidation(
     schema: z.ZodSchema,
     attributes: readonly AttributeApplication[] | undefined,
     presentFields?: ReadonlySet<string>,
+    options?: { partial?: boolean },
 ): z.ZodSchema {
     const attrs = attributes?.filter((a) => a.name === '@@validate');
     if (!attrs || attrs.length === 0) {
@@ -386,7 +391,7 @@ export function addCustomValidation(
         if (pathExpr && ExpressionUtils.isArray(pathExpr)) {
             path = pathExpr.items.map((e) => ExpressionUtils.getLiteralValue(e) as string);
         }
-        result = applyValidation(result, expr, message, path);
+        result = applyValidation(result, expr, message, path, options?.partial ?? false);
     }
     return result;
 }
@@ -396,6 +401,7 @@ function applyValidation(
     expr: Expression,
     message: string | undefined,
     path: string[] | undefined,
+    partial: boolean,
 ) {
     const options: Parameters<typeof schema.refine>[1] = {};
     if (message) {
@@ -404,7 +410,13 @@ function applyValidation(
     if (path) {
         options.path = path;
     }
-    return schema.refine((data) => Boolean(evalExpression(data, expr)), options);
+    const refs = partial ? [...collectFieldRefs(expr)] : [];
+    return schema.refine((data) => {
+        if (partial && !refs.some((ref) => typeof data === 'object' && data !== null && ref in data)) {
+            return true;
+        }
+        return Boolean(evalExpression(data, expr));
+    }, options);
 }
 
 function evalExpression(data: any, expr: Expression): unknown {
