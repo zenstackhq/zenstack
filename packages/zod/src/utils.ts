@@ -307,8 +307,8 @@ export function addListValidation(
 }
 
 /**
- * Recursively collects all field names referenced by `kind: 'field'` nodes
- * inside an expression tree.
+ * Recursively collects all field names referenced by `kind: 'field'` nodes and
+ * by `this.field` member nodes inside an expression tree.
  */
 export function collectFieldRefs(expr: Expression): Set<string> {
     const refs = new Set<string>();
@@ -376,7 +376,8 @@ export function addCustomValidation(
         partial?: boolean;
         /**
          * Maps each relation field to the foreign-key fields it sets. In partial mode, a
-         * relation field in the data counts as sending its foreign keys.
+         * relation field in the data counts as sending its foreign keys, unless it holds
+         * only a nested `update`, which cannot change them.
          */
         relationForeignKeys?: Record<string, readonly string[]>;
     },
@@ -412,31 +413,66 @@ export function addCustomValidation(
             expr,
             message,
             path,
-            options?.partial ? partialTriggerFields(expr, options.relationForeignKeys) : undefined,
+            options?.partial ? partialTriggers(expr, options.relationForeignKeys) : undefined,
         );
     }
     return result;
 }
 
-// The fields whose presence in partial data means a rule must be checked: the fields the rule
-// references, plus every relation field that sets one of them.
-function partialTriggerFields(expr: Expression, relationForeignKeys: Record<string, readonly string[]> = {}) {
+type PartialTriggers = {
+    /** The fields the rule references. */
+    fields: string[];
+    /** The relation fields that set a foreign key the rule references. */
+    relations: string[];
+};
+
+/**
+ * Returns the fields and relation fields that make a rule apply to partial data.
+ */
+function partialTriggers(
+    expr: Expression,
+    relationForeignKeys: Record<string, readonly string[]> = {},
+): PartialTriggers {
     const refs = collectFieldRefs(expr);
-    const triggers = [...refs];
-    for (const [relation, foreignKeys] of Object.entries(relationForeignKeys)) {
-        if (foreignKeys.some((fk) => refs.has(fk))) {
-            triggers.push(relation);
-        }
-    }
-    return triggers;
+    return {
+        fields: [...refs],
+        relations: Object.entries(relationForeignKeys)
+            .filter(([, foreignKeys]) => foreignKeys.some((fk) => refs.has(fk)))
+            .map(([relation]) => relation),
+    };
 }
 
+/**
+ * Tells whether a relation payload can change the foreign keys of its relation. Every nested
+ * operation can, except `update`, which writes to the related row only.
+ */
+function relationChangesForeignKey(payload: unknown) {
+    return typeof payload === 'object' && payload !== null && Object.keys(payload).some((op) => op !== 'update');
+}
+
+/**
+ * Tells whether partial data sends a field or a foreign-key change that a rule depends on.
+ */
+function partialDataTriggersRule(data: unknown, triggers: PartialTriggers) {
+    if (typeof data !== 'object' || data === null) {
+        return false;
+    }
+    return (
+        triggers.fields.some((field) => field in data) ||
+        triggers.relations.some((relation) => relationChangesForeignKey((data as Record<string, unknown>)[relation]))
+    );
+}
+
+/**
+ * Adds one `@@validate` rule to `schema` as a refinement. With `triggers`, the data is partial and
+ * the refinement passes for data that does not trigger the rule.
+ */
 function applyValidation(
     schema: z.ZodSchema,
     expr: Expression,
     message: string | undefined,
     path: string[] | undefined,
-    partialTriggers: string[] | undefined,
+    triggers: PartialTriggers | undefined,
 ) {
     const options: Parameters<typeof schema.refine>[1] = {};
     if (message) {
@@ -446,10 +482,7 @@ function applyValidation(
         options.path = path;
     }
     return schema.refine((data) => {
-        if (
-            partialTriggers &&
-            !partialTriggers.some((field) => typeof data === 'object' && data !== null && field in data)
-        ) {
+        if (triggers && !partialDataTriggersRule(data, triggers)) {
             return true;
         }
         return Boolean(evalExpression(data, expr));

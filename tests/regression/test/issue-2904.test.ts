@@ -93,6 +93,41 @@ model Post {
         ).toBeRejectedByValidation(['needs an author']);
     });
 
+    it('accepts a nested update of a relation whose foreign key a rule references', async () => {
+        const db = await createTestClient(`
+model User {
+    id    Int     @id @default(autoincrement())
+    name  String?
+    posts Post[]
+}
+
+model Post {
+    id       Int    @id @default(autoincrement())
+    title    String
+    author   User?  @relation(fields: [authorId], references: [id])
+    authorId Int?
+
+    @@validate(authorId != null, 'needs an author')
+}
+`);
+        const user = await db.user.create({ data: {} });
+        const post = await db.post.create({ data: { title: 'a', authorId: user.id } });
+
+        await expect(
+            db.post.update({
+                where: { id: post.id },
+                data: { author: { update: { name: 'x' } } },
+                include: { author: true },
+            }),
+        ).resolves.toMatchObject({ authorId: user.id, author: { name: 'x' } });
+        await expect(
+            db.post.update({
+                where: { id: post.id },
+                data: { author: { update: { name: 'y' }, disconnect: true } },
+            }),
+        ).toBeRejectedByValidation(['needs an author']);
+    });
+
     it('checks a rule that references a field through this', async () => {
         const db = await createTestClient(`
 model Item {

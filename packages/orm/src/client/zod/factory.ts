@@ -176,7 +176,9 @@ export class ZodSchemaFactory<
         return Object.entries(modelDef.fields).filter(([, def]) => def.type !== 'Unsupported');
     }
 
-    // maps each relation field of a model to the foreign-key fields it sets
+    /**
+     * Maps each relation field of a model to the foreign-key fields it sets.
+     */
     private getRelationForeignKeys(model: string): Record<string, readonly string[]> {
         const result: Record<string, readonly string[]> = {};
         for (const [name, fieldDef] of this.getModelFields(model)) {
