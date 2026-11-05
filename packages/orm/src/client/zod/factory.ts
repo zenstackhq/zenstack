@@ -176,6 +176,19 @@ export class ZodSchemaFactory<
         return Object.entries(modelDef.fields).filter(([, def]) => def.type !== 'Unsupported');
     }
 
+    /**
+     * Maps each relation field of a model to the foreign-key fields it sets.
+     */
+    private getRelationForeignKeys(model: string): Record<string, readonly string[]> {
+        const result: Record<string, readonly string[]> = {};
+        for (const [name, fieldDef] of this.getModelFields(model)) {
+            if (fieldDef.relation?.fields?.length) {
+                result[name] = fieldDef.relation.fields;
+            }
+        }
+        return result;
+    }
+
     private shouldIncludeRelations(options?: CreateSchemaOptions): boolean {
         return options?.relationDepth === undefined || options.relationDepth > 0;
     }
@@ -2117,11 +2130,23 @@ export class ZodSchemaFactory<
             }
         });
 
+        // an update payload holds only the fields it changes
+        const partialOptions = { partial: true, relationForeignKeys: this.getRelationForeignKeys(model) };
         const uncheckedUpdateSchema = this.extraValidationsEnabled
-            ? ZodUtils.addCustomValidation(z.strictObject(uncheckedVariantFields), modelDef.attributes)
+            ? ZodUtils.addCustomValidation(
+                  z.strictObject(uncheckedVariantFields),
+                  modelDef.attributes,
+                  undefined,
+                  partialOptions,
+              )
             : z.strictObject(uncheckedVariantFields);
         const checkedUpdateSchema = this.extraValidationsEnabled
-            ? ZodUtils.addCustomValidation(z.strictObject(checkedVariantFields), modelDef.attributes)
+            ? ZodUtils.addCustomValidation(
+                  z.strictObject(checkedVariantFields),
+                  modelDef.attributes,
+                  undefined,
+                  partialOptions,
+              )
             : z.strictObject(checkedVariantFields);
         const result = !hasRelation ? uncheckedUpdateSchema : z.union([uncheckedUpdateSchema, checkedUpdateSchema]);
 
