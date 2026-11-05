@@ -1020,6 +1020,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
+      vitest:
+        specifier: ^4.0.14
+        version: 4.0.14(@edge-runtime/vm@5.0.0)(@types/node@20.19.24)(happy-dom@20.8.9)(jiti@2.7.0)(jsdom@27.1.0)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.22.4)(yaml@2.9.0)
 
   packages/zod:
     dependencies:
