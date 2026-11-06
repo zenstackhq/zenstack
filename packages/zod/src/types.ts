@@ -127,10 +127,29 @@ type MapTypeDefFieldToZod<
     FieldType = GetTypeDefFieldType<Schema, Type, Field>,
 > = MapFieldTypeToZod<Schema, FieldType>;
 
+type TypeMap = {
+    String: string;
+    Boolean: boolean;
+    Int: number;
+    Float: number;
+    BigInt: bigint;
+    Decimal: Decimal;
+    DateTime: Date;
+    Bytes: Uint8Array;
+    Json: JsonValue | null;
+};
+
 export type MapTypeDefToZod<Schema extends SchemaDef, Type extends GetTypeDefs<Schema>> =
     Schema['typeDefs'] extends Record<string, unknown>
         ? Schema['typeDefs'][Type]['base'] extends keyof FieldTypeZodMap
-            ? FieldTypeZodMap[Schema['typeDefs'][Type]['base']]
+            ? Schema['typeDefs'][Type]['branded'] extends true
+                ? z.ZodType<
+                      TypeMap[Schema['typeDefs'][Type]['base']] & {
+                          __brand: Type;
+                      },
+                      TypeMap[Schema['typeDefs'][Type]['base']]
+                  >
+                : FieldTypeZodMap[Schema['typeDefs'][Type]['base']]
             : z.ZodObject<GetTypeDefFieldsShape<Schema, Type>, z.core.$strict>
         : never;
 

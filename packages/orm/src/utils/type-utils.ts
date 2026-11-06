@@ -12,14 +12,18 @@ export type ArrayIf<T, Condition extends boolean> = Condition extends true ? T[]
 export type PartialRecord<K extends string | number | symbol, T> = Partial<Record<K, T>>;
 
 type _Preserve = Date | Function | Decimal | Uint8Array | JsonObject | JsonValue;
+// primitives are returned as-is, including branded ones like `string & { __brand: 'UserId' }`
+type _Primitive = string | number | bigint | boolean | symbol | null | undefined;
 type _Depth = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 export type Simplify<T, D extends number = 6> = D extends 0
     ? T
-    : T extends object
-      ? T extends _Preserve
-          ? T
-          : { [K in keyof T]: Simplify<T[K], _Depth[D]> } & {}
-      : T;
+    : T extends _Primitive
+      ? T
+      : T extends object
+        ? T extends _Preserve
+            ? T
+            : { [K in keyof T]: Simplify<T[K], _Depth[D]> } & {}
+        : T;
 
 export type SimplifyIf<T, Condition extends boolean> = Condition extends true ? Simplify<T> : T;
 

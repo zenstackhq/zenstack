@@ -546,6 +546,10 @@ export class TsSchemaGenerator {
             fields.push(ts.factory.createPropertyAssignment('strict', ts.factory.createTrue()));
         }
 
+        if (hasAttribute(td, '@@branded')) {
+            fields.push(ts.factory.createPropertyAssignment('branded', ts.factory.createTrue()));
+        }
+
         return ts.factory.createObjectLiteralExpression(fields, true);
     }
 

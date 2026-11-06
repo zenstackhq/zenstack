@@ -1072,4 +1072,56 @@ type Profile with Strict {
             plugins: {},
         });
     });
+
+    it('supports branded primitive type defs', async () => {
+        const { schema } = await generateTsSchema(`
+            model User {
+                id UserId @id
+            }
+
+            type UserId with String {
+                @@branded
+            }
+            `);
+
+        expect(schema).toMatchObject({
+            models: {
+                User: {
+                    name: 'User',
+                    fields: {
+                        id: {
+                            name: 'id',
+                            type: 'UserId',
+                            id: true,
+                            attributes: [
+                                {
+                                    name: '@id',
+                                },
+                            ],
+                        },
+                    },
+                    idFields: ['id'],
+                    uniqueFields: {
+                        id: {
+                            type: 'UserId',
+                        },
+                    },
+                },
+            },
+            typeDefs: {
+                UserId: {
+                    name: 'UserId',
+                    base: 'String',
+                    branded: true,
+                    attributes: [
+                        {
+                            name: '@@branded',
+                        },
+                    ],
+                },
+            },
+            authType: 'User',
+            plugins: {},
+        });
+    });
 });
