@@ -171,6 +171,10 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             const r = await kysely.getExecutor().executeQuery(compiled);
             result = r.rows as { $exists: number | boolean }[];
         } catch (err) {
+            if (err instanceof ORMError) {
+                // already a structured error (e.g., raised by a plugin or wrapped by the executor)
+                throw err;
+            }
             throw createDBQueryError(`Failed to execute query: ${err}`, err, compiled.sql, compiled.parameters);
         }
 
@@ -212,6 +216,10 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             const r = await kysely.getExecutor().executeQuery(compiled);
             result = r.rows;
         } catch (err) {
+            if (err instanceof ORMError) {
+                // already a structured error (e.g., raised by a plugin or wrapped by the executor)
+                throw err;
+            }
             throw createDBQueryError(`Failed to execute query: ${err}`, err, compiled.sql, compiled.parameters);
         }
 

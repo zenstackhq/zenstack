@@ -59,6 +59,7 @@ import {
     isBeforeInvocation,
     isTrueNode,
     logicalNot,
+    rejectParameterizedComputedField,
     trueNode,
 } from './utils';
 
@@ -737,6 +738,8 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
                 baseModelsToJoin.add(fieldDef.originModel);
             }
             if (fieldDef?.computed) {
+                // parameterized computed fields can't be evaluated without query-time args
+                rejectParameterizedComputedField(fieldDef, model);
                 // computed fields aren't physical columns, inline the computed expression
                 return SelectionNode.create(
                     AliasNode.create(

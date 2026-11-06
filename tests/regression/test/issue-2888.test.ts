@@ -1,3 +1,4 @@
+import { ORMErrorReason } from '@zenstackhq/orm';
 import { createPolicyTestClient } from '@zenstackhq/testtools';
 import { describe, expect, it } from 'vitest';
 
@@ -257,6 +258,36 @@ model Model {
             } as any,
         );
         await db.$unuseAll().model.create({ data: { id: 1, x: 1 } });
-        await expect(db.model.findMany()).rejects.toThrow(/Parameterized computed field "score"/);
+        await expect(db.model.findMany()).rejects.toMatchObject({
+            reason: ORMErrorReason.CONFIG_ERROR,
+            message: expect.stringContaining('Parameterized computed field "score"'),
+        });
+    });
+
+    it('parameterized computed field referenced via before() is rejected with a clear error', async () => {
+        const db = await createPolicyTestClient(
+            `
+model Model {
+    id Int @id @default(autoincrement())
+    x Int
+    score(min: Int) Int @computed
+    @@allow('create,read,update', true)
+    @@allow('post-update', before().score > 0)
+}
+            `,
+            {
+                computedFields: {
+                    Model: {
+                        // the default would let the update through if the impl were called without args
+                        score: (eb: any, ctx: any, args: any) => eb(eb.ref(`${ctx.modelAlias}.x`), '-', args?.min ?? 0),
+                    },
+                },
+            } as any,
+        );
+        await db.model.create({ data: { id: 1, x: 1 } });
+        await expect(db.model.update({ where: { id: 1 }, data: { x: 2 } })).rejects.toMatchObject({
+            reason: ORMErrorReason.CONFIG_ERROR,
+            message: expect.stringContaining('Parameterized computed field "score"'),
+        });
     });
 });

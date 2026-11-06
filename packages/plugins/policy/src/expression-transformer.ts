@@ -1,8 +1,6 @@
 import { invariant } from '@zenstackhq/common-helpers';
 import {
     getCrudDialect,
-    ORMError,
-    ORMErrorReason,
     QueryUtils,
     SchemaUtils,
     type BaseCrudDialect,
@@ -60,6 +58,7 @@ import {
     falseNode,
     isBeforeInvocation,
     logicalNot,
+    rejectParameterizedComputedField,
     trueNode,
 } from './utils';
 
@@ -1134,12 +1133,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     private buildFieldRef(model: string, field: string, modelAlias: string): OperationNode {
         const fieldDef = QueryUtils.requireField(this.schema, model, field);
 
-        if (fieldDef.computed && fieldDef.params) {
-            throw new ORMError(
-                ORMErrorReason.CONFIG_ERROR,
-                `Parameterized computed field "${field}" of model "${model}" cannot be used in a policy expression`,
-            );
-        }
+        rejectParameterizedComputedField(fieldDef, model);
 
         if (!fieldDef.originModel || fieldDef.originModel === model) {
             return fieldDef.computed
