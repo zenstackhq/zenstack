@@ -1,6 +1,8 @@
 import { invariant } from '@zenstackhq/common-helpers';
 import {
     getCrudDialect,
+    ORMError,
+    ORMErrorReason,
     QueryUtils,
     SchemaUtils,
     type BaseCrudDialect,
@@ -982,12 +984,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 invariant(i === members.length - 1, 'plain field access must be the last segment');
                 invariant(!currNode, 'plain field access must be the last segment');
 
-                if (fieldDef.originModel && fieldDef.originModel !== fromModel) {
-                    // field inherited from a delegate base model, look it up from the base table
-                    currNode = this.buildDelegateBaseFieldSelect(fromModel, fromAlias, member, fieldDef.originModel);
-                } else {
-                    currNode = ReferenceNode.create(ColumnNode.create(member), TableNode.create(fromAlias));
-                }
+                currNode = this.buildFieldRef(fromModel, member, fromAlias);
             }
         }
 
@@ -1126,29 +1123,35 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         // if field comes from a delegate base model, we need to use the join alias
         // of that base model
 
-        const tableName = context.alias ?? context.modelOrType;
+        return this.buildFieldRef(context.modelOrType, column, context.alias ?? context.modelOrType);
+    }
 
-        const fieldDef = QueryUtils.requireField(this.schema, context.modelOrType, column);
+    /**
+     * Builds a reference to a scalar field of `model` whose table is aliased as `modelAlias`.
+     * Handles regular columns, `@computed` fields (inlined via the dialect), and fields inherited
+     * from a delegate base model (looked up from the base table with a correlated subquery).
+     */
+    private buildFieldRef(model: string, field: string, modelAlias: string): OperationNode {
+        const fieldDef = QueryUtils.requireField(this.schema, model, field);
 
-        if (fieldDef.computed) {
-            // `@computed` fields don't physically exist as columns — inline the
-            // computed expression the same way every other query path does via
-            // `dialect.fieldRef()`, instead of emitting a bare (nonexistent) column ref.
-            if (fieldDef.params) {
-                throw new Error(`parameterized computed field "${column}" cannot be used in a policy expression`);
-            }
-            return this.dialect.fieldRef(context.modelOrType, column, tableName).toOperationNode();
+        if (fieldDef.computed && fieldDef.params) {
+            throw new ORMError(
+                ORMErrorReason.CONFIG_ERROR,
+                `Parameterized computed field "${field}" of model "${model}" cannot be used in a policy expression`,
+            );
         }
 
-        if (!fieldDef.originModel || fieldDef.originModel === context.modelOrType) {
-            return ReferenceNode.create(ColumnNode.create(column), TableNode.create(tableName));
+        if (!fieldDef.originModel || fieldDef.originModel === model) {
+            return fieldDef.computed
+                ? this.dialect.fieldRef(model, field, modelAlias).toOperationNode()
+                : ReferenceNode.create(ColumnNode.create(field), TableNode.create(modelAlias));
         }
 
         // For inherited fields in delegate sub-types, use a correlated subquery against the
         // base table. For create operations the VALUES table contains the sub-type's own
         // fields and its id FK, so the subquery can look up the base record (already inserted
         // in the same transaction) to resolve inherited field values correctly.
-        return this.buildDelegateBaseFieldSelect(context.modelOrType, tableName, column, fieldDef.originModel);
+        return this.buildDelegateBaseFieldSelect(model, modelAlias, field, fieldDef.originModel);
     }
 
     // convert transformer's binding scope to equivalent expression evaluator binding scope
@@ -1173,7 +1176,8 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             kind: 'SelectQueryNode',
             from: FromNode.create([TableNode.create(baseModel)]),
             selections: [
-                SelectionNode.create(ReferenceNode.create(ColumnNode.create(field), TableNode.create(baseModel))),
+                // the base model owns the field, so a computed field is evaluated against the base table
+                SelectionNode.create(this.buildFieldRef(baseModel, field, baseModel) as SelectionNode['selection']),
             ],
             where: WhereNode.create(
                 conjunction(
