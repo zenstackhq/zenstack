@@ -29,7 +29,7 @@ const TEST_PUBLIC_KEY_DER = 'MCowBQYDK2VwAyEAFSJV7wjdFuDz2CqYX7hGnITQvcmJYy7OJQq
 function buildSignatureHeader(options: {
     privateKey: string;
     method: string;
-    /** Path + optional query string, e.g. `/api/model/user/findMany?q=%7B%7D` */
+    /** Path + optional query string, e.g. `/api/model/user/findMany?data=%7B%7D` */
     pathWithQuery: string;
     body?: unknown;
     authorizationToken?: string;
@@ -189,7 +189,7 @@ describe('CLI proxy tests', () => {
         const createRes = await fetch(`${baseUrl}/api/model/user/create`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: { name: 'Alice' } }),
+            body: JSON.stringify({ data: { data: { name: 'Alice' } } }),
         });
         expect(createRes.status).toBe(201);
         const created = await createRes.json();
@@ -240,23 +240,25 @@ describe('CLI proxy tests', () => {
         const txRes = await fetch(`${baseUrl}/api/model/$transaction/sequential`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify([
-                {
-                    model: 'User',
-                    op: 'create',
-                    args: { data: { id: 'u1', email: 'alice@example.com' } },
-                },
-                {
-                    model: 'Post',
-                    op: 'create',
-                    args: { data: { id: 'p1', title: 'Hello World', authorId: 'u1' } },
-                },
-                {
-                    model: 'Post',
-                    op: 'findMany',
-                    args: { where: { authorId: 'u1' } },
-                },
-            ]),
+            body: JSON.stringify({
+                data: [
+                    {
+                        model: 'User',
+                        op: 'create',
+                        args: { data: { id: 'u1', email: 'alice@example.com' } },
+                    },
+                    {
+                        model: 'Post',
+                        op: 'create',
+                        args: { data: { id: 'p1', title: 'Hello World', authorId: 'u1' } },
+                    },
+                    {
+                        model: 'Post',
+                        op: 'findMany',
+                        args: { where: { authorId: 'u1' } },
+                    },
+                ],
+            }),
         });
         expect(txRes.status).toBe(200);
         const tx = await txRes.json();
@@ -276,7 +278,7 @@ describe('CLI proxy tests', () => {
 
         // Confirm persisted outside transaction too.
         const userRes = await fetch(
-            `${baseUrl}/api/model/user/findUnique?q=${encodeURIComponent(JSON.stringify({ where: { id: 'u1' } }))}`,
+            `${baseUrl}/api/model/user/findUnique?data=${encodeURIComponent(JSON.stringify({ where: { id: 'u1' } }))}`,
         );
         expect(userRes.status).toBe(200);
         const user = await userRes.json();
@@ -334,8 +336,8 @@ describe('CLI proxy tests', () => {
             // Pre-seed a record directly via client
             await client.user.create({ data: { id: 'u1', email: 'alice@example.com' } });
 
-            const q = encodeURIComponent(JSON.stringify({ where: { id: 'u1' } }));
-            const pathWithQuery = `/api/model/user/findUnique?q=${q}`;
+            const data = encodeURIComponent(JSON.stringify({ where: { id: 'u1' } }));
+            const pathWithQuery = `/api/model/user/findUnique?data=${data}`;
             const sig = buildSignatureHeader({
                 privateKey: TEST_PRIVATE_KEY,
                 method: 'GET',
@@ -353,7 +355,7 @@ describe('CLI proxy tests', () => {
         it('should allow POST (create) requests with a valid signature', async () => {
             const { app } = await createPolicyApp(zmodel);
             const baseUrl = await startAt(app);
-            const reqBody = { data: { email: 'bob@example.com' } };
+            const reqBody = { data: { data: { email: 'bob@example.com' } } };
             const pathWithQuery = '/api/model/user/create';
             const sig = buildSignatureHeader({
                 privateKey: TEST_PRIVATE_KEY,
@@ -377,7 +379,7 @@ describe('CLI proxy tests', () => {
             const baseUrl = await startAt(app);
             // Seed a record
             await client.user.create({ data: { id: 'u1', email: 'old@example.com' } });
-            const reqBody = { where: { id: 'u1' }, data: { email: 'new@example.com' } };
+            const reqBody = { data: { where: { id: 'u1' }, data: { email: 'new@example.com' } } };
             const pathWithQuery = '/api/model/user/update';
             const sig = buildSignatureHeader({
                 privateKey: TEST_PRIVATE_KEY,
@@ -808,7 +810,7 @@ describe('CLI proxy tests', () => {
             await client.user.create({ data: { id: 'u2', email: 'user2@example.com' } });
 
             // Authenticated as u2 trying to update u1
-            const reqBody = { where: { id: 'u1' }, data: { email: 'hacked@example.com' } };
+            const reqBody = { data: { where: { id: 'u1' }, data: { email: 'hacked@example.com' } } };
             const authToken = makeUserToken({ type: 'user', data: { id: 'u2' } });
             const pathWithQuery = '/api/model/user/update';
             const r = await signedFetch(baseUrl, pathWithQuery, {
@@ -825,7 +827,7 @@ describe('CLI proxy tests', () => {
             const { client: _client, app } = await createPolicyApp(zmodel);
             const baseUrl = await startAt(app);
 
-            const reqBody = { data: { id: 'u1', email: 'user1@example.com' } };
+            const reqBody = { data: { data: { id: 'u1', email: 'user1@example.com' } } };
             const authToken = makeUserToken({ type: 'superUser' });
             const pathWithQuery = '/api/model/user/create';
             const r = await signedFetch(baseUrl, pathWithQuery, {
@@ -873,7 +875,9 @@ describe('CLI proxy tests', () => {
             const r = await signedFetch(baseUrl, pathWithQuery, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-                body: JSON.stringify(txBody),
+                body: JSON.stringify({
+                    data: txBody,
+                }),
             });
             expect(r.status).toBe(200);
             const body = await r.json();

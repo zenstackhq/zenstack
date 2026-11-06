@@ -91,6 +91,7 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
         model = lowerCaseFirst(model);
         method = method.toUpperCase();
         let args: unknown;
+        let meta: unknown;
         let resCode = 200;
 
         switch (op) {
@@ -105,7 +106,8 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
                     return this.makeBadInputErrorResponse('missing request body');
                 }
 
-                args = requestBody;
+                args = (requestBody as any)?.data;
+                meta = (requestBody as any)?.meta;
                 resCode = 201;
                 break;
 
@@ -120,9 +122,11 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
                     return this.makeBadInputErrorResponse('invalid request method, only GET is supported');
                 }
                 try {
-                    args = query?.['q'] ? unmarshalQ(query['q'] as string, query['meta'] as string | undefined) : {};
+                    args = query?.['data']
+                        ? unmarshalQ(query['data'] as string, query['meta'] as string | undefined)
+                        : {};
                 } catch {
-                    return this.makeBadInputErrorResponse('invalid "q" query parameter');
+                    return this.makeBadInputErrorResponse('invalid "data" query parameter');
                 }
                 break;
 
@@ -136,7 +140,8 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
                     return this.makeBadInputErrorResponse('missing request body');
                 }
 
-                args = requestBody;
+                args = (requestBody as any)?.data;
+                meta = (requestBody as any)?.meta;
                 break;
 
             case 'delete':
@@ -145,10 +150,12 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
                     return this.makeBadInputErrorResponse('invalid request method, only DELETE is supported');
                 }
                 try {
-                    args = query?.['q'] ? unmarshalQ(query['q'] as string, query['meta'] as string | undefined) : {};
+                    args = query?.['data']
+                        ? unmarshalQ(query['data'] as string, query['meta'] as string | undefined)
+                        : {};
                 } catch (err) {
                     return this.makeBadInputErrorResponse(
-                        err instanceof Error ? err.message : 'invalid "q" query parameter',
+                        err instanceof Error ? err.message : 'invalid "data" query parameter',
                     );
                 }
                 break;
@@ -157,7 +164,7 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
                 return this.makeBadInputErrorResponse('invalid operation: ' + op);
         }
 
-        const { result: processedArgs, error } = await this.processRequestPayload(args);
+        const { result: processedArgs, error } = await this.processRequestPayload({ data: args, meta });
         if (error) {
             return this.makeBadInputErrorResponse(error);
         }
@@ -221,18 +228,20 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
             return this.makeBadInputErrorResponse(`unsupported transaction type: ${type}`);
         }
 
-        if (!requestBody || !Array.isArray(requestBody) || requestBody.length === 0) {
-            return this.makeBadInputErrorResponse('request body must be a non-empty array of operations');
+        const operations = (requestBody as any)?.data;
+
+        if (!operations || !Array.isArray(operations) || operations.length === 0) {
+            return this.makeBadInputErrorResponse('request data must be a non-empty array of operations');
         }
 
         const processedOps: Array<{ model: string; op: string; args: unknown }> = [];
 
-        for (let i = 0; i < requestBody.length; i++) {
-            const item = requestBody[i];
+        for (let i = 0; i < operations.length; i++) {
+            const item = operations[i];
             if (!item || typeof item !== 'object') {
                 return this.makeBadInputErrorResponse(`operation at index ${i} must be an object`);
             }
-            const { model: itemModel, op: itemOp, args: itemArgs } = item as any;
+            const { model: itemModel, op: itemOp, args: itemArgs, meta } = item as any;
             if (!itemModel || typeof itemModel !== 'string') {
                 return this.makeBadInputErrorResponse(`operation at index ${i} is missing a valid "model" field`);
             }
@@ -253,7 +262,10 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
                 return this.makeBadInputErrorResponse(`operation at index ${i} has invalid "args" field`);
             }
 
-            const { result: processedArgs, error: argsError } = await this.processRequestPayload(itemArgs ?? {});
+            const { result: processedArgs, error: argsError } = await this.processRequestPayload({
+                data: itemArgs ?? {},
+                meta,
+            });
             if (argsError) {
                 return this.makeBadInputErrorResponse(`operation at index ${i}: ${argsError}`);
             }
@@ -325,20 +337,23 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
             }
         }
 
-        let argsPayload = method === 'POST' ? requestBody : undefined;
+        let argsPayload = method === 'POST' ? (requestBody as any)?.data : undefined;
         if (method === 'GET') {
             try {
-                argsPayload = query?.['q']
-                    ? unmarshalQ(query['q'] as string, query['meta'] as string | undefined)
+                argsPayload = query?.['data']
+                    ? unmarshalQ(query['data'] as string, query['meta'] as string | undefined)
                     : undefined;
             } catch (err) {
                 return this.makeBadInputErrorResponse(
-                    err instanceof Error ? err.message : 'invalid "q" query parameter',
+                    err instanceof Error ? err.message : 'invalid "data" query parameter',
                 );
             }
         }
 
-        const { result: processedArgsPayload, error } = await processSuperJsonRequestPayload(argsPayload);
+        const { result: processedArgsPayload, error } = await processSuperJsonRequestPayload({
+            data: argsPayload,
+            meta: (requestBody as any)?.meta,
+        });
         if (error) {
             return this.makeBadInputErrorResponse(error);
         }
@@ -441,17 +456,17 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
     }
 
     private async processRequestPayload(args: any) {
-        const { meta, ...rest } = args ?? {};
+        const { meta, data } = args ?? {};
         if (meta?.serialization) {
             try {
                 // superjson deserialization
-                args = SuperJSON.deserialize({ json: rest, meta: meta.serialization });
+                args = SuperJSON.deserialize({ json: data, meta: meta.serialization });
             } catch (err) {
                 return { result: undefined, error: `failed to deserialize request payload: ${(err as Error).message}` };
             }
         } else {
             // drop meta when no serialization info is present
-            args = rest;
+            args = data;
         }
         return { result: args, error: undefined };
     }
