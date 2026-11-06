@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { ClientContract } from '@zenstackhq/orm';
+import { definePlugin, type ClientContract } from '@zenstackhq/orm';
 import { schema } from '../schemas/basic';
+import { PolicyPlugin } from '@zenstackhq/plugin-policy';
 import { createTestClient } from '@zenstackhq/testtools';
 
 describe('Client raw query tests', () => {
@@ -176,6 +177,74 @@ describe('Client raw query tests', () => {
             ).rejects.toThrow('rollback');
 
             await expect(client.user.findMany()).toResolveWithLength(0);
+        });
+
+        it('$unuse removes a kysely-level plugin from the derived transaction client', async () => {
+            const db = client.$use(new PolicyPlugin());
+            await expect(
+                db.$transaction(async (tx) => {
+                    const unchecked = tx.$unuse('policy');
+                    await expect(unchecked.user.create({ data: { email: 'u1@test.com' } })).toResolveTruthy();
+                    await expect(unchecked.user.count()).resolves.toBe(1);
+                    await expect(tx.user.create({ data: { email: 'u2@test.com' } })).toBeRejectedByPolicy();
+                    throw new Error('rollback');
+                }),
+            ).rejects.toThrow('rollback');
+
+            await expect(client.user.findMany()).toResolveWithLength(0);
+        });
+
+        it('$setAuth evaluates policies with the new auth inside the transaction', async () => {
+            const db = client.$use(new PolicyPlugin());
+            await db.$setAuth({ id: 'u1' }).$transaction(async (tx) => {
+                const asU2 = tx.$setAuth({ id: 'u2' });
+                await expect(asU2.user.create({ data: { id: 'u2', email: 'u2@test.com' } })).toResolveTruthy();
+                await expect(asU2.user.create({ data: { id: 'u1', email: 'u1@test.com' } })).toBeRejectedByPolicy();
+                await expect(tx.user.create({ data: { id: 'u1', email: 'u1@test.com' } })).toResolveTruthy();
+            });
+
+            await expect(client.user.findMany()).toResolveWithLength(2);
+        });
+
+        it('$use installs kysely-level and entity mutation hooks on the derived transaction client', async () => {
+            const calls: string[] = [];
+            const recorder = definePlugin({
+                id: 'recorder',
+                onKyselyQuery: ({ query, proceed }) => {
+                    if (query.kind === 'InsertQueryNode') {
+                        calls.push(query.kind);
+                    }
+                    return proceed(query);
+                },
+                onEntityMutation: {
+                    $all: {
+                        beforeEntityMutation: ({ action }) => {
+                            calls.push(action);
+                        },
+                    },
+                },
+            });
+            await client.$transaction(async (tx) => {
+                await (tx as any).$use(recorder).user.create({ data: { email: 'u1@test.com' } });
+                await tx.user.create({ data: { email: 'u2@test.com' } });
+            });
+
+            expect(calls).toEqual(['InsertQueryNode', 'create']);
+        });
+
+        it('a derived transaction client fails once the transaction has ended', async () => {
+            const committed = await client.$transaction(async (tx) => tx.$setAuth({ id: 'u1' }));
+            await expect(committed.user.count()).rejects.toThrow('Transaction is already committed');
+            await expect(committed.$unuseAll().user.count()).rejects.toThrow('Transaction is already committed');
+
+            const rolledBack: ClientContract<typeof schema>[] = [];
+            await expect(
+                client.$transaction(async (tx) => {
+                    rolledBack.push(tx.$unuseAll().$setAuth({ id: 'u1' }));
+                    throw new Error('rollback');
+                }),
+            ).rejects.toThrow('rollback');
+            await expect(rolledBack[0]!.user.count()).rejects.toThrow('Transaction is already rolled back');
         });
     });
 
