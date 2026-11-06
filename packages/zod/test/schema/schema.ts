@@ -96,7 +96,8 @@ export class SchemaType implements SchemaDef {
                 avatar: {
                     name: "avatar",
                     type: "Bytes",
-                    optional: true
+                    optional: true,
+                    attributes: [{ name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(3) }, { name: "max", value: ExpressionUtils.literal(5) }] }] as readonly AttributeApplication[]
                 },
                 metadata: {
                     name: "metadata",
@@ -192,6 +193,33 @@ export class SchemaType implements SchemaDef {
                 labels: {
                     name: "labels",
                     type: "Label",
+                    array: true
+                }
+            },
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "Int" }
+            }
+        },
+        Upload: {
+            name: "Upload",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "Int",
+                    id: true,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                },
+                chunks: {
+                    name: "chunks",
+                    type: "Chunk",
+                    array: true,
+                    attributes: [{ name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(2) }, { name: "max", value: ExpressionUtils.literal(3) }] }] as readonly AttributeApplication[]
+                },
+                blobs: {
+                    name: "blobs",
+                    type: "Chunk",
                     array: true
                 }
             },
@@ -437,6 +465,17 @@ export class SchemaType implements SchemaDef {
                     name: "this",
                     type: "String",
                     attributes: [{ name: "@lower" }, { name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(1) }, { name: "max", value: ExpressionUtils.literal(12) }] }] as readonly AttributeApplication[]
+                }
+            }
+        },
+        Chunk: {
+            name: "Chunk",
+            base: "Bytes",
+            fields: {
+                this: {
+                    name: "this",
+                    type: "Bytes",
+                    attributes: [{ name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(1) }, { name: "max", value: ExpressionUtils.literal(4) }] }] as readonly AttributeApplication[]
                 }
             }
         }
