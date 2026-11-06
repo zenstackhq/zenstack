@@ -1,5 +1,5 @@
 import { ORMError, ORMErrorReason, RejectedByPolicyReason, type BaseCrudDialect } from '@zenstackhq/orm';
-import { ExpressionUtils, type Expression, type SchemaDef } from '@zenstackhq/orm/schema';
+import { ExpressionUtils, type Expression, type FieldDef, type SchemaDef } from '@zenstackhq/orm/schema';
 import type { OperationNode } from 'kysely';
 import {
     AliasNode,
@@ -190,4 +190,17 @@ export function createRejectedByPolicyError(
 
 export function createUnsupportedError(message: string) {
     return new ORMError(ORMErrorReason.NOT_SUPPORTED, message);
+}
+
+/**
+ * Throws a config error if the given field is a parameterized computed field. Such fields need
+ * query-time args, which policy expressions have no way to provide.
+ */
+export function rejectParameterizedComputedField(fieldDef: FieldDef, model: string) {
+    if (fieldDef.computed && fieldDef.params) {
+        throw new ORMError(
+            ORMErrorReason.CONFIG_ERROR,
+            `Parameterized computed field "${fieldDef.name}" of model "${model}" cannot be used in a policy expression`,
+        );
+    }
 }
