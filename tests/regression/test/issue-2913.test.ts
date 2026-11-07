@@ -10,19 +10,32 @@ describe('Regression for issue 2913', () => {
             (_, i) => `
 model M${i} {
     id Int @id
-    ${i > 0 ? `parentId Int\n    parent M${i - 1} @relation(fields: [parentId], references: [id])` : ''}
+    ${i > 0 ? `parentId Int @map('parent_id')\n    parent M${i - 1} @relation(fields: [parentId], references: [id])` : `visible Boolean @map('is_visible')`}
     ${i < depth ? `children M${i + 1}[]` : ''}
 
     @@allow('create', true)
-    @@allow('read', ${i > 0 ? 'check(parent)' : 'true'})
+    @@allow('read', ${i > 0 ? 'check(parent)' : 'visible'})
     @@map('m${i}')
 }`,
         ).join('\n');
 
         const db: any = await createPolicyTestClient(schema);
 
+        // two chains, only the first one has a visible root
+        for (let i = 0; i <= depth; i++) {
+            await db.$unuseAll()[`m${i}`].createMany({
+                data: [1, 2].map((id) => (i === 0 ? { id, visible: id === 1 } : { id, parentId: id })),
+            });
+        }
+
+        // warm up the connection so that the timing below is about building the query
+        await expect(db.m0.findMany()).resolves.toEqual([{ id: 1, visible: true }]);
+
         const start = performance.now();
-        await expect(db[`m${depth}`].findMany()).resolves.toEqual([]);
-        expect(performance.now() - start).toBeLessThan(1000);
+        const leaves = await db[`m${depth}`].findMany();
+        const elapsed = performance.now() - start;
+
+        expect(leaves).toEqual([{ id: 1, parentId: 1 }]);
+        expect(elapsed).toBeLessThan(1000);
     });
 });
