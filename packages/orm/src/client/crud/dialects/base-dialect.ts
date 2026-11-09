@@ -617,7 +617,12 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
             switch (key) {
                 case 'equals': {
-                    clauses.push(this.eb(receiver, '=', buildArray(value)));
+                    if (isTypeDef(this.schema, fieldDef.type) && !isPrimitiveTypeDef(this.schema, fieldDef.type)) {
+                        // a typed JSON array is stored as a single JSON value, not a native list
+                        clauses.push(this.buildJsonValueFilterClause(fieldRef, _value));
+                    } else {
+                        clauses.push(this.eb(receiver, '=', buildArray(value)));
+                    }
                     break;
                 }
 
