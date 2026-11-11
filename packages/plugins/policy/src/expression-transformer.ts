@@ -1227,39 +1227,71 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         return !!fieldDef && QueryUtils.isEnum(this.schema, fieldDef.type);
     }
 
-    // create rules read the new entity's fields from the input VALUES table, where enums are text;
-    // compare as text only against a stored column of the same enum. `@map`-ed enums are skipped:
-    // the input holds names but stored columns hold mapped values (#2867)
+    /**
+     * Whether a comparison in a create rule needs both operands compared as text.
+     *
+     * Create rules are evaluated before the insert, against a `VALUES` table built from the input
+     * (see `enforcePreCreatePolicyForOne`). That table carries enum fields as `text`, while stored
+     * columns have the native enum type, and PostgreSQL has no `text = "Enum"` operator (42883).
+     *
+     * Returns true only when one operand is an enum field of the entity being created and the
+     * other is a stored field of the same enum, e.g. for `model Grant { permission Permission }`:
+     * - `permission == anchor.defaultPermission` (bare top-level field vs. related row)
+     * - `anchor.approvals?[permission == this.permission]` (stored row vs. `this`)
+     *
+     * Not for literals (`permission == EDIT`): the name mapper still translates `@map`-ed literals.
+     * Not for enums with `@map`-ed values: the input holds names (`ACTIVE`) but stored columns
+     * hold mapped values (`active`), so a text comparison would be wrong (#2867).
+     */
     private isCreateInputEnumComparison(left: Expression, right: Expression, context: ExpressionTransformerContext) {
+        // only create rules read from the input `VALUES` table
         if (context.operation !== 'create') {
             return false;
         }
         const leftInput = this.getCreateInputEnumField(left, context);
         const rightInput = this.getCreateInputEnumField(right, context);
+        // exactly one operand must be create input: if both are, both are text; if neither is,
+        // both are stored native enums. Either way the types already match.
         if (!leftInput === !rightInput) {
             return false;
         }
         const inputDef = (leftInput ?? rightInput)!;
+        // the other operand must be a stored field of the same enum (a literal resolves to no field)
         const storedDef = this.getFieldDefFromFieldRef(leftInput ? right : left, context);
         return storedDef?.type === inputDef.type && !this.hasMappedEnumValues(inputDef.type);
     }
 
+    /**
+     * If the expression reads an enum field of the entity being created (i.e. a column of the input
+     * `VALUES` table), returns that field's definition; otherwise `undefined`.
+     *
+     * - `this.field` always refers to the entity the rule belongs to. A longer path such as
+     *   `this.anchor.defaultPermission` goes through a relation and reads a stored row.
+     * - a bare `field` refers to the entity being created only at the top level of the rule. Inside
+     *   a collection predicate (`relation?[field == ...]`) it refers to the related stored row.
+     */
     private getCreateInputEnumField(expr: Expression, context: ExpressionTransformerContext) {
         let field: string | undefined;
         if (ExpressionUtils.isMember(expr) && ExpressionUtils.isThis(expr.receiver) && expr.members.length === 1) {
+            // `this.field`
             field = expr.members[0];
         } else if (
             ExpressionUtils.isField(expr) &&
+            // still on the model the rule belongs to ...
             context.modelOrType === context.thisType &&
-            // inside a collection predicate (incl. self-relations) a bare field is a stored row
+            // ... and not inside a collection predicate: there (incl. self-relations, where the
+            // model is the same) a bare field is a stored row, aliased differently
             context.alias === context.thisAlias
         ) {
+            // bare top-level `field`
             field = expr.field;
         }
+        // `this` and top-level bare fields both resolve against the model being created
         const fieldDef = field ? QueryUtils.getField(this.schema, context.thisType, field) : undefined;
         return fieldDef && QueryUtils.isEnum(this.schema, fieldDef.type) ? fieldDef : undefined;
     }
 
+    // whether any member of the enum carries `@map`, i.e. its stored values differ from its names
     private hasMappedEnumValues(enumType: string) {
         const enumDef = QueryUtils.getEnum(this.schema, enumType);
         return Object.values(enumDef?.fields ?? {}).some((f) => f.attributes?.some((attr) => attr.name === '@map'));
