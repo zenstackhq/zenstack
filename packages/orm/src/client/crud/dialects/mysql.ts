@@ -304,6 +304,13 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
         ]);
     }
 
+    protected override buildJsonArrayEqualityFilter(lhs: Expression<any>, rhs: unknown) {
+        // bi-directional JSON_CONTAINS ignores element order and duplicates, use MySQL's native JSON
+        // comparison instead: arrays are equal only if they have the same length and equal values at
+        // each position, while objects are compared regardless of key order
+        return sql<SqlBool>`${lhs} = CAST(${sql.val(JSON.stringify(rhs))} AS JSON)`;
+    }
+
     protected override buildJsonPathSelection(receiver: Expression<any>, path: string | undefined) {
         if (path) {
             return this.eb.fn('JSON_EXTRACT', [receiver, this.eb.val(path)]);
