@@ -617,7 +617,12 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
             switch (key) {
                 case 'equals': {
-                    clauses.push(this.eb(receiver, '=', buildArray(value)));
+                    if (isTypeDef(this.schema, fieldDef.type) && !isPrimitiveTypeDef(this.schema, fieldDef.type)) {
+                        // a typed JSON array is stored as a single JSON value, not a native list
+                        clauses.push(this.buildJsonArrayEqualityFilter(fieldRef, _value));
+                    } else {
+                        clauses.push(this.eb(receiver, '=', buildArray(value)));
+                    }
                     break;
                 }
 
@@ -886,6 +891,13 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         } else {
             return this.buildJsonEqualityFilter(lhs, value);
         }
+    }
+
+    /**
+     * Builds an exact, element-order-sensitive equality filter for a typed JSON array field.
+     */
+    protected buildJsonArrayEqualityFilter(lhs: Expression<any>, rhs: unknown) {
+        return this.buildJsonValueFilterClause(lhs, rhs);
     }
 
     protected buildJsonEqualityFilter(lhs: Expression<any>, rhs: unknown) {
