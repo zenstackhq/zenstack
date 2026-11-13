@@ -307,8 +307,8 @@ export function addListValidation(
 }
 
 /**
- * Recursively collects all field names referenced by `kind: 'field'` nodes
- * inside an expression tree.
+ * Recursively collects all field names referenced by `kind: 'field'` nodes and
+ * by `this.field` member nodes inside an expression tree.
  */
 export function collectFieldRefs(expr: Expression): Set<string> {
     const refs = new Set<string>();
@@ -331,7 +331,12 @@ export function collectFieldRefs(expr: Expression): Set<string> {
                 e.items.forEach(walk);
                 break;
             case 'member':
-                walk(e.receiver);
+                if (e.receiver.kind === 'this') {
+                    // `this.field` references `field`
+                    if (e.members[0]) refs.add(e.members[0]);
+                } else {
+                    walk(e.receiver);
+                }
                 break;
             // literal / null / this / binding — no field refs
         }
@@ -351,6 +356,10 @@ export function collectFieldRefs(expr: Expression): Set<string> {
  * Omit `presentFields` (or pass `undefined`) to apply all rules
  * unconditionally, which is the correct behaviour for full-model schemas.
  *
+ * Pass `options.partial` when the data is an update payload, which holds only
+ * the fields it changes. A rule is then skipped for data that sends none of
+ * the fields it references: the update cannot change the rule's result.
+ *
  * Note: `@@validate` conditions are restricted by the ZModel compiler to
  * scalar fields of the same model only — relation fields are a compile error.
  * A flat field-name set is therefore sufficient.
@@ -359,6 +368,19 @@ export function addCustomValidation(
     schema: z.ZodSchema,
     attributes: readonly AttributeApplication[] | undefined,
     presentFields?: ReadonlySet<string>,
+    options?: {
+        /**
+         * The data holds only some of the model's fields, as in an update. A rule is then
+         * skipped when the data sends none of the fields it references.
+         */
+        partial?: boolean;
+        /**
+         * Maps each relation field to the foreign-key fields it sets. In partial mode, a
+         * relation field in the data counts as sending its foreign keys, unless it holds
+         * only a nested `update`, which cannot change them.
+         */
+        relationForeignKeys?: Record<string, readonly string[]>;
+    },
 ): z.ZodSchema {
     const attrs = attributes?.filter((a) => a.name === '@@validate');
     if (!attrs || attrs.length === 0) {
@@ -386,16 +408,71 @@ export function addCustomValidation(
         if (pathExpr && ExpressionUtils.isArray(pathExpr)) {
             path = pathExpr.items.map((e) => ExpressionUtils.getLiteralValue(e) as string);
         }
-        result = applyValidation(result, expr, message, path);
+        result = applyValidation(
+            result,
+            expr,
+            message,
+            path,
+            options?.partial ? partialTriggers(expr, options.relationForeignKeys) : undefined,
+        );
     }
     return result;
 }
 
+type PartialTriggers = {
+    /** The fields the rule references. */
+    fields: string[];
+    /** The relation fields that set a foreign key the rule references. */
+    relations: string[];
+};
+
+/**
+ * Returns the fields and relation fields that make a rule apply to partial data.
+ */
+function partialTriggers(
+    expr: Expression,
+    relationForeignKeys: Record<string, readonly string[]> = {},
+): PartialTriggers {
+    const refs = collectFieldRefs(expr);
+    return {
+        fields: [...refs],
+        relations: Object.entries(relationForeignKeys)
+            .filter(([, foreignKeys]) => foreignKeys.some((fk) => refs.has(fk)))
+            .map(([relation]) => relation),
+    };
+}
+
+/**
+ * Tells whether a relation payload can change the foreign keys of its relation. Every nested
+ * operation can, except `update`, which writes to the related row only.
+ */
+function relationChangesForeignKey(payload: unknown) {
+    return typeof payload === 'object' && payload !== null && Object.keys(payload).some((op) => op !== 'update');
+}
+
+/**
+ * Tells whether partial data sends a field or a foreign-key change that a rule depends on.
+ */
+function partialDataTriggersRule(data: unknown, triggers: PartialTriggers) {
+    if (typeof data !== 'object' || data === null) {
+        return false;
+    }
+    return (
+        triggers.fields.some((field) => field in data) ||
+        triggers.relations.some((relation) => relationChangesForeignKey((data as Record<string, unknown>)[relation]))
+    );
+}
+
+/**
+ * Adds one `@@validate` rule to `schema` as a refinement. With `triggers`, the data is partial and
+ * the refinement passes for data that does not trigger the rule.
+ */
 function applyValidation(
     schema: z.ZodSchema,
     expr: Expression,
     message: string | undefined,
     path: string[] | undefined,
+    triggers: PartialTriggers | undefined,
 ) {
     const options: Parameters<typeof schema.refine>[1] = {};
     if (message) {
@@ -404,7 +481,12 @@ function applyValidation(
     if (path) {
         options.path = path;
     }
-    return schema.refine((data) => Boolean(evalExpression(data, expr)), options);
+    return schema.refine((data) => {
+        if (triggers && !partialDataTriggersRule(data, triggers)) {
+            return true;
+        }
+        return Boolean(evalExpression(data, expr));
+    }, options);
 }
 
 function evalExpression(data: any, expr: Expression): unknown {
