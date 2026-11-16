@@ -184,20 +184,25 @@ export class SchemaType implements SchemaDef {
             fields: {
                 id: {
                     name: "id",
-                    type: "Int",
+                    type: "HolderId",
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
                 },
                 labels: {
                     name: "labels",
                     type: "Label",
                     array: true
+                },
+                assets: {
+                    name: "assets",
+                    type: "Asset",
+                    array: true,
+                    relation: { opposite: "holder" }
                 }
             },
             idFields: ["id"],
             uniqueFields: {
-                id: { type: "Int" }
+                id: { type: "HolderId" }
             }
         },
         Product: {
@@ -256,6 +261,19 @@ export class SchemaType implements SchemaDef {
                     name: "assetType",
                     type: "String",
                     isDiscriminator: true
+                },
+                holderId: {
+                    name: "holderId",
+                    type: "HolderId",
+                    foreignKeyFor: [
+                        "holder"
+                    ] as readonly string[]
+                },
+                holder: {
+                    name: "holder",
+                    type: "Holder",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("holderId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "assets", fields: ["holderId"], references: ["id"] }
                 }
             },
             attributes: [
@@ -291,6 +309,21 @@ export class SchemaType implements SchemaDef {
                     type: "String",
                     originModel: "Asset",
                     isDiscriminator: true
+                },
+                holderId: {
+                    name: "holderId",
+                    type: "HolderId",
+                    originModel: "Asset",
+                    foreignKeyFor: [
+                        "holder"
+                    ] as readonly string[]
+                },
+                holder: {
+                    name: "holder",
+                    type: "Holder",
+                    originModel: "Asset",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("holderId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "assets", fields: ["holderId"], references: ["id"] }
                 },
                 duration: {
                     name: "duration",
@@ -329,6 +362,21 @@ export class SchemaType implements SchemaDef {
                     type: "String",
                     originModel: "Asset",
                     isDiscriminator: true
+                },
+                holderId: {
+                    name: "holderId",
+                    type: "HolderId",
+                    originModel: "Asset",
+                    foreignKeyFor: [
+                        "holder"
+                    ] as readonly string[]
+                },
+                holder: {
+                    name: "holder",
+                    type: "Holder",
+                    originModel: "Asset",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("holderId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "assets", fields: ["holderId"], references: ["id"] }
                 },
                 format: {
                     name: "format",
@@ -439,6 +487,21 @@ export class SchemaType implements SchemaDef {
                     attributes: [{ name: "@lower" }, { name: "@length", args: [{ name: "min", value: ExpressionUtils.literal(1) }, { name: "max", value: ExpressionUtils.literal(12) }] }] as readonly AttributeApplication[]
                 }
             }
+        },
+        HolderId: {
+            name: "HolderId",
+            base: "String",
+            fields: {
+                this: {
+                    name: "this",
+                    type: "String"
+                }
+            },
+            attributes: [
+                { name: "@@validate", args: [{ name: "value", value: ExpressionUtils.call("startsWith", [ExpressionUtils._this(), ExpressionUtils.literal("holder_")]) }] },
+                { name: "@@branded" }
+            ] as readonly AttributeApplication[],
+            branded: true
         }
     } as const;
     enums = {

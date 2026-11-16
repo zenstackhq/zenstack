@@ -130,6 +130,7 @@ export type TypeDefDef = {
     name: string;
     strict?: boolean;
     base?: BuiltinType;
+    branded?: boolean;
     fields: Record<string, FieldDef>;
     attributes?: readonly AttributeApplication[];
 };
