@@ -12,6 +12,7 @@ import {
     AliasNode,
     AndNode,
     BinaryOperationNode,
+    CastNode,
     ColumnNode,
     DefaultInsertValueNode,
     DeleteQueryNode,
@@ -1161,12 +1162,14 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
                     continue;
                 }
                 const fieldDef = QueryUtils.requireField(this.client.$schema, model, fields[i]!);
-                invariant(ValueNode.is(itemNode), `expecting a ValueNode, got ${itemNode.kind}`);
+                // some dialects wrap the value in a cast (e.g. MySQL's `CAST(? AS JSON)` for Json fields)
+                const valueNode = CastNode.is(itemNode) ? itemNode.expression : itemNode;
+                invariant(ValueNode.is(valueNode), `expecting a ValueNode, got ${valueNode.kind}`);
                 result.push({
                     node: ValueNode.create(
-                        this.dialect.transformInput(itemNode.value, fieldDef.type as BuiltinType, !!fieldDef.array),
+                        this.dialect.transformInput(valueNode.value, fieldDef.type as BuiltinType, !!fieldDef.array),
                     ),
-                    raw: itemNode.value,
+                    raw: valueNode.value,
                 });
             } else {
                 let value: unknown = item;
