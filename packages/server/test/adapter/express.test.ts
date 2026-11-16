@@ -30,15 +30,17 @@ describe('Express adapter tests - rpc handler', () => {
         r = await request(app)
             .post('/api/user/create')
             .send({
-                include: { posts: true },
                 data: {
-                    id: 'user1',
-                    email: 'user1@abc.com',
-                    posts: {
-                        create: [
-                            { title: 'post1', published: true, viewCount: 1 },
-                            { title: 'post2', published: false, viewCount: 2 },
-                        ],
+                    include: { posts: true },
+                    data: {
+                        id: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: [
+                                { title: 'post1', published: true, viewCount: 1 },
+                                { title: 'post2', published: false, viewCount: 2 },
+                            ],
+                        },
                     },
                 },
             });
@@ -65,7 +67,7 @@ describe('Express adapter tests - rpc handler', () => {
 
         r = await request(app)
             .put('/api/user/update')
-            .send({ where: { id: 'user1' }, data: { email: 'user1@def.com' } });
+            .send({ data: { where: { id: 'user1' }, data: { email: 'user1@def.com' } } });
         expect(r.status).toBe(200);
         expect(r.body.data.email).toBe('user1@def.com');
 
