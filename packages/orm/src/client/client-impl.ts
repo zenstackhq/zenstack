@@ -112,6 +112,13 @@ class TransactionConnectionProvider implements ConnectionProvider {
 }
 
 /**
+ * Maps a raw client to the proxy its constructor returns. Code holding the raw client (the query
+ * executor a client builds for itself) uses it to hand out a client with model accessors and
+ * plugin-provided members.
+ */
+const clientProxies = new WeakMap<ClientImpl, ClientImpl>();
+
+/**
  * ZenStack ORM client.
  */
 export const ZenStackClient = function <Schema extends SchemaDef>(
@@ -224,7 +231,9 @@ export class ClientImpl {
             baseClient?.inputValidator ??
             new InputValidator(this as any, { enabled: this.$options.validateInput !== false });
 
-        return createClientProxy(this);
+        const proxy = createClientProxy(this);
+        clientProxies.set(this, proxy);
+        return proxy;
     }
 
     /**
@@ -645,7 +654,8 @@ export class ClientImpl {
      * keeps the model accessors.
      */
     get $contract(): ClientContract<SchemaDef> {
-        return this as unknown as ClientContract<SchemaDef>;
+        // `this` is the raw client when called from its own query executor
+        return (clientProxies.get(this) ?? this) as unknown as ClientContract<SchemaDef>;
     }
 
     $setOptions<Options extends ClientOptions<SchemaDef>>(options: Options): ClientContract<SchemaDef, Options> {

@@ -232,6 +232,27 @@ describe('Client raw query tests', () => {
             expect(calls).toEqual(['InsertQueryNode', 'create']);
         });
 
+        it('onKyselyQuery hooks get a client with model accessors and plugin members', async () => {
+            const seen: string[] = [];
+            const inspector = definePlugin({
+                id: 'inspector',
+                client: { $hello: () => 'hello' },
+                onKyselyQuery: ({ client, query, proceed }) => {
+                    const c = client as any;
+                    seen.push(`${typeof c.user?.findMany}:${c.$hello?.()}:${c.$auth?.id}`);
+                    return proceed(query);
+                },
+            });
+            const db = client.$use(inspector);
+            await db.$setAuth({ id: 'u0' }).user.count();
+            await db.$transaction(async (tx) => {
+                await tx.$setAuth({ id: 'u1' }).user.count();
+                await tx.$setAuth({ id: 'u1' }).$setAuth({ id: 'u2' }).user.count();
+            });
+
+            expect(seen).toEqual(['function:hello:u0', 'function:hello:u1', 'function:hello:u2']);
+        });
+
         it('a derived transaction client fails once the transaction has ended', async () => {
             const committed = await client.$transaction(async (tx) => tx.$setAuth({ id: 'u1' }));
             await expect(committed.user.count()).rejects.toThrow('Transaction is already committed');
