@@ -103,7 +103,7 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
         } else {
             switch (type) {
                 case 'Boolean':
-                    return value ? 1 : 0;
+                    return value !== null ? (value ? 1 : 0) : value;
                 case 'DateTime':
                     return value instanceof Date
                         ? value.toISOString()
