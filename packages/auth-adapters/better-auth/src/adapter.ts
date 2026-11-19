@@ -1,5 +1,6 @@
 import type { BetterAuthOptions, Where } from 'better-auth';
 import { BetterAuthError } from '@better-auth/core/error';
+import { ORMErrorReason, QueryUtils } from '@zenstackhq/orm';
 import type { ClientContract, ModelOperations, UpdateInput } from '@zenstackhq/orm';
 import type { GetModels, SchemaDef } from '@zenstackhq/orm/schema';
 import {
@@ -44,6 +45,14 @@ export const zenstackAdapter = <Schema extends SchemaDef>(db: ClientContract<Sch
                         return operator;
                 }
             }
+            const isEqualityCondition = (w: Where) => w.operator === 'eq' || !w.operator;
+            const convertWhereCondition = (model: string, w: Where) => ({
+                [getFieldName({ model, field: w.field })]: isEqualityCondition(w)
+                    ? w.value
+                    : {
+                          [operatorToORMOperator(w.operator!)]: w.value,
+                      },
+            });
             const convertWhereClause = (model: string, where?: Where[]): any => {
                 if (!where || !where.length) return {};
                 if (where.length === 1) {
@@ -51,43 +60,49 @@ export const zenstackAdapter = <Schema extends SchemaDef>(db: ClientContract<Sch
                     if (!w) {
                         throw new BetterAuthError('Invalid where clause');
                     }
-                    return {
-                        [getFieldName({ model, field: w.field })]:
-                            w.operator === 'eq' || !w.operator
-                                ? w.value
-                                : {
-                                      [operatorToORMOperator(w.operator)]: w.value,
-                                  },
-                    };
+                    return convertWhereCondition(model, w);
                 }
                 const and = where.filter((w) => w.connector === 'AND' || !w.connector);
                 const or = where.filter((w) => w.connector === 'OR');
-                const andClause = and.map((w) => {
-                    return {
-                        [getFieldName({ model, field: w.field })]:
-                            w.operator === 'eq' || !w.operator
-                                ? w.value
-                                : {
-                                      [operatorToORMOperator(w.operator)]: w.value,
-                                  },
-                    };
-                });
-                const orClause = or.map((w) => {
-                    return {
-                        [getFieldName({ model, field: w.field })]:
-                            w.operator === 'eq' || !w.operator
-                                ? w.value
-                                : {
-                                      [operatorToORMOperator(w.operator)]: w.value,
-                                  },
-                    };
-                });
+                const andClause = and.map((w) => convertWhereCondition(model, w));
+                const orClause = or.map((w) => convertWhereCondition(model, w));
 
                 return {
                     ...(andClause.length ? { AND: andClause } : {}),
                     ...(orClause.length ? { OR: orClause } : {}),
                 };
             };
+
+            // ORM `update()` and `delete()` need a unique field at the top level of `where`, so AND-ed
+            // equality conditions are lifted to the top level there, and the remaining conditions are
+            // kept as filters. `isUnique` tells whether a single-field unique key ended up at the top level
+            // (compound unique keys are left to the non-unique path).
+            const convertUniqueWhereClause = (model: string, where: Where[]) => {
+                const result: Record<string, unknown> = {};
+                const and: Record<string, unknown>[] = [];
+                const or: Record<string, unknown>[] = [];
+                for (const w of where) {
+                    const field = getFieldName({ model, field: w.field });
+                    if (w.connector === 'OR') {
+                        or.push(convertWhereCondition(model, w));
+                    } else if (isEqualityCondition(w) && !(field in result)) {
+                        result[field] = w.value;
+                    } else {
+                        and.push(convertWhereCondition(model, w));
+                    }
+                }
+                if (and.length) result['AND'] = and;
+                if (or.length) result['OR'] = or;
+
+                const isUnique = QueryUtils.getUniqueFields(db.$schema, model).some(
+                    (unique) => 'def' in unique && result[unique.name] !== undefined && result[unique.name] !== null,
+                );
+                return { where: result, isUnique };
+            };
+
+            // checked by `reason` rather than `instanceof ORMError`, in case the app loads another copy of the ORM
+            const isNotFoundError = (err: unknown) =>
+                (err as { reason?: unknown } | null)?.reason === ORMErrorReason.NOT_FOUND;
 
             function requireModelDb(db: ClientContract<Schema>, model: string) {
                 const modelDb = db[model as keyof typeof db];
@@ -145,11 +160,32 @@ export const zenstackAdapter = <Schema extends SchemaDef>(db: ClientContract<Sch
 
                 async update({ model, where, update }): Promise<any> {
                     const modelDb = requireModelDb(db, model);
-                    const whereClause = convertWhereClause(model, where);
-                    return await modelDb.update({
-                        where: whereClause,
-                        data: update as UpdateInput<SchemaDef, GetModels<SchemaDef>, any>,
-                    });
+                    const data = update as UpdateInput<SchemaDef, GetModels<SchemaDef>, any>;
+                    const uniqueWhere = convertUniqueWhereClause(model, where);
+                    let updateWhere = uniqueWhere.where;
+                    if (!uniqueWhere.isUnique) {
+                        // No unique field to select the row by: find a matching row, then update it by its id,
+                        // keeping the original conditions as a guard in case the row changed in between.
+                        const filter = convertWhereClause(model, where);
+                        const idFields = QueryUtils.requireIdFields(db.$schema, model);
+                        const found: any = await modelDb.findFirst({
+                            where: filter,
+                            select: Object.fromEntries(idFields.map((f) => [f, true])),
+                        });
+                        if (!found) return null;
+                        const idWhere =
+                            idFields.length === 1
+                                ? { [idFields[0]!]: found[idFields[0]!] }
+                                : { [idFields.join('_')]: Object.fromEntries(idFields.map((f) => [f, found[f]])) };
+                        updateWhere = { ...idWhere, AND: [filter] };
+                    }
+                    try {
+                        return await modelDb.update({ where: updateWhere as any, data });
+                    } catch (err) {
+                        // better-auth expects `null` when no row matches
+                        if (isNotFoundError(err)) return null;
+                        throw err;
+                    }
                 },
 
                 async updateMany({ model, where, update }) {
@@ -164,13 +200,16 @@ export const zenstackAdapter = <Schema extends SchemaDef>(db: ClientContract<Sch
 
                 async delete({ model, where }): Promise<any> {
                     const modelDb = requireModelDb(db, model);
-                    const whereClause = convertWhereClause(model, where);
+                    const uniqueWhere = convertUniqueWhereClause(model, where);
+                    if (!uniqueWhere.isUnique) {
+                        await modelDb.deleteMany({ where: convertWhereClause(model, where) });
+                        return;
+                    }
                     try {
-                        await modelDb.delete({
-                            where: whereClause,
-                        });
-                    } catch {
+                        await modelDb.delete({ where: uniqueWhere.where as any });
+                    } catch (err) {
                         // If the record doesn't exist, we don't want to throw an error
+                        if (!isNotFoundError(err)) throw err;
                     }
                 },
 
