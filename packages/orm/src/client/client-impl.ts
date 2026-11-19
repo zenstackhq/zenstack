@@ -105,16 +105,25 @@ export class ClientImpl {
 
         // here we use kysely's props constructor so we can pass a custom query executor
         if (baseClient) {
+            // A derived client shares the base client's connections. If its `log` option differs, it gets a
+            // driver over the same connections that logs with its own log. Deliberately an identity check:
+            // `$use`, `$setAuth` and friends spread the options and keep the same `log`, so they keep the
+            // base driver.
+            const logChanged = options.log !== baseClient.$options.log;
+            const driver = logChanged
+                ? (baseClient.kyselyProps.driver as ZenStackDriver).withLog(new Log(options.log ?? []))
+                : baseClient.kyselyProps.driver;
             this.kyselyProps = {
                 ...baseClient.kyselyProps,
+                driver,
                 executor:
                     executor ??
                     new ZenStackQueryExecutor(
                         this,
-                        baseClient.kyselyProps.driver as ZenStackDriver,
+                        driver as ZenStackDriver,
                         baseClient.kyselyProps.dialect.createQueryCompiler(),
                         baseClient.kyselyProps.dialect.createAdapter(),
-                        new DefaultConnectionProvider(baseClient.kyselyProps.driver),
+                        new DefaultConnectionProvider(driver),
                         [],
                         false,
                         // A name mapper is derived purely from `$schema` and `$options`, so it can be
@@ -127,7 +136,17 @@ export class ClientImpl {
                             : undefined,
                     ),
             };
-            this.kyselyRaw = baseClient.kyselyRaw;
+            this.kyselyRaw = logChanged
+                ? new Kysely({
+                      ...this.kyselyProps,
+                      executor: new DefaultQueryExecutor(
+                          baseClient.kyselyProps.dialect.createQueryCompiler(),
+                          baseClient.kyselyProps.dialect.createAdapter(),
+                          new DefaultConnectionProvider(driver),
+                          [],
+                      ),
+                  })
+                : baseClient.kyselyRaw;
             this.auth = baseClient.auth;
             this.slowQueries = baseClient.slowQueries;
         } else {
