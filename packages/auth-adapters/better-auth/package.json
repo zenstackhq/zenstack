@@ -70,6 +70,7 @@
         "@types/tmp": "catalog:",
         "@zenstackhq/cli": "workspace:*",
         "@zenstackhq/eslint-config": "workspace:*",
+        "@zenstackhq/testtools": "workspace:*",
         "@zenstackhq/tsdown-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*",
