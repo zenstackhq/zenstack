@@ -86,6 +86,26 @@ export function createQuerySchemaFactory(clientOrSchema: any, options?: any) {
 }
 
 /**
+ * Whether two client options produce the same query-args schemas, i.e. a `ZodSchemaFactory`
+ * built for one can serve the other. Only `omit`, `slicing`, `allowQueryTimeOmitOverride` and
+ * the plugins that extend query args or results shape the schemas; dialect, auth, hooks and
+ * validation flags do not.
+ */
+export function haveSameSchemaInputs(a: ClientOptions<SchemaDef>, b: ClientOptions<SchemaDef>): boolean {
+    if (a === b) {
+        return true;
+    }
+    if (a.omit !== b.omit || a.slicing !== b.slicing || a.allowQueryTimeOmitOverride !== b.allowQueryTimeOmitOverride) {
+        return false;
+    }
+    const shaping = (options: ClientOptions<SchemaDef>) =>
+        (options.plugins ?? []).filter((plugin) => plugin.queryArgs || plugin.result);
+    const pa = shaping(a);
+    const pb = shaping(b);
+    return pa.length === pb.length && pa.every((plugin, index) => plugin === pb[index]);
+}
+
+/**
  * Builds a `DateTime` value schema that accepts a `Date` object or any string
  * the JS `Date` constructor parses, and coerces it to a `Date`. ISO datetime,
  * ISO date, and time-only strings (e.g. `"09:00:00"` for `@db.Time` fields,
@@ -483,16 +503,18 @@ export class ZodSchemaFactory<
             return this.extraValidationsEnabled ? ZodUtils.addCustomValidation(schema, typeDef.attributes) : schema;
         }
         const func = typeDef.strict ? z.strictObject : z.looseObject;
-        const schema = func(
+        const objectSchema = func(
             Object.fromEntries(
                 Object.entries(typeDef.fields).map(([field, def]) => {
-                    // Wrap nested typedef references in z.lazy() so cyclic or self-referencing
-                    // typedefs don't recurse infinitely while building schemas.
-                    let fieldSchema: ZodType = isTypeDef(this.schema, def.type)
-                        ? z.lazy(() => this.makeTypeDefSchema(def.type))
-                        : this.makeScalarSchema(def.type);
+                    // Wrap nested object typedef references in z.lazy() so cyclic or self-referencing
+                    // typedefs don't recurse infinitely while building schemas. All other fields get
+                    // their validation attributes applied, the same as model fields.
+                    let fieldSchema: ZodType =
+                        isTypeDef(this.schema, def.type) && !isPrimitiveTypeDef(this.schema, def.type)
+                            ? z.lazy(() => this.makeTypeDefSchema(def.type))
+                            : this.makeScalarSchema(def.type, this.getItemAttributes(def));
                     if (def.array) {
-                        fieldSchema = fieldSchema.array();
+                        fieldSchema = ZodUtils.addListValidation(fieldSchema.array(), def.attributes);
                     }
                     if (def.optional) {
                         fieldSchema = fieldSchema.nullish();
@@ -501,6 +523,9 @@ export class ZodSchemaFactory<
                 }),
             ),
         );
+        const schema = this.extraValidationsEnabled
+            ? ZodUtils.addCustomValidation(objectSchema, typeDef.attributes)
+            : objectSchema;
 
         // zod doesn't preserve object field order after parsing, here we use a
         // validation-only custom schema and use the original data if parsing
