@@ -56,6 +56,7 @@ import {
     falseNode,
     getTableName,
     isBeforeInvocation,
+    isFalseNode,
     isTrueNode,
     logicalNot,
     trueNode,
@@ -982,6 +983,10 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         const filter = this.buildPolicyFilter(mutationModel, undefined, 'create');
         if (isTrueNode(filter)) {
             return;
+        }
+        if (isFalseNode(filter) && valueRows.length > 0) {
+            // no row can satisfy a filter that folds to `false`, so there's nothing to ask the database
+            throw createRejectedByPolicyError(mutationModel, RejectedByPolicyReason.NO_ACCESS);
         }
 
         await this.enforcePreCreatePolicyForRows(

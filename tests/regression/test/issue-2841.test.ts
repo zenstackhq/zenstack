@@ -57,7 +57,7 @@ model Note {
     });
 
     it('still rejects the batch when a non-row-dependent create filter denies', async () => {
-        const { db } = await createClient();
+        const { db, policyChecks } = await createClient();
         const authDb = db.$setAuth({ id: 'u1', isSystem: false });
 
         await expect(
@@ -66,6 +66,8 @@ model Note {
             }),
         ).rejects.toThrow(/rejected by access policies/i);
 
+        // `auth().isSystem` resolves to `false`, so the batch is rejected without asking the database
+        expect(policyChecks()).toHaveLength(0);
         await expect(db.auditLog.findMany()).resolves.toHaveLength(0);
     });
 
