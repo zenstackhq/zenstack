@@ -58,6 +58,7 @@ import {
     falseNode,
     isBeforeInvocation,
     logicalNot,
+    rejectParameterizedComputedField,
     trueNode,
 } from './utils';
 
@@ -342,9 +343,12 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             const rightFieldDef = this.getFieldDefFromFieldRef(normalizedRight, context);
             // Map ZModel operator to SQL operator string
             const sqlOp = op === '==' ? '=' : op;
-            // `before()` enums are text in the VALUES table and pg can't compare text to a native enum
+            // enums read from a VALUES table (`before()` rows, create input) are text, and pg can't
+            // compare text to a native enum
             const asText =
-                this.isBeforeEnumField(normalizedLeft, context) || this.isBeforeEnumField(normalizedRight, context);
+                this.isBeforeEnumField(normalizedLeft, context) ||
+                this.isBeforeEnumField(normalizedRight, context) ||
+                this.isCreateInputEnumComparison(normalizedLeft, normalizedRight, context);
             const operand = (node: OperationNode) =>
                 asText ? this.dialect.castText(new ExpressionWrapper(node)) : new ExpressionWrapper(node);
             return this.dialect
@@ -982,12 +986,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 invariant(i === members.length - 1, 'plain field access must be the last segment');
                 invariant(!currNode, 'plain field access must be the last segment');
 
-                if (fieldDef.originModel && fieldDef.originModel !== fromModel) {
-                    // field inherited from a delegate base model, look it up from the base table
-                    currNode = this.buildDelegateBaseFieldSelect(fromModel, fromAlias, member, fieldDef.originModel);
-                } else {
-                    currNode = ReferenceNode.create(ColumnNode.create(member), TableNode.create(fromAlias));
-                }
+                currNode = this.buildFieldRef(fromModel, member, fromAlias);
             }
         }
 
@@ -1126,18 +1125,30 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         // if field comes from a delegate base model, we need to use the join alias
         // of that base model
 
-        const tableName = context.alias ?? context.modelOrType;
+        return this.buildFieldRef(context.modelOrType, column, context.alias ?? context.modelOrType);
+    }
 
-        const fieldDef = QueryUtils.requireField(this.schema, context.modelOrType, column);
-        if (!fieldDef.originModel || fieldDef.originModel === context.modelOrType) {
-            return ReferenceNode.create(ColumnNode.create(column), TableNode.create(tableName));
+    /**
+     * Builds a reference to a scalar field of `model` whose table is aliased as `modelAlias`.
+     * Handles regular columns, `@computed` fields (inlined via the dialect), and fields inherited
+     * from a delegate base model (looked up from the base table with a correlated subquery).
+     */
+    private buildFieldRef(model: string, field: string, modelAlias: string): OperationNode {
+        const fieldDef = QueryUtils.requireField(this.schema, model, field);
+
+        rejectParameterizedComputedField(fieldDef, model);
+
+        if (!fieldDef.originModel || fieldDef.originModel === model) {
+            return fieldDef.computed
+                ? this.dialect.fieldRef(model, field, modelAlias).toOperationNode()
+                : ReferenceNode.create(ColumnNode.create(field), TableNode.create(modelAlias));
         }
 
         // For inherited fields in delegate sub-types, use a correlated subquery against the
         // base table. For create operations the VALUES table contains the sub-type's own
         // fields and its id FK, so the subquery can look up the base record (already inserted
         // in the same transaction) to resolve inherited field values correctly.
-        return this.buildDelegateBaseFieldSelect(context.modelOrType, tableName, column, fieldDef.originModel);
+        return this.buildDelegateBaseFieldSelect(model, modelAlias, field, fieldDef.originModel);
     }
 
     // convert transformer's binding scope to equivalent expression evaluator binding scope
@@ -1162,7 +1173,8 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             kind: 'SelectQueryNode',
             from: FromNode.create([TableNode.create(baseModel)]),
             selections: [
-                SelectionNode.create(ReferenceNode.create(ColumnNode.create(field), TableNode.create(baseModel))),
+                // the base model owns the field, so a computed field is evaluated against the base table
+                SelectionNode.create(this.buildFieldRef(baseModel, field, baseModel) as SelectionNode['selection']),
             ],
             where: WhereNode.create(
                 conjunction(
@@ -1222,6 +1234,76 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         // collection predicates where `modelOrType` is the related model
         const fieldDef = QueryUtils.getField(this.schema, context.thisType, expr.members[0]!);
         return !!fieldDef && QueryUtils.isEnum(this.schema, fieldDef.type);
+    }
+
+    /**
+     * Whether a comparison in a create rule needs both operands compared as text.
+     *
+     * Create rules are evaluated before the insert, against a `VALUES` table built from the input
+     * (see `enforcePreCreatePolicyForOne`). That table carries enum fields as `text`, while stored
+     * columns have the native enum type, and PostgreSQL has no `text = "Enum"` operator (42883).
+     *
+     * Returns true only when one operand is an enum field of the entity being created and the
+     * other is a stored field of the same enum, e.g. for `model Grant { permission Permission }`:
+     * - `permission == anchor.defaultPermission` (bare top-level field vs. related row)
+     * - `anchor.approvals?[permission == this.permission]` (stored row vs. `this`)
+     *
+     * Not for literals (`permission == EDIT`): the name mapper still translates `@map`-ed literals.
+     * Not for enums with `@map`-ed values: the input holds names (`ACTIVE`) but stored columns
+     * hold mapped values (`active`), so a text comparison would be wrong (#2867).
+     */
+    private isCreateInputEnumComparison(left: Expression, right: Expression, context: ExpressionTransformerContext) {
+        // only create rules read from the input `VALUES` table
+        if (context.operation !== 'create') {
+            return false;
+        }
+        const leftInput = this.getCreateInputEnumField(left, context);
+        const rightInput = this.getCreateInputEnumField(right, context);
+        // exactly one operand must be create input: if both are, both are text; if neither is,
+        // both are stored native enums. Either way the types already match.
+        if (!leftInput === !rightInput) {
+            return false;
+        }
+        const inputDef = (leftInput ?? rightInput)!;
+        // the other operand must be a stored field of the same enum (a literal resolves to no field)
+        const storedDef = this.getFieldDefFromFieldRef(leftInput ? right : left, context);
+        return storedDef?.type === inputDef.type && !this.hasMappedEnumValues(inputDef.type);
+    }
+
+    /**
+     * If the expression reads an enum field of the entity being created (i.e. a column of the input
+     * `VALUES` table), returns that field's definition; otherwise `undefined`.
+     *
+     * - `this.field` always refers to the entity the rule belongs to. A longer path such as
+     *   `this.anchor.defaultPermission` goes through a relation and reads a stored row.
+     * - a bare `field` refers to the entity being created only at the top level of the rule. Inside
+     *   a collection predicate (`relation?[field == ...]`) it refers to the related stored row.
+     */
+    private getCreateInputEnumField(expr: Expression, context: ExpressionTransformerContext) {
+        let field: string | undefined;
+        if (ExpressionUtils.isMember(expr) && ExpressionUtils.isThis(expr.receiver) && expr.members.length === 1) {
+            // `this.field`
+            field = expr.members[0];
+        } else if (
+            ExpressionUtils.isField(expr) &&
+            // still on the model the rule belongs to ...
+            context.modelOrType === context.thisType &&
+            // ... and not inside a collection predicate: there (incl. self-relations, where the
+            // model is the same) a bare field is a stored row, aliased differently
+            context.alias === context.thisAlias
+        ) {
+            // bare top-level `field`
+            field = expr.field;
+        }
+        // `this` and top-level bare fields both resolve against the model being created
+        const fieldDef = field ? QueryUtils.getField(this.schema, context.thisType, field) : undefined;
+        return fieldDef && QueryUtils.isEnum(this.schema, fieldDef.type) ? fieldDef : undefined;
+    }
+
+    // whether any member of the enum carries `@map`, i.e. its stored values differ from its names
+    private hasMappedEnumValues(enumType: string) {
+        const enumDef = QueryUtils.getEnum(this.schema, enumType);
+        return Object.values(enumDef?.fields ?? {}).some((f) => f.attributes?.some((attr) => attr.name === '@map'));
     }
 
     private getFieldDefFromFieldRef(expr: Expression, context: ExpressionTransformerContext): FieldDef | undefined {
