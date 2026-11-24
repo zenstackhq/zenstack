@@ -72,7 +72,8 @@ await db.user.findUnique({ where: { id: user.id } });
 
 ## Caveats
 
-- **Soft deletes do not cascade.** Children of a soft-deleted parent are left untouched — managing them is up to you. (Note that a _hard_ delete on a model without `@deletedAt` still triggers database-level `onDelete: Cascade` as usual.)
+- **Soft deletes do not cascade.** Children of a soft-deleted parent are left untouched in the database; they're only hidden on read while a required parent is soft-deleted. (Note that a _hard_ delete on a model without `@deletedAt` still triggers database-level `onDelete: Cascade` as usual.)
+- **The parent check costs a subquery per required relation.** If nearly every model requires the same root (e.g. a tenant) that's never soft-deleted while its rows are read, leave it out: `new SoftDeletePlugin({ ignoreParents: ['Organization'] })`.
 - **Multi-table / joined deletes can't be rewritten.** A joined or multi-table `DELETE` that targets a soft-delete model is rejected rather than silently hard-deleting rows. Use a single-table delete instead.
 - **Unique constraints and tombstones.** Because soft-deleted rows physically remain, a plain `@unique` field will reject reusing a value held by a tombstone. The common mitigation is a partial unique index scoped to live rows (e.g. `... WHERE "deletedAt" IS NULL` on PostgreSQL/SQLite, or a functional index over a `CASE` expression on MySQL).
 
