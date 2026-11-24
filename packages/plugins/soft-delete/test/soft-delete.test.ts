@@ -228,6 +228,55 @@ model Note {
         await expect(raw.note.count()).resolves.toBe(1);
     });
 
+    it('hides a row whose required self-relation parent is soft-deleted (#2928)', async () => {
+        const raw = await createSoftDeleteTestClient(`
+model Node {
+    id        Int       @id @default(autoincrement())
+    parent    Node      @relation("tree", fields: [parentId], references: [id])
+    parentId  Int
+    children  Node[]    @relation("tree")
+    deletedAt DateTime? @deletedAt
+}
+`);
+        const db = raw.$use(new SoftDeletePlugin());
+        const root = await raw.node.create({ data: { id: 1, parentId: 1 } });
+        await raw.node.create({ data: { id: 2, parentId: root.id } });
+
+        await db.node.delete({ where: { id: root.id } });
+
+        await expect(db.node.findMany()).resolves.toEqual([]);
+    });
+
+    it('applies the live-parent check to $qb joins (#2928)', async () => {
+        const { db } = await makeClient();
+        const gone = await db.user.create({ data: { email: 'gone@test.com' } });
+        const kept = await db.user.create({ data: { email: 'kept@test.com' } });
+        await db.post.create({ data: { title: 'orphan', authorId: gone.id } });
+        await db.post.create({ data: { title: 'live', authorId: kept.id } });
+        const tag = await db.tag.create({ data: { name: 't' } });
+
+        await db.user.delete({ where: { id: gone.id } });
+
+        const rows = await db.$qb
+            .selectFrom('Tag')
+            .innerJoin('Post', (join: any) => join.onTrue())
+            .where('Tag.id', '=', tag.id)
+            .select('Post.title')
+            .execute();
+        expect(rows).toEqual([{ title: 'live' }]);
+    });
+
+    it('skips the live-parent check for ignored parents', async () => {
+        const raw = await createSoftDeleteTestClient(schema);
+        const db = raw.$use(new SoftDeletePlugin({ ignoreParents: ['User'] }));
+        const user = await db.user.create({ data: { email: 'gone@test.com' } });
+        const post = await db.post.create({ data: { title: 'hello', authorId: user.id } });
+
+        await db.user.delete({ where: { id: user.id } });
+
+        await expect(db.post.findMany()).resolves.toEqual([expect.objectContaining({ id: post.id })]);
+    });
+
     it('leaves models without @deletedAt untouched', async () => {
         const { db, raw } = await makeClient();
 

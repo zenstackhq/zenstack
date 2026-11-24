@@ -38,7 +38,18 @@ import {
 
 const SOFT_DELETE_ATTRIBUTE = '@deletedAt';
 
+export type SoftDeletePluginOptions = {
+    /**
+     * Models to leave out of the "required parent must be live" check. Useful for a root model
+     * that nearly everything points at (e.g. a tenant), where the extra subqueries add up and
+     * the root is never soft-deleted while its rows are still read.
+     */
+    ignoreParents?: readonly string[];
+};
+
 export class SoftDeletePlugin implements RuntimePlugin<SchemaDef, {}, {}, {}> {
+    constructor(private readonly options: SoftDeletePluginOptions = {}) {}
+
     get id() {
         return 'soft-delete' as const;
     }
@@ -52,7 +63,7 @@ export class SoftDeletePlugin implements RuntimePlugin<SchemaDef, {}, {}, {}> {
     }
 
     onKyselyQuery({ query, client, proceed }: OnKyselyQueryArgs<SchemaDef>) {
-        const handler = new SoftDeleteHandler(client);
+        const handler = new SoftDeleteHandler(client, this.options);
         return handler.handle(query, proceed);
     }
 }
@@ -62,9 +73,15 @@ type TableInfo = { model: string; alias?: string };
 class SoftDeleteHandler<Schema extends SchemaDef> extends OperationNodeTransformer {
     private readonly dialect: BaseCrudDialect<Schema>;
 
-    constructor(private readonly client: ClientContract<Schema>) {
+    private readonly ignoredParents: ReadonlySet<string>;
+
+    constructor(
+        private readonly client: ClientContract<Schema>,
+        options: SoftDeletePluginOptions,
+    ) {
         super();
         this.dialect = getCrudDialect(client);
+        this.ignoredParents = new Set(options.ignoreParents);
     }
 
     async handle(node: RootOperationNode, proceed: ProceedKyselyQueryFunction) {
@@ -96,7 +113,7 @@ class SoftDeleteHandler<Schema extends SchemaDef> extends OperationNodeTransform
         };
     }
 
-    // Inject `<deletedAt> IS NULL` into ON clauses of joins against soft-delete tables.
+    // Inject `<deletedAt> IS NULL` (and the live-parent checks) into ON clauses of joins.
     protected override transformJoin(node: JoinNode): JoinNode {
         const result = super.transformJoin(node);
         const info = this.extractTableInfo(result.table);
@@ -114,10 +131,14 @@ class SoftDeleteHandler<Schema extends SchemaDef> extends OperationNodeTransform
             return result;
         }
         const deletedAt = this.getDeletedAtField(info.model);
-        if (!deletedAt) {
+        const filters = [
+            ...(deletedAt ? [this.buildIsNullPredicate(info.alias ?? info.model, deletedAt.name)] : []),
+            ...this.buildLiveParentPredicates(info),
+        ];
+        if (filters.length === 0) {
             return result;
         }
-        const filter = this.buildIsNullPredicate(info.alias ?? info.model, deletedAt.name);
+        const filter = filters.reduce((acc, f) => this.andNode(acc, f));
         return {
             ...result,
             on: result.on ? OnNode.create(this.andNode(result.on.on, filter)) : OnNode.create(filter),
@@ -225,14 +246,18 @@ class SoftDeleteHandler<Schema extends SchemaDef> extends OperationNodeTransform
             if (field.array || field.optional || !fks?.length || !refs || fks.length !== refs.length) {
                 continue;
             }
-            if (path.has(field.type) || this.isInDelegateHierarchy(field.type)) {
+            if (this.ignoredParents.has(field.type) || this.isInDelegateHierarchy(field.type)) {
                 continue;
             }
             const parentAlias = `${QueryUtils.TEMP_ALIAS_PREFIX}live$${childAlias}$${field.name}`;
             const deletedAt = this.getDeletedAtField(field.type);
             const parentChecks = [
                 ...(deletedAt ? [this.buildIsNullPredicate(parentAlias, deletedAt.name)] : []),
-                ...this.buildLiveParentPredicates({ model: field.type, alias: parentAlias }, path),
+                // a model that's already on the path (self-relation or cycle) still gets its own
+                // marker checked above, we just don't walk further up from it
+                ...(path.has(field.type)
+                    ? []
+                    : this.buildLiveParentPredicates({ model: field.type, alias: parentAlias }, path)),
             ];
             if (parentChecks.length === 0) {
                 // nothing up this chain can be soft-deleted
