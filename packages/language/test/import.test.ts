@@ -1,10 +1,12 @@
 import { invariant } from '@zenstackhq/common-helpers';
-import { URI } from 'langium';
+import { Cancellation, DocumentState, URI } from 'langium';
+import { addFormattingHandler } from 'langium/lsp';
 import { NodeFileSystem } from 'langium/node';
 import fs from 'node:fs';
 import path from 'node:path';
 import tmp from 'tmp';
-import { describe, expect, it, onTestFinished } from 'vitest';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
+import type { Connection } from 'vscode-languageserver';
 import { createZModelLanguageServices, loadDocument } from '../src';
 import { DataModel, isDataModel, isTypeDef, type Model } from '../src/ast';
 
@@ -145,6 +147,69 @@ model Post {
 
             await shared.workspace.DocumentBuilder.update([document.uri], []);
             expect(document.diagnostics).toEqual([]);
+        });
+
+        it.each([false, true])('releases parsed-state requests during edits (import: %s)', async (withImport) => {
+            const { name, removeCallback } = tmp.dirSync({ unsafeCleanup: true });
+            onTestFinished(removeCallback);
+            const uri = URI.file(path.join(name, 'schema.zmodel'));
+            const schema = `
+${withImport ? "import './node_modules/shared/role'" : ''}
+datasource db { provider = 'postgresql' url = env('DATABASE_URL') }
+model Post { id Int @id title String ${withImport ? 'role Role' : ''} }
+`;
+            if (withImport) {
+                const importedPath = path.join(name, 'node_modules/shared/role.zmodel');
+                fs.mkdirSync(path.dirname(importedPath), { recursive: true });
+                fs.writeFileSync(importedPath, 'enum Role { Admin User }');
+            }
+            fs.writeFileSync(uri.fsPath, schema);
+            const { shared } = createZModelLanguageServices(NodeFileSystem);
+            const { DocumentBuilder, LangiumDocuments, WorkspaceManager } = shared.workspace;
+            WorkspaceManager.initialBuildOptions = { validation: true };
+            await WorkspaceManager.initializeWorkspace([{ name, uri: URI.file(name).toString() }]);
+            const document = LangiumDocuments.getDocument(uri)!;
+            expect(document.diagnostics).toEqual([]);
+
+            const connection = {
+                onDocumentFormatting: vi.fn<Connection['onDocumentFormatting']>(),
+                onDocumentRangeFormatting: vi.fn<Connection['onDocumentRangeFormatting']>(),
+                onDocumentOnTypeFormatting: vi.fn<Connection['onDocumentOnTypeFormatting']>(),
+            };
+            addFormattingHandler(connection as unknown as Connection, shared);
+            const format = connection.onDocumentFormatting.mock.calls[0]![0];
+            const params = { textDocument: { uri: uri.toString() }, options: { tabSize: 4, insertSpaces: true } };
+            const token = new Cancellation.CancellationTokenSource();
+            const parsed = vi.fn();
+            const phaseListener = DocumentBuilder.onDocumentPhase(DocumentState.Parsed, parsed);
+            let pending: Promise<unknown>[] = [];
+            const updateListener = DocumentBuilder.onUpdate(() => {
+                expect(document.state).toBe(DocumentState.Changed);
+                pending = [
+                    DocumentBuilder.waitUntil(DocumentState.Parsed, uri, token.token),
+                    Promise.resolve(format(params, token.token)),
+                ];
+            });
+            try {
+                for (let round = 0; round < 2; round++) {
+                    parsed.mockClear();
+                    fs.writeFileSync(uri.fsPath, schema.replace('title String', `title${round} String`));
+                    await DocumentBuilder.update([uri], []);
+                    expect(document.state).toBe(DocumentState.Validated);
+                    expect(document.diagnostics).toEqual([]);
+                    expect(parsed.mock.calls.map(([doc]) => doc.uri.toString())).toEqual([uri.toString()]);
+                    const [waitedUri, edits] = await Promise.all(pending);
+                    expect(waitedUri).toEqual(uri);
+                    expect(edits).toBeInstanceOf(Array);
+                    expect(edits).not.toHaveLength(0);
+                }
+            } finally {
+                token.cancel();
+                await Promise.allSettled(pending);
+                token.dispose();
+                phaseListener.dispose();
+                updateListener.dispose();
+            }
         });
 
         it('indexes transitive and cyclic imports without exposing transitive declarations', async () => {

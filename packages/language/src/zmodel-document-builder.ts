@@ -46,6 +46,8 @@ export class ZModelDocumentBuilder extends DefaultDocumentBuilder {
             await interruptAndCheck(cancelToken);
             if (document.state < DocumentState.Parsed) {
                 await this.langiumDocumentFactory.update(document, cancelToken);
+                // The default builder skips this transition once the document is already Parsed.
+                await this.notifyDocumentPhase(document, DocumentState.Parsed, cancelToken);
             }
             if (
                 document.uri.scheme !== 'file' ||
