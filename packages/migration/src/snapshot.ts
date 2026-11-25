@@ -1,5 +1,16 @@
 import { ExpressionUtils, type EnumDef, type FieldDef, type ModelDef, type SchemaDef } from '@zenstackhq/schema';
-import { foreignKeyName, indexName, uniqueIndexName } from './conventions';
+import {
+    foreignKeyName,
+    indexName,
+    JOIN_TABLE_COLUMNS,
+    joinTableForeignKeyName,
+    joinTableIndexName,
+    joinTableName,
+    joinTablePrimaryKeyName,
+    joinTableUniqueIndexName,
+    uniqueIndexName,
+} from './conventions';
+import { providerTraits } from './provider-traits';
 import {
     SNAPSHOT_VERSION,
     type ColumnSnapshot,
@@ -36,6 +47,11 @@ export function buildSnapshot(schema: SchemaDef): Snapshot {
         }
         const table = buildTable(schema, modelDef);
         tables[table.name] = table;
+    }
+
+    // implicit many-to-many relations are backed by join tables that have no model of their own
+    for (const table of buildJoinTables(schema)) {
+        tables[table.name] ??= table;
     }
 
     return normalizeSnapshot({ version: SNAPSHOT_VERSION, provider: schema.provider.type, enums, tables });
@@ -115,6 +131,102 @@ function buildDelegateForeignKey(
         onDelete: 'Cascade',
         onUpdate: 'Cascade',
     };
+}
+
+/**
+ * Builds the join tables backing implicit many-to-many relations (a pair of list relation
+ * fields pointing at each other). The layout is Prisma's, which the ORM's query builder
+ * relies on (see `getManyToManyRelation` in `@zenstackhq/orm` — keep the two in sync):
+ *
+ * - named `_<relation name>`, or `_<ModelA>To<ModelB>` with the model names sorted
+ * - columns `A` and `B` hold the ids of the first and second model in that order, typed
+ *   like the id columns they reference, each with a cascading foreign key
+ * - the `(A, B)` pair is unique (the primary key on PostgreSQL, a unique index elsewhere),
+ *   and `B` is indexed
+ */
+function buildJoinTables(schema: SchemaDef): TableSnapshot[] {
+    const provider = schema.provider.type;
+    const tables = new Map<string, TableSnapshot>();
+
+    for (const modelDef of Object.values(schema.models)) {
+        if (modelDef.isView) {
+            continue;
+        }
+        for (const fieldDef of Object.values(modelDef.fields)) {
+            if (fieldDef.originModel && fieldDef.originModel !== modelDef.name) {
+                // inherited from a delegate base — the relation belongs to the base model
+                continue;
+            }
+            if (!fieldDef.array || !fieldDef.relation?.opposite) {
+                continue;
+            }
+            const otherDef = schema.models[fieldDef.type];
+            if (!otherDef?.fields[fieldDef.relation.opposite]?.array) {
+                // the other side is not a list — a one-to-many relation
+                continue;
+            }
+            if (modelDef.idFields.length !== 1 || otherDef.idFields.length !== 1) {
+                // implicit many-to-many requires single-field ids on both sides
+                continue;
+            }
+
+            // for a self-relation both sides are the same model, so the order is moot here
+            const [first, second] = modelDef.name <= otherDef.name ? [modelDef, otherDef] : [otherDef, modelDef];
+            const name = joinTableName(provider, fieldDef.relation.name, [first.name, second.name]);
+            if (!tables.has(name)) {
+                tables.set(name, buildJoinTable(schema, name, first, second));
+            }
+        }
+    }
+
+    return [...tables.values()];
+}
+
+function buildJoinTable(schema: SchemaDef, name: string, first: ModelDef, second: ModelDef): TableSnapshot {
+    const provider = schema.provider.type;
+    const [a, b] = JOIN_TABLE_COLUMNS;
+    const sides = [
+        { column: a, model: first },
+        { column: b, model: second },
+    ];
+
+    const columns: Record<string, ColumnSnapshot> = {};
+    const foreignKeys: ForeignKeySnapshot[] = [];
+    for (const { column, model } of sides) {
+        const idColumn = buildColumn(schema, model, model.fields[model.idFields[0]!]!);
+        // same physical type as the referenced id, but a plain required column
+        columns[column] = {
+            ...idColumn,
+            name: column,
+            nullable: false,
+            default: undefined,
+            autoIncrement: false,
+            primaryKey: false,
+            unique: false,
+        };
+        foreignKeys.push({
+            name: joinTableForeignKeyName(provider, name, column),
+            columns: [column],
+            refTable: mappedName(model.attributes, '@@map') ?? model.name,
+            refColumns: [idColumn.name],
+            onDelete: 'Cascade',
+            onUpdate: 'Cascade',
+        });
+    }
+
+    const indexes: IndexSnapshot[] = [{ name: joinTableIndexName(provider, name), columns: [b], unique: false }];
+    if (providerTraits(provider).joinTablePrimaryKey) {
+        return {
+            name,
+            columns,
+            primaryKey: [a, b],
+            primaryKeyName: joinTablePrimaryKeyName(provider, name),
+            indexes,
+            foreignKeys,
+        };
+    }
+    indexes.unshift({ name: joinTableUniqueIndexName(provider, name), columns: [a, b], unique: true });
+    return { name, columns, primaryKey: [], indexes, foreignKeys };
 }
 
 function buildColumn(schema: SchemaDef, modelDef: ModelDef, fieldDef: FieldDef): ColumnSnapshot {

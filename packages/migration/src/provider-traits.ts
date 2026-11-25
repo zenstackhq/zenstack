@@ -66,6 +66,12 @@ export interface ProviderTraits {
      */
     renamePkConstraintOnTableRename: boolean;
 
+    /**
+     * An implicit many-to-many join table gets a composite primary key on `(A, B)`
+     * (Prisma v6+ on PostgreSQL) instead of a unique index.
+     */
+    joinTablePrimaryKey: boolean;
+
     /** `DROP TABLE` needs `CASCADE` to also drop dependent FK constraints. */
     dropTableCascade: boolean;
 
@@ -104,6 +110,7 @@ const TRAITS: Record<DataSourceProviderType, ProviderTraits> = {
         dropIndexRequiresTable: false,
         anonymousPrimaryKey: false,
         renamePkConstraintOnTableRename: false,
+        joinTablePrimaryKey: false,
         dropTableCascade: false,
         fkToggle: { off: 'PRAGMA foreign_keys = OFF', on: 'PRAGMA foreign_keys = ON' },
         maxIdentifierLength: Number.POSITIVE_INFINITY,
@@ -131,6 +138,7 @@ const TRAITS: Record<DataSourceProviderType, ProviderTraits> = {
         dropIndexRequiresTable: false,
         anonymousPrimaryKey: false,
         renamePkConstraintOnTableRename: true,
+        joinTablePrimaryKey: true,
         dropTableCascade: true,
         maxIdentifierLength: 63,
     },
@@ -157,6 +165,7 @@ const TRAITS: Record<DataSourceProviderType, ProviderTraits> = {
         dropIndexRequiresTable: true,
         anonymousPrimaryKey: true,
         renamePkConstraintOnTableRename: false,
+        joinTablePrimaryKey: false,
         dropTableCascade: false,
         fkToggle: { off: 'SET FOREIGN_KEY_CHECKS = 0', on: 'SET FOREIGN_KEY_CHECKS = 1' },
         maxIdentifierLength: 64,

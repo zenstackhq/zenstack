@@ -1,5 +1,5 @@
 import type { DataSourceProviderType } from '@zenstackhq/schema';
-import { isBookkeepingTable } from './conventions';
+import { isBookkeepingTable, joinTableUniqueIndexName } from './conventions';
 import { introspect } from './introspect';
 import { providerTraits } from './provider-traits';
 import type { SchemaChange } from './diff';
@@ -189,7 +189,16 @@ export function diffForPush(current: CurrentDbState, desired: Snapshot, acceptDa
         // drop stale indexes before the column changes — a dropped column's index must go
         // first (MySQL's DROP COLUMN auto-drops it, making a later DROP INDEX fail)
         const currentIndexes = current.indexes.get(table.name) ?? new Set<string>();
+        // a join table built by Prisma < 6 on PostgreSQL keeps its (A, B) uniqueness in an
+        // index rather than the primary key — leave it, since push doesn't reconcile primary
+        // keys and dropping it would silently allow duplicate links
+        const legacyJoinIndex = table.primaryKeyName
+            ? joinTableUniqueIndexName(desired.provider, table.name)
+            : undefined;
         for (const indexName of currentIndexes) {
+            if (indexName === legacyJoinIndex) {
+                continue;
+            }
             if (!table.indexes.some((i) => i.name === indexName) && !fkBackingIndexes.has(indexName)) {
                 changes.push({ kind: 'drop-index', table, index: { name: indexName, columns: [], unique: false } });
             }

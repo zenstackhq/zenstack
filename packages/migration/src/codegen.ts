@@ -186,7 +186,7 @@ class MigrationCodeGenerator {
     /** Renames the PK constraint after a table rename, keeping the `<table>_pkey` convention true. */
     @emit('rename-primary-key')
     _renamePrimaryKey(change: ChangeOf<'rename-primary-key'>) {
-        return `    await sql\`ALTER TABLE "${change.table.name}" RENAME CONSTRAINT "${primaryKeyName(this.provider, change.from)}" TO "${primaryKeyName(this.provider, change.table.name)}"\`.execute(db);`;
+        return `    await sql\`ALTER TABLE "${change.table.name}" RENAME CONSTRAINT "${change.fromName ?? primaryKeyName(this.provider, change.from)}" TO "${this.primaryKeyName(change.table)}"\`.execute(db);`;
     }
 
     @emit('add-column')
@@ -304,13 +304,13 @@ class MigrationCodeGenerator {
     _dropPrimaryKey(change: ChangeOf<'drop-primary-key'>) {
         return this.traits.anonymousPrimaryKey
             ? `    await sql.raw('ALTER TABLE \`${change.table.name}\` DROP PRIMARY KEY').execute(db);`
-            : `    await db.schema.alterTable('${change.table.name}').dropConstraint('${primaryKeyName(this.provider, change.table.name)}').execute();`;
+            : `    await db.schema.alterTable('${change.table.name}').dropConstraint('${this.primaryKeyName(change.table)}').execute();`;
     }
 
     @emit('add-primary-key')
     _addPrimaryKey(change: ChangeOf<'add-primary-key'>) {
         const cols = change.columns.map((c) => `'${c}'`).join(', ');
-        return `    await db.schema.alterTable('${change.table.name}').addPrimaryKeyConstraint('${primaryKeyName(this.provider, change.table.name)}', [${cols}]).execute();`;
+        return `    await db.schema.alterTable('${change.table.name}').addPrimaryKeyConstraint('${this.primaryKeyName(change.table)}', [${cols}]).execute();`;
     }
 
     @emit('rebuild-table')
@@ -342,6 +342,11 @@ class MigrationCodeGenerator {
 
     // #region shared building blocks
 
+    /** The table's primary-key constraint name: an explicit one, or the `<table>_pkey` convention. */
+    private primaryKeyName(table: TableSnapshot): string {
+        return table.primaryKeyName ?? primaryKeyName(this.provider, table.name);
+    }
+
     private createTable(table: TableSnapshot, nameOverride?: string): string {
         const lines: string[] = [`    await db.schema.createTable('${nameOverride ?? table.name}')`];
 
@@ -351,7 +356,7 @@ class MigrationCodeGenerator {
 
         if (table.primaryKey.length > 0) {
             const cols = table.primaryKey.map((c) => `'${c}'`).join(', ');
-            lines.push(`        .addPrimaryKeyConstraint('${primaryKeyName(this.provider, table.name)}', [${cols}])`);
+            lines.push(`        .addPrimaryKeyConstraint('${this.primaryKeyName(table)}', [${cols}])`);
         }
 
         for (const fk of table.foreignKeys) {

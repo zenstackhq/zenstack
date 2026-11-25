@@ -45,6 +45,12 @@ export interface TableSnapshot {
     /** Physical column names forming a multi-column primary key. Empty when the PK is a single field-level `@id`. */
     primaryKey: string[];
 
+    /**
+     * Explicit primary-key constraint name. Absent means the `<table>_pkey` convention; set
+     * for implicit many-to-many join tables on PostgreSQL (`<table>_AB_pkey`).
+     */
+    primaryKeyName?: string;
+
     /** Indexes (including unique indexes from `@unique`/`@@unique` and regular ones from `@@index`). */
     indexes: IndexSnapshot[];
 

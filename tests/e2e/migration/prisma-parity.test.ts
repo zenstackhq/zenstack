@@ -229,6 +229,68 @@ const CASES: ParityCase[] = [
         }`,
     },
     {
+        // join tables: `_<A>To<B>` / `_<relation name>`, columns typed like the referenced ids
+        name: 'implicit many-to-many relations',
+        schema: `model Post {
+            id   String @id
+            tags Tag[]
+            cats Category[] @relation("PostCats")
+        }
+        model Tag {
+            ${ID}
+            posts Post[]
+        }
+        model Category {
+            key   String @id @map("cat_key")
+            posts Post[] @relation("PostCats")
+
+            @@map("categories")
+        }
+        model Person {
+            ${ID}
+            following Person[] @relation("Follows")
+            followers Person[] @relation("Follows")
+        }`,
+    },
+    {
+        name: 'implicit many-to-many with a native-typed id (postgresql)',
+        providers: ['postgresql'],
+        schema: `model Post {
+            id   String @id @db.Uuid
+            tags Tag[]
+        }
+        model Tag {
+            name  String @id @db.VarChar(40)
+            posts Post[]
+        }`,
+    },
+    {
+        // identifiers past the provider's limit are truncated the way Prisma does
+        name: 'implicit many-to-many with long model names',
+        schema: `model AVeryLongModelNameThatGoesOnAndOnForTruncationTesting {
+            ${ID}
+            others AnotherVeryLongModelNameThatGoesOnForTruncationTesting[]
+        }
+        model AnotherVeryLongModelNameThatGoesOnForTruncationTesting {
+            ${ID}
+            others AVeryLongModelNameThatGoesOnAndOnForTruncationTesting[]
+        }`,
+    },
+    {
+        name: 'added many-to-many relation converges to a fresh Prisma build',
+        flows: ['dev'],
+        from: `model Post { ${ID} }
+        model Tag { ${ID} }`,
+        schema: `model Post {
+            ${ID}
+            tags Tag[]
+        }
+        model Tag {
+            ${ID}
+            posts Post[]
+        }`,
+    },
+    {
         name: 'evolved schema converges to a fresh Prisma build',
         flows: ['dev'],
         from: `model M { ${ID}  s String }`,

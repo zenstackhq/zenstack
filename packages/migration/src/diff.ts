@@ -27,7 +27,8 @@ export type SchemaChange =
     // Renames the primary-key constraint after a table rename (PostgreSQL doesn't rename
     // constraints with the table), keeping the `<table>_pkey` naming convention true —
     // drop-primary-key relies on it. `from` is the old table name; `table` is the new def.
-    | { kind: 'rename-primary-key'; table: TableSnapshot; from: string }
+    // `fromName` is the old constraint name when it wasn't the conventional `<from>_pkey`.
+    | { kind: 'rename-primary-key'; table: TableSnapshot; from: string; fromName?: string }
     | { kind: 'add-column'; table: TableSnapshot; column: ColumnSnapshot; fk?: ForeignKeySnapshot }
     | { kind: 'drop-column'; table: TableSnapshot; column: ColumnSnapshot }
     // A column (field) rename — preserves the column and its data. `column` is the new def.
@@ -141,7 +142,12 @@ export function diffSnapshots(
                 providerTraits(to.provider).renamePkConstraintOnTableRename &&
                 effectivePrimaryKey(from.tables[renamedFrom]!).length > 0
             ) {
-                changes.push({ kind: 'rename-primary-key', table, from: renamedFrom });
+                changes.push({
+                    kind: 'rename-primary-key',
+                    table,
+                    from: renamedFrom,
+                    fromName: from.tables[renamedFrom]!.primaryKeyName,
+                });
             }
             changes.push(...diffTable(from.tables[renamedFrom]!, table, to.provider, columnRenames, newEnumOf));
         } else {

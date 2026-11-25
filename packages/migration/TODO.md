@@ -52,6 +52,21 @@ Ordered by impact. Checkboxes are open items.
       schemas (`db pull` emits `dbgenerated`) round-trip instead of silently losing the
       default. Argument-less `dbgenerated()` stays a no-op like other generator functions
       (uuid()/cuid()/... are computed client-side by the ORM, by design).
+- [x] Implicit **many-to-many join tables** (`_<A>To<B>` / `_<relation name>`) — a pair of list
+      relation fields has no model, so the snapshot now synthesizes the join table Prisma-style:
+      `A`/`B` columns typed like the referenced ids, cascading FKs, `(A, B)` as the primary key
+      on pg (`<table>_AB_pkey`, via the new `TableSnapshot.primaryKeyName`) or a unique index on
+      MySQL/SQLite, plus `<table>_B_index`. Before this, a baseline omitted the table, a fresh
+      database never got it, and `db push --accept-data-loss` dropped a live one as a stray.
+      Covered by the parity suite (incl. native-typed ids and identifier truncation) and
+      `many-to-many.test.ts`. A pg database built by Prisma < 6 still has the old
+      `<table>_AB_unique` index instead of the primary key: `db push` leaves that index alone
+      (it doesn't reconcile primary keys), but nothing converts it to the primary key, so a
+      later rename of that join table fails on the missing `<table>_AB_pkey` constraint.
+- [ ] Index renames after a **table rename** fail on MySQL when the index backs a foreign key
+      (drop-old runs before create-new, and MySQL refuses: "Cannot drop index … needed in a
+      foreign key constraint"). Hit by renaming a join table (relation renamed); fix by
+      creating the new index first or using `RENAME INDEX`.
 - [ ] FK constraint names drift after a **table rename** (pg + MySQL) — like the PK case above,
       a renamed table's FK constraints keep their old names, but later snapshots derive fresh
       conventional names, so a later `drop-foreign-key` (FK removed or `onDelete`/`onUpdate`
@@ -130,6 +145,9 @@ We rely on Kysely's migrator (name-only tracking). Missing vs Prisma's `_prisma_
 - [ ] Down migrations — not planned (parity with Prisma; roll-forward by design)
 
 ## 6. Rollout / activation
+
+The full release and user-migration plan is in [ROLLOUT.md](./ROLLOUT.md); the items below are
+the original notes it grew from.
 
 - [ ] Revisit the `--native` switch (and `ZENSTACK_NATIVE_MIGRATE` env var) used to activate the
       new engine. Decide the long-term story: keep it opt-in, flip the default with a

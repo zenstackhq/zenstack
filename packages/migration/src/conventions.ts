@@ -59,3 +59,41 @@ export function uniqueIndexName(provider: DataSourceProviderType, table: string,
 export function indexName(provider: DataSourceProviderType, table: string, columns: string[]): string {
     return assemble(provider, [table, ...columns], 'idx');
 }
+
+/** The two columns of an implicit many-to-many join table. */
+export const JOIN_TABLE_COLUMNS = ['A', 'B'] as const;
+
+/**
+ * Implicit many-to-many join table name: `_<relation name>` when the relation is named,
+ * otherwise `_<ModelA>To<ModelB>` (logical model names, sorted). Truncated to the
+ * provider's identifier limit, as Prisma does.
+ */
+export function joinTableName(
+    provider: DataSourceProviderType,
+    relationName: string | undefined,
+    sortedModels: [string, string],
+): string {
+    const name = `_${relationName ?? `${sortedModels[0]}To${sortedModels[1]}`}`;
+    const limit = providerTraits(provider).maxIdentifierLength;
+    return name.length <= limit ? name : name.slice(0, limit);
+}
+
+/** Join-table primary-key constraint name, e.g. `_PostToTag_AB_pkey`. */
+export function joinTablePrimaryKeyName(provider: DataSourceProviderType, table: string): string {
+    return assemble(provider, [table], 'AB_pkey');
+}
+
+/** Join-table unique-index name (where the pair isn't a primary key), e.g. `_PostToTag_AB_unique`. */
+export function joinTableUniqueIndexName(provider: DataSourceProviderType, table: string): string {
+    return assemble(provider, [table], 'AB_unique');
+}
+
+/** Join-table index name on the `B` column, e.g. `_PostToTag_B_index`. */
+export function joinTableIndexName(provider: DataSourceProviderType, table: string): string {
+    return assemble(provider, [table], 'B_index');
+}
+
+/** Join-table foreign-key constraint name, e.g. `_PostToTag_A_fkey`. */
+export function joinTableForeignKeyName(provider: DataSourceProviderType, table: string, column: 'A' | 'B'): string {
+    return assemble(provider, [table], `${column}_fkey`);
+}
