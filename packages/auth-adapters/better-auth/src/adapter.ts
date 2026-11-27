@@ -114,6 +114,29 @@ export const zenstackAdapter = <Schema extends SchemaDef>(db: ClientContract<Sch
                 return modelDb as unknown as ModelOperations<SchemaDef, GetModels<SchemaDef>>;
             }
 
+            // plain filter on the id field(s) of `row`, usable in any `where`
+            const getIdFilter = (model: string, row: Record<string, unknown>) =>
+                Object.fromEntries(QueryUtils.requireIdFields(db.$schema, model).map((f) => [f, row[f]]));
+
+            // unique `where` that selects `row` by its id field(s); a compound id goes under its unique key name
+            // (`a_b` by default, or the name given in `@@id(..., name: ...)`), as `update()`/`delete()` require
+            const getIdWhere = (model: string, row: Record<string, unknown>) => {
+                const idFields = QueryUtils.requireIdFields(db.$schema, model);
+                const idFilter = getIdFilter(model, row);
+                if (idFields.length === 1) return idFilter;
+                const key =
+                    QueryUtils.getUniqueFields(db.$schema, model).find(
+                        (u) =>
+                            'defs' in u &&
+                            Object.keys(u.defs).length === idFields.length &&
+                            idFields.every((f) => f in u.defs),
+                    )?.name ?? idFields.join('_');
+                return { [key]: idFilter };
+            };
+
+            const selectIdFields = (model: string) =>
+                Object.fromEntries(QueryUtils.requireIdFields(db.$schema, model).map((f) => [f, true]));
+
             return {
                 async create({ model, data: values, select }): Promise<any> {
                     const modelDb = requireModelDb(db, model);
@@ -167,17 +190,9 @@ export const zenstackAdapter = <Schema extends SchemaDef>(db: ClientContract<Sch
                         // No unique field to select the row by: find a matching row, then update it by its id,
                         // keeping the original conditions as a guard in case the row changed in between.
                         const filter = convertWhereClause(model, where);
-                        const idFields = QueryUtils.requireIdFields(db.$schema, model);
-                        const found: any = await modelDb.findFirst({
-                            where: filter,
-                            select: Object.fromEntries(idFields.map((f) => [f, true])),
-                        });
+                        const found: any = await modelDb.findFirst({ where: filter, select: selectIdFields(model) });
                         if (!found) return null;
-                        const idWhere =
-                            idFields.length === 1
-                                ? { [idFields[0]!]: found[idFields[0]!] }
-                                : { [idFields.join('_')]: Object.fromEntries(idFields.map((f) => [f, found[f]])) };
-                        updateWhere = { ...idWhere, AND: [filter] };
+                        updateWhere = { ...getIdWhere(model, found), AND: [filter] };
                     }
                     try {
                         return await modelDb.update({ where: updateWhere as any, data });
@@ -220,6 +235,51 @@ export const zenstackAdapter = <Schema extends SchemaDef>(db: ClientContract<Sch
                         where: whereClause,
                     });
                     return result ? (result.count as number) : 0;
+                },
+
+                // Deletes one row matching `where` and returns it (single-use tokens, codes, etc.), or `null`.
+                // The row is located first, then deleted by its id with the original conditions kept in the
+                // DELETE's filter, so concurrent callers can't both consume it and no other matching row is touched.
+                // (For plain models the conditions are evaluated by the DELETE statement itself; better-auth's
+                // tables are never polymorphic.)
+                async consumeOne({ model, where }): Promise<any> {
+                    requireModelDb(db, model);
+                    const filter = convertWhereClause(model, where);
+                    return db.$transaction(async (tx) => {
+                        const txModelDb = requireModelDb(tx as ClientContract<Schema>, model);
+                        const found: any = await txModelDb.findFirst({ where: filter });
+                        if (!found) return null;
+                        const { count } = await txModelDb.deleteMany({
+                            where: { ...getIdFilter(model, found), AND: [filter] } as any,
+                        });
+                        return count > 0 ? found : null;
+                    });
+                },
+
+                // Applies `field = field + delta` (plus absolute `set` values) to one row matching `where`, which
+                // is both the selector and the guard, and returns the updated row, or `null`. The guarded write is
+                // an `updateMany`, so for plain models the conditions stay in the UPDATE statement on every dialect
+                // (`update()` swaps them for the loaded ids where RETURNING isn't supported, e.g. MySQL).
+                // As in better-auth's Prisma adapter, a null counter stays null (SQL `NULL + n`).
+                async incrementOne({ model, where, increment, set }): Promise<any> {
+                    requireModelDb(db, model);
+                    const filter = convertWhereClause(model, where);
+                    const data: Record<string, unknown> = { ...set };
+                    for (const [field, delta] of Object.entries(increment)) {
+                        data[field] = { increment: delta };
+                    }
+                    return db.$transaction(async (tx) => {
+                        const txModelDb = requireModelDb(tx as ClientContract<Schema>, model);
+                        const found: any = await txModelDb.findFirst({ where: filter, select: selectIdFields(model) });
+                        if (!found) return null;
+                        const idFilter = getIdFilter(model, found);
+                        const { count } = await txModelDb.updateMany({
+                            where: { ...idFilter, AND: [filter] } as any,
+                            data,
+                        });
+                        if (count === 0) return null;
+                        return txModelDb.findFirst({ where: idFilter as any });
+                    });
                 },
 
                 options: config,
