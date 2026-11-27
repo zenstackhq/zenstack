@@ -11,8 +11,10 @@ import {
 import {
     AliasNode,
     ColumnNode,
+    FunctionNode,
     ReferenceNode,
     TableNode,
+    ValueNode,
     type Expression,
     type ExpressionBuilder,
     type OperationNode,
@@ -293,6 +295,115 @@ export function isEnum(schema: SchemaDef, type: string) {
 
 export function getEnum(schema: SchemaDef, type: string) {
     return schema.enums?.[type];
+}
+
+/**
+ * Whether the value is the name of a member of the enum.
+ */
+export function isEnumMemberName(schema: SchemaDef, enumType: string, value: unknown): value is string {
+    return typeof value === 'string' && Object.hasOwn(getEnum(schema, enumType)?.values ?? {}, value);
+}
+
+/**
+ * Mappings between the names of an enum's members and their database values, for members that carry
+ * `@map`. Both are empty if the enum has no `@map`-ed members (or doesn't exist).
+ */
+export type EnumValueMappings = {
+    /**
+     * From member names to database values
+     */
+    toDbValue: Readonly<Record<string, string>>;
+    /**
+     * From database values to member names
+     */
+    toName: Readonly<Record<string, string>>;
+};
+
+// schemas are immutable, so the mappings are computed once per schema and enum
+const enumValueMappingsCache = new WeakMap<SchemaDef, Map<string, EnumValueMappings>>();
+
+/**
+ * Returns the mappings between the names of an enum's members and their database values.
+ */
+export function getEnumValueMappings(schema: SchemaDef, enumType: string): EnumValueMappings {
+    let schemaCache = enumValueMappingsCache.get(schema);
+    if (!schemaCache) {
+        schemaCache = new Map();
+        enumValueMappingsCache.set(schema, schemaCache);
+    }
+    let mappings = schemaCache.get(enumType);
+    if (!mappings) {
+        const toDbValue: Record<string, string> = {};
+        const toName: Record<string, string> = {};
+        for (const [name, field] of Object.entries(getEnum(schema, enumType)?.fields ?? {})) {
+            const mapArg = field.attributes?.find((attr) => attr.name === '@map')?.args?.find((a) => a.name === 'name');
+            const mapped = mapArg ? ExpressionUtils.getLiteralValue(mapArg.value) : undefined;
+            if (typeof mapped === 'string') {
+                toDbValue[name] = mapped;
+                toName[mapped] = name;
+            }
+        }
+        mappings = { toDbValue, toName };
+        schemaCache.set(enumType, mappings);
+    }
+    return mappings;
+}
+
+// reserved name of the function node marking an enum conversion to be resolved by the name mapper;
+// it's not a valid SQL function, so a query fails loudly if one ever reaches the database unresolved
+const ENUM_NAME_FUNCTION = '$zen$enum_name';
+
+/**
+ * An enum conversion created by {@link enumName}.
+ */
+export type EnumConversion = {
+    enumType: string;
+    operand: OperationNode;
+    /**
+     * Whether the operand yields an array of enum values
+     */
+    array: boolean;
+};
+
+/**
+ * Wraps an expression yielding enum values in database representation (e.g. an enum column) so that
+ * it's resolved to the corresponding member names when the query is executed. The name mapper turns
+ * comparisons between such an expression and values (or another such expression of the same enum)
+ * back into comparisons of database values, so they stay index-friendly.
+ *
+ * Returns `operand` unchanged if the enum has no `@map`-ed members, since names and database values
+ * are then the same.
+ */
+export function enumName(schema: SchemaDef, enumType: string, operand: OperationNode, array = false) {
+    if (Object.keys(getEnumValueMappings(schema, enumType).toDbValue).length === 0) {
+        return operand;
+    }
+    return FunctionNode.create(ENUM_NAME_FUNCTION, [
+        ValueNode.createImmediate(enumType),
+        ValueNode.createImmediate(array),
+        operand,
+    ]);
+}
+
+/**
+ * If the node was created by {@link enumName}, returns the conversion it describes.
+ */
+export function unwrapEnumConversion(node: OperationNode): EnumConversion | undefined {
+    if (!FunctionNode.is(node) || node.func !== ENUM_NAME_FUNCTION) {
+        return undefined;
+    }
+    const [typeNode, arrayNode, operand] = node.arguments;
+    invariant(
+        typeNode &&
+            ValueNode.is(typeNode) &&
+            typeof typeNode.value === 'string' &&
+            arrayNode &&
+            ValueNode.is(arrayNode) &&
+            typeof arrayNode.value === 'boolean' &&
+            operand,
+        'malformed enum conversion node',
+    );
+    return { enumType: typeNode.value, operand, array: arrayNode.value };
 }
 
 export function isTypeDef(schema: SchemaDef, type: string) {

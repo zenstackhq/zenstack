@@ -52,7 +52,7 @@ export class SchemaType implements SchemaDef {
                 role: {
                     name: "role",
                     type: "Role",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("USER") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("Role", "USER") }] }] as readonly AttributeApplication[],
                     default: "USER" as FieldDefault
                 },
                 posts: {
@@ -123,7 +123,7 @@ export class SchemaType implements SchemaDef {
                 author: {
                     name: "author",
                     type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "posts", fields: ["authorId"], references: ["id"], onUpdate: "Cascade", onDelete: "Cascade" }
                 },
                 authorId: {
@@ -180,7 +180,7 @@ export class SchemaType implements SchemaDef {
                     name: "post",
                     type: "Post",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("postId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("postId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "comments", fields: ["postId"], references: ["id"], onUpdate: "Cascade", onDelete: "Cascade" }
                 },
                 postId: {
@@ -232,7 +232,7 @@ export class SchemaType implements SchemaDef {
                     name: "user",
                     type: "User",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "profile", fields: ["userId"], references: ["id"], onUpdate: "Cascade", onDelete: "Cascade" }
                 },
                 userId: {

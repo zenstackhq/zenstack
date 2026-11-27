@@ -1,5 +1,5 @@
 import { invariant } from '@zenstackhq/common-helpers';
-import type { EnumDef, EnumField, FieldDef, ModelDef, SchemaDef } from '@zenstackhq/schema';
+import type { EnumField, FieldDef, ModelDef, SchemaDef } from '@zenstackhq/schema';
 import {
     AliasNode,
     BinaryOperationNode,
@@ -10,10 +10,12 @@ import {
     expressionBuilder,
     ExpressionWrapper,
     FromNode,
+    FunctionNode,
     IdentifierNode,
     InsertQueryNode,
     type OperationNode,
     OperationNodeTransformer,
+    OperatorNode,
     type OrderByItemNode,
     PrimitiveValueListNode,
     type QueryId,
@@ -37,12 +39,15 @@ import {
     extractFieldName,
     extractModelName,
     getEnum,
+    getEnumValueMappings,
     getField,
     getManyToManyRelation,
     getModel,
     getModelFields,
     isEnum,
+    isEnumMemberName,
     stripAlias,
+    unwrapEnumConversion,
 } from '../query-utils';
 
 type Scope = {
@@ -52,6 +57,10 @@ type Scope = {
 };
 
 type SelectionNodeChild = SimpleReferenceExpressionNode | AliasNode | SelectAllNode;
+
+// operators whose result is preserved when both sides are converted between enum names and database
+// values, since each member has a single database value
+const ENUM_COMPARISON_OPERATORS = new Set(['=', '==', '!=', '<>', 'in', 'not in', 'is', 'is not', '@>', '<@', '&&']);
 
 export class QueryNameMapper extends OperationNodeTransformer {
     private readonly modelToTableMap = new Map<string, string>();
@@ -224,7 +233,7 @@ export class QueryNameMapper extends OperationNodeTransformer {
         // and only when the enum-value mapping actually rewrites the projection
         const fieldDef = getField(this.schema, scope.model, columnName);
         const enumDef = fieldDef && getEnum(this.schema, fieldDef.type);
-        if (!enumDef || Object.keys(this.getEnumValueMapping(enumDef)).length === 0) {
+        if (!enumDef || Object.keys(getEnumValueMappings(this.schema, enumDef.name).toDbValue).length === 0) {
             return node;
         }
 
@@ -274,6 +283,12 @@ export class QueryNameMapper extends OperationNodeTransformer {
     }
 
     protected override transformBinaryOperation(node: BinaryOperationNode, queryId?: QueryId) {
+        const optimized = this.optimizeEnumComparison(node);
+        if (optimized) {
+            // operands are already in database representation
+            return super.transformBinaryOperation(optimized, queryId);
+        }
+
         // transform enum name mapping for enum values used inside binary operations
         //   1. simple value: column = EnumValue
         //   2. list value: column IN [EnumValue, EnumValue2]
@@ -339,6 +354,151 @@ export class QueryNameMapper extends OperationNodeTransformer {
         }
 
         return super.transformBinaryOperation(node, queryId);
+    }
+
+    /**
+     * Comparisons involving enum values converted to names (see `QueryUtils.enumName`) are correct
+     * but can't use indexes. Since each member has a single database value, the common shapes are
+     * turned back into comparisons of database values:
+     * - `name(x) op name(y)` (same enum) → `x op y`
+     * - `name(x) op 'NAME'` (also value lists and arrays) → `x op 'value'`
+     * - `'NAME' = any(name(x))` and `name(x) = any(name(y))` → `'value' = any(x)` and `x = any(y)`
+     *
+     * Returns `undefined` for other shapes, e.g. comparisons with values that aren't member names or
+     * with expressions yielding names, which are then computed on names.
+     */
+    private optimizeEnumComparison(node: BinaryOperationNode): BinaryOperationNode | undefined {
+        if (!OperatorNode.is(node.operator) || !ENUM_COMPARISON_OPERATORS.has(node.operator.operator)) {
+            return undefined;
+        }
+        const optimizeOperands = (a: OperationNode, b: OperationNode): [OperationNode, OperationNode] | undefined => {
+            // `a = any(name(array))`
+            const arrayConversion = this.unwrapAnyOfEnumConversion(b);
+            if (arrayConversion) {
+                const scalar = unwrapEnumConversion(a);
+                const left = scalar
+                    ? scalar.enumType === arrayConversion.enumType && !scalar.array
+                        ? scalar.operand
+                        : undefined
+                    : this.toEnumDbValue(arrayConversion.enumType, a);
+                return left ? [left, FunctionNode.create('any', [arrayConversion.operand])] : undefined;
+            }
+
+            const conversion = unwrapEnumConversion(a);
+            if (!conversion) {
+                return undefined;
+            }
+            const other = unwrapEnumConversion(b);
+            if (other) {
+                return other.enumType === conversion.enumType && other.array === conversion.array
+                    ? [conversion.operand, other.operand]
+                    : undefined;
+            }
+            const dbValue = this.toEnumDbValue(conversion.enumType, b);
+            return dbValue ? [conversion.operand, dbValue] : undefined;
+        };
+
+        const operands = optimizeOperands(node.leftOperand, node.rightOperand);
+        if (operands) {
+            return { ...node, leftOperand: operands[0], rightOperand: operands[1] };
+        }
+        const swapped = optimizeOperands(node.rightOperand, node.leftOperand);
+        if (swapped) {
+            return { ...node, leftOperand: swapped[1], rightOperand: swapped[0] };
+        }
+        return undefined;
+    }
+
+    // the conversion wrapped in `any(...)`, if any
+    private unwrapAnyOfEnumConversion(node: OperationNode) {
+        if (!FunctionNode.is(node) || node.func !== 'any' || node.arguments.length !== 1) {
+            return undefined;
+        }
+        const conversion = unwrapEnumConversion(node.arguments[0]!);
+        return conversion?.array ? conversion : undefined;
+    }
+
+    /**
+     * Converts values holding member names of the enum to database values: a value (scalar or array),
+     * a list of values, or an `ARRAY[value]` constructor (as built for array containment), which is
+     * turned into an array value. Returns `undefined` if the node is anything else or holds a string
+     * that isn't a member name.
+     */
+    private toEnumDbValue(enumType: string, node: OperationNode): OperationNode | undefined {
+        const { toDbValue } = getEnumValueMappings(this.schema, enumType);
+        const convert = (value: unknown): { value: unknown } | undefined => {
+            if (value === null) {
+                return { value };
+            }
+            if (Array.isArray(value)) {
+                const items = value.map(convert);
+                return items.every((item) => item !== undefined)
+                    ? { value: items.map((item) => item!.value) }
+                    : undefined;
+            }
+            return isEnumMemberName(this.schema, enumType, value) ? { value: toDbValue[value] ?? value } : undefined;
+        };
+
+        if (ValueNode.is(node)) {
+            const converted = convert(node.value);
+            // keep immediate values (e.g. `null` in `is null`) immediate
+            return (
+                converted &&
+                (node.immediate ? ValueNode.createImmediate(converted.value) : ValueNode.create(converted.value))
+            );
+        }
+        if (ValueListNode.is(node)) {
+            const items = node.values.map((v) => (ValueNode.is(v) ? this.toEnumDbValue(enumType, v) : undefined));
+            return items.every((item) => item !== undefined)
+                ? ValueListNode.create(items as OperationNode[])
+                : undefined;
+        }
+        if (
+            RawNode.is(node) &&
+            node.sqlFragments.length === 2 &&
+            node.sqlFragments[0] === 'ARRAY[' &&
+            node.sqlFragments[1] === ']' &&
+            node.parameters.length === 1 &&
+            ValueNode.is(node.parameters[0]!)
+        ) {
+            const converted = convert([node.parameters[0].value]);
+            return converted && ValueNode.create(converted.value);
+        }
+        return undefined;
+    }
+
+    protected override transformFunction(node: FunctionNode, queryId?: QueryId) {
+        const conversion = unwrapEnumConversion(node);
+        if (!conversion) {
+            return super.transformFunction(node, queryId);
+        }
+        // an enum conversion created by `QueryUtils.enumName` (not optimized away by
+        // `optimizeEnumComparison`); the operand is mapped first (column names)
+        const operand = this.transformNode(conversion.operand, queryId);
+        const { toName } = getEnumValueMappings(this.schema, conversion.enumType);
+        return (
+            Object.keys(toName).length > 0 ? this.buildEnumMapping(operand, toName, conversion.array) : operand
+        ) as any;
+    }
+
+    // builds `CASE WHEN x = 'from' THEN 'to' ... ELSE x END` (applied to each element for arrays)
+    private buildEnumMapping(operand: OperationNode, mapping: Readonly<Record<string, string>>, array: boolean) {
+        const eb = expressionBuilder();
+        // for arrays, the CASE is applied to each element `t` of the unnested array
+        const subject = new ExpressionWrapper(array ? ColumnNode.create('t') : operand);
+        let caseWhen: CaseWhenBuilder<any, any, any, any> | undefined;
+        for (const [from, to] of Object.entries(mapping)) {
+            caseWhen = caseWhen
+                ? caseWhen.when(subject, '=', from).then(to)
+                : eb.case().when(subject, '=', from).then(to);
+        }
+        // unmapped values are kept as is; the explicit cast to "text" is needed to address postgres's
+        // case-when type inference issue (the result would otherwise be typed as the native enum)
+        const caseNode = caseWhen!.else(this.dialect.castText(subject)).end().toOperationNode();
+        if (!array) {
+            return caseNode;
+        }
+        return RawNode.create(['ARRAY(SELECT ', ' FROM unnest(', ') AS t)'], [caseNode, operand]);
     }
 
     protected override transformUpdateQuery(node: UpdateQueryNode, queryId?: QueryId) {
@@ -751,17 +911,6 @@ export class QueryNameMapper extends OperationNodeTransformer {
         });
     }
 
-    private getEnumValueMapping(enumDef: EnumDef) {
-        const mapping: Record<string, string> = {};
-        for (const [key, field] of Object.entries(enumDef.fields ?? {})) {
-            const mappedName = this.getMappedName(field);
-            if (mappedName) {
-                mapping[key] = mappedName;
-            }
-        }
-        return mapping;
-    }
-
     private processEnumMappingForColumns(
         model: string,
         columns: readonly ColumnNode[],
@@ -815,7 +964,7 @@ export class QueryNameMapper extends OperationNodeTransformer {
             return value;
         }
 
-        const enumValueMapping = this.getEnumValueMapping(enumDef);
+        const enumValueMapping = getEnumValueMappings(this.schema, enumDef.name).toDbValue;
         if (this.isOperationNode(value) && ValueNode.is(value) && typeof value.value === 'string') {
             const mappedValue = enumValueMapping[value.value];
             if (mappedValue) {
@@ -859,45 +1008,15 @@ export class QueryNameMapper extends OperationNodeTransformer {
         if (!enumDef) {
             return selection;
         }
-        const enumValueMapping = this.getEnumValueMapping(enumDef);
-        if (Object.keys(enumValueMapping).length === 0) {
+        const { toName } = getEnumValueMappings(this.schema, enumDef.name);
+        if (Object.keys(toName).length === 0) {
             return selection;
         }
 
-        const shouldUseArray = fieldDef.array;
-
-        const eb = expressionBuilder();
-        const caseNode = shouldUseArray ? ColumnNode.create('t') : node;
-        let caseWhen: CaseWhenBuilder<any, any, any, any> | undefined;
-
-        for (const [key, value] of Object.entries(enumValueMapping)) {
-            if (!caseWhen) {
-                caseWhen = eb.case().when(new ExpressionWrapper(caseNode), '=', value).then(key);
-            } else {
-                caseWhen = caseWhen.when(new ExpressionWrapper(caseNode), '=', value).then(key);
-            }
-        }
-
-        // the explicit cast to "text" is needed to address postgres's case-when type inference issue
-        const caseExpr = caseWhen!.else(this.dialect.castText(new ExpressionWrapper(caseNode))).end();
-
-        if (!shouldUseArray) {
-            if (aliasName) {
-                return caseExpr.as(aliasName).toOperationNode() as SelectionNodeChild;
-            } else {
-                return caseExpr.toOperationNode() as SelectionNodeChild;
-            }
-        }
-
-        const arrayExpr = new ExpressionWrapper(
-            RawNode.create(['ARRAY(SELECT ', ' FROM unnest( ', ' ) AS t)'], [caseExpr.toOperationNode(), node]),
-        );
-
-        if (aliasName) {
-            return arrayExpr.as(aliasName).toOperationNode() as SelectionNodeChild;
-        } else {
-            return arrayExpr.toOperationNode() as SelectionNodeChild;
-        }
+        const mapped = this.buildEnumMapping(node, toName, !!fieldDef.array);
+        return (
+            aliasName ? new ExpressionWrapper(mapped).as(aliasName).toOperationNode() : mapped
+        ) as SelectionNodeChild;
     }
 
     // #endregion

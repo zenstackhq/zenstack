@@ -216,7 +216,7 @@ export class SchemaType implements SchemaDef {
                 status: {
                     name: "status",
                     type: "InvoiceStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("DRAFT") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("InvoiceStatus", "DRAFT") }] }] as readonly AttributeApplication[],
                     default: "DRAFT" as FieldDefault
                 },
                 dueDate: {
@@ -571,7 +571,7 @@ export class SchemaType implements SchemaDef {
                 role: {
                     name: "role",
                     type: "UserRole",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("MEMBER") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("UserRole", "MEMBER") }] }] as readonly AttributeApplication[],
                     default: "MEMBER" as FieldDefault
                 },
                 organization: {
@@ -696,7 +696,7 @@ export class SchemaType implements SchemaDef {
                 role: {
                     name: "role",
                     type: "UserRole",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("MEMBER") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("UserRole", "MEMBER") }] }] as readonly AttributeApplication[],
                     default: "MEMBER" as FieldDefault
                 },
                 team: {
@@ -773,7 +773,7 @@ export class SchemaType implements SchemaDef {
                 status: {
                     name: "status",
                     type: "ProjectStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("ACTIVE") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("ProjectStatus", "ACTIVE") }] }] as readonly AttributeApplication[],
                     default: "ACTIVE" as FieldDefault
                 },
                 startDate: {
@@ -1096,13 +1096,13 @@ export class SchemaType implements SchemaDef {
                 status: {
                     name: "status",
                     type: "TaskStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("BACKLOG") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("TaskStatus", "BACKLOG") }] }] as readonly AttributeApplication[],
                     default: "BACKLOG" as FieldDefault
                 },
                 priority: {
                     name: "priority",
                     type: "TaskPriority",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("MEDIUM") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("TaskPriority", "MEDIUM") }] }] as readonly AttributeApplication[],
                     default: "MEDIUM" as FieldDefault
                 },
                 storyPoints: {
@@ -1921,7 +1921,7 @@ export class SchemaType implements SchemaDef {
                 decision: {
                     name: "decision",
                     type: "ReviewDecision",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("ReviewDecision", "PENDING") }] }] as readonly AttributeApplication[],
                     default: "PENDING" as FieldDefault
                 },
                 summary: {

@@ -72,7 +72,7 @@ export class SchemaType implements SchemaDef {
                     name: "asset",
                     type: "Asset",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("assetId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("assetId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "comments", fields: ["assetId"], references: ["id"], onDelete: "Cascade" }
                 },
                 assetId: {
@@ -121,7 +121,7 @@ export class SchemaType implements SchemaDef {
                     name: "owner",
                     type: "User",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("ownerId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("ownerId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "assets", fields: ["ownerId"], references: ["id"], onDelete: "Cascade" }
                 },
                 ownerId: {
@@ -192,7 +192,7 @@ export class SchemaType implements SchemaDef {
                     type: "User",
                     optional: true,
                     originModel: "Asset",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("ownerId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("ownerId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "assets", fields: ["ownerId"], references: ["id"], onDelete: "Cascade" }
                 },
                 ownerId: {
@@ -235,7 +235,7 @@ export class SchemaType implements SchemaDef {
             },
             attributes: [
                 { name: "@@delegate", args: [{ name: "discriminator", value: ExpressionUtils.field("videoType") }] },
-                { name: "@@delegateMap", args: [{ name: "value", value: ExpressionUtils.literal("ASSET_KIND_VIDEO") }] }
+                { name: "@@delegateMap", args: [{ name: "value", value: ExpressionUtils.enum("AssetKind", "ASSET_KIND_VIDEO") }] }
             ] as readonly AttributeApplication[],
             idFields: ["id"],
             uniqueFields: {
@@ -283,7 +283,7 @@ export class SchemaType implements SchemaDef {
                     type: "User",
                     optional: true,
                     originModel: "Asset",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("ownerId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("ownerId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "assets", fields: ["ownerId"], references: ["id"], onDelete: "Cascade" }
                 },
                 ownerId: {
@@ -334,7 +334,7 @@ export class SchemaType implements SchemaDef {
                     name: "user",
                     type: "User",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("direct") }, { name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("direct") }, { name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "ratedVideos", name: "direct", fields: ["userId"], references: ["id"], onDelete: "Cascade" }
                 },
                 userId: {
@@ -347,8 +347,8 @@ export class SchemaType implements SchemaDef {
                 }
             },
             attributes: [
-                { name: "@@delegateMap", args: [{ name: "value", value: ExpressionUtils.literal("ASSET_KIND_VIDEO") }] },
-                { name: "@@delegateMap", args: [{ name: "value", value: ExpressionUtils.literal("VIDEO_KIND_RATED") }] }
+                { name: "@@delegateMap", args: [{ name: "value", value: ExpressionUtils.enum("AssetKind", "ASSET_KIND_VIDEO") }] },
+                { name: "@@delegateMap", args: [{ name: "value", value: ExpressionUtils.enum("VideoKind", "VIDEO_KIND_RATED") }] }
             ] as readonly AttributeApplication[],
             idFields: ["id"],
             uniqueFields: {
@@ -394,7 +394,7 @@ export class SchemaType implements SchemaDef {
                     type: "User",
                     optional: true,
                     originModel: "Asset",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("ownerId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("ownerId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "assets", fields: ["ownerId"], references: ["id"], onDelete: "Cascade" }
                 },
                 ownerId: {
@@ -427,7 +427,7 @@ export class SchemaType implements SchemaDef {
                     name: "gallery",
                     type: "Gallery",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("galleryId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("galleryId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "images", fields: ["galleryId"], references: ["id"], onDelete: "Cascade" }
                 },
                 galleryId: {
@@ -440,7 +440,7 @@ export class SchemaType implements SchemaDef {
                 }
             },
             attributes: [
-                { name: "@@delegateMap", args: [{ name: "value", value: ExpressionUtils.literal("ASSET_KIND_IMAGE") }] }
+                { name: "@@delegateMap", args: [{ name: "value", value: ExpressionUtils.enum("AssetKind", "ASSET_KIND_IMAGE") }] }
             ] as readonly AttributeApplication[],
             idFields: ["id"],
             uniqueFields: {

@@ -294,7 +294,7 @@ export class SchemaDbPusher<Schema extends SchemaDef> {
     private mapFieldType(fieldDef: FieldDef) {
         if (this.schema.enums?.[fieldDef.type]) {
             if (this.schema.provider.type === 'postgresql') {
-                return sql.ref(fieldDef.type);
+                return fieldDef.array ? sql`${sql.ref(fieldDef.type)}[]` : sql.ref(fieldDef.type);
             } else if (this.schema.provider.type === 'mysql') {
                 // MySQL requires inline ENUM definition
                 const enumDef = this.schema.enums[fieldDef.type]!;

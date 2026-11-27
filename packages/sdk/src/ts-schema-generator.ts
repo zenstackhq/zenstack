@@ -1356,12 +1356,16 @@ export class TsSchemaGenerator {
         ]);
     }
 
-    private createArrayExpression(expr: ArrayExpr): any {
+    private getArrayExprType(expr: ArrayExpr) {
         const arrayResolved = expr.$resolvedType?.decl;
         const arrayType = typeof arrayResolved === 'string' ? arrayResolved : arrayResolved?.name;
         invariant(arrayType, 'Array type must be resolved to a string or declaration');
+        return arrayType;
+    }
+
+    private createArrayExpression(expr: ArrayExpr): any {
         return this.createExpressionUtilsCall('array', [
-            this.createLiteralNode(arrayType),
+            this.createLiteralNode(this.getArrayExprType(expr)),
             ts.factory.createArrayLiteralExpression(expr.items.map((item) => this.createExpression(item))),
         ]);
     }
@@ -1372,7 +1376,12 @@ export class TsSchemaGenerator {
             .when(isDataField, () =>
                 this.createExpressionUtilsCall('field', [this.createLiteralNode(expr.target.$refText)]),
             )
-            .when(isEnumField, () => this.createLiteralExpression('StringLiteral', expr.target.$refText))
+            .when(isEnumField, (field) =>
+                this.createExpressionUtilsCall('enum', [
+                    this.createLiteralNode(field.$container.name),
+                    this.createLiteralNode(field.name),
+                ]),
+            )
             .when(isCollectionPredicateBinding, () =>
                 this.createExpressionUtilsCall('binding', [this.createLiteralNode(expr.target.$refText)]),
             )
@@ -1381,7 +1390,10 @@ export class TsSchemaGenerator {
                     this.createLiteralNode(expr.target.$refText),
                     ts.factory.createArrayLiteralExpression(
                         (target as Enum).fields.map((field) =>
-                            this.createLiteralExpression('StringLiteral', field.name),
+                            this.createExpressionUtilsCall('enum', [
+                                this.createLiteralNode((target as Enum).name),
+                                this.createLiteralNode(field.name),
+                            ]),
                         ),
                     ),
                 ]),

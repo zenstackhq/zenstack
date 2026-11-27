@@ -223,7 +223,7 @@ export class SchemaType implements SchemaDef {
                     name: "personalAccessToken",
                     type: "PersonalAccessToken",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("personalAccessTokenId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("personalAccessTokenId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "authorizationCodes", fields: ["personalAccessTokenId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 personalAccessTokenId: {
@@ -512,7 +512,7 @@ export class SchemaType implements SchemaDef {
                 organization: {
                     name: "organization",
                     type: "Organization",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "members", fields: ["organizationId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 organizationId: {
@@ -525,7 +525,7 @@ export class SchemaType implements SchemaDef {
                 user: {
                     name: "user",
                     type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "orgMemberships", fields: ["userId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 userId: {
@@ -538,7 +538,7 @@ export class SchemaType implements SchemaDef {
                 role: {
                     name: "role",
                     type: "OrgMemberRole",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("MEMBER") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("OrgMemberRole", "MEMBER") }] }] as readonly AttributeApplication[],
                     default: "MEMBER" as FieldDefault
                 },
                 createdAt: {
@@ -593,13 +593,13 @@ export class SchemaType implements SchemaDef {
                 role: {
                     name: "role",
                     type: "OrgMemberRole",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("MEMBER") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("OrgMemberRole", "MEMBER") }] }] as readonly AttributeApplication[],
                     default: "MEMBER" as FieldDefault
                 },
                 organization: {
                     name: "organization",
                     type: "Organization",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "invites", fields: ["organizationId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 organizationId: {
@@ -612,7 +612,7 @@ export class SchemaType implements SchemaDef {
                 inviter: {
                     name: "inviter",
                     type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("inviterId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("inviterId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "sentInvites", fields: ["inviterId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 inviterId: {
@@ -674,7 +674,7 @@ export class SchemaType implements SchemaDef {
                 type: {
                     name: "type",
                     type: "RuntimeEnvironmentType",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("DEVELOPMENT") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("RuntimeEnvironmentType", "DEVELOPMENT") }] }] as readonly AttributeApplication[],
                     default: "DEVELOPMENT" as FieldDefault
                 },
                 isBranchableEnvironment: {
@@ -692,7 +692,7 @@ export class SchemaType implements SchemaDef {
                     name: "parentEnvironment",
                     type: "RuntimeEnvironment",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("parentEnvironment") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("parentEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("parentEnvironment") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("parentEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "childEnvironments", name: "parentEnvironment", fields: ["parentEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 parentEnvironmentId: {
@@ -745,7 +745,7 @@ export class SchemaType implements SchemaDef {
                 organization: {
                     name: "organization",
                     type: "Organization",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "environments", fields: ["organizationId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 organizationId: {
@@ -758,7 +758,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "environments", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -772,7 +772,7 @@ export class SchemaType implements SchemaDef {
                     name: "orgMember",
                     type: "OrgMember",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("orgMemberId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("orgMemberId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "SetNull") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "environments", fields: ["orgMemberId"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 orgMemberId: {
@@ -888,7 +888,7 @@ export class SchemaType implements SchemaDef {
                     name: "currentSession",
                     type: "RuntimeEnvironmentSession",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("currentSession") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("currentSessionId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("currentSession") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("currentSessionId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "SetNull") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "currentEnvironments", name: "currentSession", fields: ["currentSessionId"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 currentSessionId: {
@@ -980,7 +980,7 @@ export class SchemaType implements SchemaDef {
                 organization: {
                     name: "organization",
                     type: "Organization",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "projects", fields: ["organizationId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 organizationId: {
@@ -1010,13 +1010,13 @@ export class SchemaType implements SchemaDef {
                 version: {
                     name: "version",
                     type: "ProjectVersion",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("V2") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("ProjectVersion", "V2") }] }] as readonly AttributeApplication[],
                     default: "V2" as FieldDefault
                 },
                 engine: {
                     name: "engine",
                     type: "RunEngineVersion",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("V1") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("RunEngineVersion", "V1") }] }] as readonly AttributeApplication[],
                     default: "V1" as FieldDefault
                 },
                 builderProjectId: {
@@ -1204,7 +1204,7 @@ export class SchemaType implements SchemaDef {
                 provider: {
                     name: "provider",
                     type: "SecretStoreProvider",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("DATABASE") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("SecretStoreProvider", "DATABASE") }] }] as readonly AttributeApplication[],
                     default: "DATABASE" as FieldDefault
                 },
                 environmentVariableValues: {
@@ -1272,7 +1272,7 @@ export class SchemaType implements SchemaDef {
                 }
             },
             attributes: [
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("key")]) }, { name: "type", value: ExpressionUtils.literal("BTree") }] }
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("key")]) }, { name: "type", value: ExpressionUtils.enum("IndexType", "BTree") }] }
             ] as readonly AttributeApplication[],
             idFields: ["key"],
             uniqueFields: {
@@ -1338,7 +1338,7 @@ export class SchemaType implements SchemaDef {
                 engine: {
                     name: "engine",
                     type: "RunEngineVersion",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("V1") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("RunEngineVersion", "V1") }] }] as readonly AttributeApplication[],
                     default: "V1" as FieldDefault
                 },
                 contentHash: {
@@ -1360,7 +1360,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "backgroundWorkers", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -1373,7 +1373,7 @@ export class SchemaType implements SchemaDef {
                 runtimeEnvironment: {
                     name: "runtimeEnvironment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "backgroundWorkers", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runtimeEnvironmentId: {
@@ -1443,7 +1443,7 @@ export class SchemaType implements SchemaDef {
                     name: "workerGroup",
                     type: "WorkerInstanceGroup",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("workerGroupId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("workerGroupId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "SetNull") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "backgroundWorkers", fields: ["workerGroupId"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 workerGroupId: {
@@ -1504,7 +1504,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "BackgroundWorkerFile", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -1580,7 +1580,7 @@ export class SchemaType implements SchemaDef {
                 worker: {
                     name: "worker",
                     type: "BackgroundWorker",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("workerId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("workerId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "tasks", fields: ["workerId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 workerId: {
@@ -1593,7 +1593,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "backgroundWorkerTasks", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -1607,7 +1607,7 @@ export class SchemaType implements SchemaDef {
                     name: "file",
                     type: "BackgroundWorkerFile",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("fileId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("fileId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "tasks", fields: ["fileId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 fileId: {
@@ -1621,7 +1621,7 @@ export class SchemaType implements SchemaDef {
                 runtimeEnvironment: {
                     name: "runtimeEnvironment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "backgroundWorkerTasks", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runtimeEnvironmentId: {
@@ -1682,7 +1682,7 @@ export class SchemaType implements SchemaDef {
                     name: "queue",
                     type: "TaskQueue",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("queueId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("queueId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "SetNull") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "tasks", fields: ["queueId"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 maxDurationInSeconds: {
@@ -1693,7 +1693,7 @@ export class SchemaType implements SchemaDef {
                 triggerSource: {
                     name: "triggerSource",
                     type: "TaskTriggerSource",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("STANDARD") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("TaskTriggerSource", "STANDARD") }] }] as readonly AttributeApplication[],
                     default: "STANDARD" as FieldDefault
                 }
             },
@@ -1734,13 +1734,13 @@ export class SchemaType implements SchemaDef {
                 engine: {
                     name: "engine",
                     type: "RunEngineVersion",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("V1") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("RunEngineVersion", "V1") }] }] as readonly AttributeApplication[],
                     default: "V1" as FieldDefault
                 },
                 status: {
                     name: "status",
                     type: "TaskRunStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("TaskRunStatus", "PENDING") }] }] as readonly AttributeApplication[],
                     default: "PENDING" as FieldDefault
                 },
                 statusReason: {
@@ -1799,7 +1799,7 @@ export class SchemaType implements SchemaDef {
                 runtimeEnvironment: {
                     name: "runtimeEnvironment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "taskRuns", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runtimeEnvironmentId: {
@@ -1817,7 +1817,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "taskRuns", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -2116,7 +2116,7 @@ export class SchemaType implements SchemaDef {
                     name: "rootTaskRun",
                     type: "TaskRun",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskRootRun") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("rootTaskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("NoAction") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskRootRun") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("rootTaskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "SetNull") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "NoAction") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "descendantRuns", name: "TaskRootRun", fields: ["rootTaskRunId"], references: ["id"], onDelete: "SetNull", onUpdate: "NoAction" }
                 },
                 rootTaskRunId: {
@@ -2138,7 +2138,7 @@ export class SchemaType implements SchemaDef {
                     name: "parentTaskRun",
                     type: "TaskRun",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskParentRun") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("parentTaskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("NoAction") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskParentRun") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("parentTaskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "SetNull") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "NoAction") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "childRuns", name: "TaskParentRun", fields: ["parentTaskRunId"], references: ["id"], onDelete: "SetNull", onUpdate: "NoAction" }
                 },
                 parentTaskRunId: {
@@ -2160,7 +2160,7 @@ export class SchemaType implements SchemaDef {
                     name: "parentTaskRunAttempt",
                     type: "TaskRunAttempt",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskParentRunAttempt") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("parentTaskRunAttemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("NoAction") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskParentRunAttempt") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("parentTaskRunAttemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "SetNull") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "NoAction") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "childRuns", name: "TaskParentRunAttempt", fields: ["parentTaskRunAttemptId"], references: ["id"], onDelete: "SetNull", onUpdate: "NoAction" }
                 },
                 parentTaskRunAttemptId: {
@@ -2175,7 +2175,7 @@ export class SchemaType implements SchemaDef {
                     name: "batch",
                     type: "BatchTaskRun",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("batchId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("NoAction") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("batchId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "SetNull") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "NoAction") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "runs", fields: ["batchId"], references: ["id"], onDelete: "SetNull", onUpdate: "NoAction" }
                 },
                 batchId: {
@@ -2267,11 +2267,11 @@ export class SchemaType implements SchemaDef {
                 { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("spanId")]) }] },
                 { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("parentSpanId")]) }] },
                 { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("scheduleId"), ExpressionUtils.field("createdAt")]) }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runTags")]) }, { name: "type", value: ExpressionUtils.literal("Gin") }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runTags")]) }, { name: "type", value: ExpressionUtils.enum("IndexType", "Gin") }] },
                 { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId"), ExpressionUtils.field("batchId")]) }] },
                 { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId"), ExpressionUtils.field("id")]) }] },
                 { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId"), ExpressionUtils.field("createdAt")]) }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("DateTime", [ExpressionUtils.field("createdAt")]) }, { name: "type", value: ExpressionUtils.literal("Brin") }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("DateTime", [ExpressionUtils.field("createdAt")]) }, { name: "type", value: ExpressionUtils.enum("IndexType", "Brin") }] },
                 { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("TaskRunStatus", [ExpressionUtils.field("status"), ExpressionUtils.field("runtimeEnvironmentId"), ExpressionUtils.field("createdAt"), ExpressionUtils.field("id")]) }] }
             ] as readonly AttributeApplication[],
             idFields: ["id"],
@@ -2295,7 +2295,7 @@ export class SchemaType implements SchemaDef {
                 engine: {
                     name: "engine",
                     type: "RunEngineVersion",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("V2") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("RunEngineVersion", "V2") }] }] as readonly AttributeApplication[],
                     default: "V2" as FieldDefault
                 },
                 executionStatus: {
@@ -2522,7 +2522,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "taskRunCheckpoints", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -2535,7 +2535,7 @@ export class SchemaType implements SchemaDef {
                 runtimeEnvironment: {
                     name: "runtimeEnvironment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "taskRunCheckpoints", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runtimeEnvironmentId: {
@@ -2593,7 +2593,7 @@ export class SchemaType implements SchemaDef {
                 status: {
                     name: "status",
                     type: "WaitpointStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("WaitpointStatus", "PENDING") }] }] as readonly AttributeApplication[],
                     default: "PENDING" as FieldDefault
                 },
                 completedAt: {
@@ -2633,7 +2633,7 @@ export class SchemaType implements SchemaDef {
                     name: "completedByTaskRun",
                     type: "TaskRun",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("CompletingRun") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("completedByTaskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("CompletingRun") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("completedByTaskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "SetNull") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "associatedWaitpoint", name: "CompletingRun", fields: ["completedByTaskRunId"], references: ["id"], onDelete: "SetNull" }
                 },
                 completedAfter: {
@@ -2653,7 +2653,7 @@ export class SchemaType implements SchemaDef {
                     name: "completedByBatch",
                     type: "BatchTaskRun",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("completedByBatchId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("completedByBatchId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "SetNull") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "waitpoints", fields: ["completedByBatchId"], references: ["id"], onDelete: "SetNull" }
                 },
                 blockingTaskRuns: {
@@ -2696,7 +2696,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "waitpoints", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -2709,7 +2709,7 @@ export class SchemaType implements SchemaDef {
                 environment: {
                     name: "environment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "waitpoints", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
@@ -2790,7 +2790,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "taskRunWaitpoints", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -2866,7 +2866,7 @@ export class SchemaType implements SchemaDef {
                 environment: {
                     name: "environment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "waitpointTags", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
@@ -2879,7 +2879,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "waitpointTags", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -2979,7 +2979,7 @@ export class SchemaType implements SchemaDef {
                     name: "organization",
                     type: "Organization",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "workerInstances", fields: ["organizationId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 organizationId: {
@@ -2994,7 +2994,7 @@ export class SchemaType implements SchemaDef {
                     name: "project",
                     type: "Project",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "workers", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -3009,7 +3009,7 @@ export class SchemaType implements SchemaDef {
                     name: "environment",
                     type: "RuntimeEnvironment",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "workerInstances", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
@@ -3024,7 +3024,7 @@ export class SchemaType implements SchemaDef {
                     name: "deployment",
                     type: "WorkerDeployment",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("deploymentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("deploymentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "SetNull") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "workerInstance", fields: ["deploymentId"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 deploymentId: {
@@ -3105,7 +3105,7 @@ export class SchemaType implements SchemaDef {
                 token: {
                     name: "token",
                     type: "WorkerGroupToken",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("tokenId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("tokenId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "workerGroup", fields: ["tokenId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 tokenId: {
@@ -3140,7 +3140,7 @@ export class SchemaType implements SchemaDef {
                     name: "organization",
                     type: "Organization",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "workerGroups", fields: ["organizationId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 organizationId: {
@@ -3155,7 +3155,7 @@ export class SchemaType implements SchemaDef {
                     name: "project",
                     type: "Project",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "workerGroups", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -3256,7 +3256,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "runTags", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -3297,7 +3297,7 @@ export class SchemaType implements SchemaDef {
                 taskRun: {
                     name: "taskRun",
                     type: "TaskRun",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "dependency", fields: ["taskRunId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 taskRunId: {
@@ -3313,7 +3313,7 @@ export class SchemaType implements SchemaDef {
                     name: "checkpointEvent",
                     type: "CheckpointRestoreEvent",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("checkpointEventId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("checkpointEventId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "taskRunDependency", fields: ["checkpointEventId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 checkpointEventId: {
@@ -3423,7 +3423,7 @@ export class SchemaType implements SchemaDef {
                 environment: {
                     name: "environment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "taskRunNumberCounter", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
@@ -3474,7 +3474,7 @@ export class SchemaType implements SchemaDef {
                 taskRun: {
                     name: "taskRun",
                     type: "TaskRun",
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("attempts") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("attempts") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "attempts", name: "attempts", fields: ["taskRunId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 taskRunId: {
@@ -3487,7 +3487,7 @@ export class SchemaType implements SchemaDef {
                 backgroundWorker: {
                     name: "backgroundWorker",
                     type: "BackgroundWorker",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("backgroundWorkerId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("backgroundWorkerId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "attempts", fields: ["backgroundWorkerId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 backgroundWorkerId: {
@@ -3500,7 +3500,7 @@ export class SchemaType implements SchemaDef {
                 backgroundWorkerTask: {
                     name: "backgroundWorkerTask",
                     type: "BackgroundWorkerTask",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("backgroundWorkerTaskId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("backgroundWorkerTaskId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "attempts", fields: ["backgroundWorkerTaskId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 backgroundWorkerTaskId: {
@@ -3513,7 +3513,7 @@ export class SchemaType implements SchemaDef {
                 runtimeEnvironment: {
                     name: "runtimeEnvironment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "taskRunAttempts", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runtimeEnvironmentId: {
@@ -3526,7 +3526,7 @@ export class SchemaType implements SchemaDef {
                 queue: {
                     name: "queue",
                     type: "TaskQueue",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("queueId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("queueId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "attempts", fields: ["queueId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 queueId: {
@@ -3539,7 +3539,7 @@ export class SchemaType implements SchemaDef {
                 status: {
                     name: "status",
                     type: "TaskRunAttemptStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("TaskRunAttemptStatus", "PENDING") }] }] as readonly AttributeApplication[],
                     default: "PENDING" as FieldDefault
                 },
                 createdAt: {
@@ -3708,19 +3708,19 @@ export class SchemaType implements SchemaDef {
                 level: {
                     name: "level",
                     type: "TaskEventLevel",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("TRACE") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("TaskEventLevel", "TRACE") }] }] as readonly AttributeApplication[],
                     default: "TRACE" as FieldDefault
                 },
                 kind: {
                     name: "kind",
                     type: "TaskEventKind",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("INTERNAL") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("TaskEventKind", "INTERNAL") }] }] as readonly AttributeApplication[],
                     default: "INTERNAL" as FieldDefault
                 },
                 status: {
                     name: "status",
                     type: "TaskEventStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("UNSET") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("TaskEventStatus", "UNSET") }] }] as readonly AttributeApplication[],
                     default: "UNSET" as FieldDefault
                 },
                 links: {
@@ -3933,13 +3933,13 @@ export class SchemaType implements SchemaDef {
                 type: {
                     name: "type",
                     type: "TaskQueueType",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("VIRTUAL") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("TaskQueueType", "VIRTUAL") }] }] as readonly AttributeApplication[],
                     default: "VIRTUAL" as FieldDefault
                 },
                 version: {
                     name: "version",
                     type: "TaskQueueVersion",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("V1") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("TaskQueueVersion", "V1") }] }] as readonly AttributeApplication[],
                     default: "V1" as FieldDefault
                 },
                 orderableName: {
@@ -3950,7 +3950,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "taskQueues", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -3963,7 +3963,7 @@ export class SchemaType implements SchemaDef {
                 runtimeEnvironment: {
                     name: "runtimeEnvironment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "taskQueues", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runtimeEnvironmentId: {
@@ -4065,13 +4065,13 @@ export class SchemaType implements SchemaDef {
                 runtimeEnvironment: {
                     name: "runtimeEnvironment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "batchTaskRuns", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 status: {
                     name: "status",
                     type: "BatchTaskRunStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("BatchTaskRunStatus", "PENDING") }] }] as readonly AttributeApplication[],
                     default: "PENDING" as FieldDefault
                 },
                 runtimeEnvironmentId: {
@@ -4217,7 +4217,7 @@ export class SchemaType implements SchemaDef {
                     name: "checkpointEvent",
                     type: "CheckpointRestoreEvent",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("checkpointEventId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("checkpointEventId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "batchTaskRunDependency", fields: ["checkpointEventId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 checkpointEventId: {
@@ -4234,7 +4234,7 @@ export class SchemaType implements SchemaDef {
                     name: "dependentTaskAttempt",
                     type: "TaskRunAttempt",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("dependentTaskAttemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("dependentTaskAttemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "batchDependencies", fields: ["dependentTaskAttemptId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 dependentTaskAttemptId: {
@@ -4280,13 +4280,13 @@ export class SchemaType implements SchemaDef {
                 status: {
                     name: "status",
                     type: "BatchTaskRunItemStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("BatchTaskRunItemStatus", "PENDING") }] }] as readonly AttributeApplication[],
                     default: "PENDING" as FieldDefault
                 },
                 batchTaskRun: {
                     name: "batchTaskRun",
                     type: "BatchTaskRun",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("batchTaskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("batchTaskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "items", fields: ["batchTaskRunId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 batchTaskRunId: {
@@ -4299,7 +4299,7 @@ export class SchemaType implements SchemaDef {
                 taskRun: {
                     name: "taskRun",
                     type: "TaskRun",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "batchItems", fields: ["taskRunId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 taskRunId: {
@@ -4313,7 +4313,7 @@ export class SchemaType implements SchemaDef {
                     name: "taskRunAttempt",
                     type: "TaskRunAttempt",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunAttemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunAttemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "SetNull") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "batchTaskRunItems", fields: ["taskRunAttemptId"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 taskRunAttemptId: {
@@ -4376,7 +4376,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "environmentVariables", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -4429,7 +4429,7 @@ export class SchemaType implements SchemaDef {
                     name: "valueReference",
                     type: "SecretReference",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("valueReferenceId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("valueReferenceId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "SetNull") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "environmentVariableValues", fields: ["valueReferenceId"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 valueReferenceId: {
@@ -4443,7 +4443,7 @@ export class SchemaType implements SchemaDef {
                 variable: {
                     name: "variable",
                     type: "EnvironmentVariable",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("variableId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("variableId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "values", fields: ["variableId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 variableId: {
@@ -4456,7 +4456,7 @@ export class SchemaType implements SchemaDef {
                 environment: {
                     name: "environment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "environmentVariableValues", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
@@ -4541,7 +4541,7 @@ export class SchemaType implements SchemaDef {
                 run: {
                     name: "run",
                     type: "TaskRun",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "checkpoints", fields: ["runId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runId: {
@@ -4554,7 +4554,7 @@ export class SchemaType implements SchemaDef {
                 attempt: {
                     name: "attempt",
                     type: "TaskRunAttempt",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("attemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("attemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "checkpoints", fields: ["attemptId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 attemptId: {
@@ -4572,7 +4572,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "checkpoints", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -4585,7 +4585,7 @@ export class SchemaType implements SchemaDef {
                 runtimeEnvironment: {
                     name: "runtimeEnvironment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "checkpoints", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runtimeEnvironmentId: {
@@ -4645,7 +4645,7 @@ export class SchemaType implements SchemaDef {
                 checkpoint: {
                     name: "checkpoint",
                     type: "Checkpoint",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("checkpointId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("checkpointId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "events", fields: ["checkpointId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 checkpointId: {
@@ -4658,7 +4658,7 @@ export class SchemaType implements SchemaDef {
                 run: {
                     name: "run",
                     type: "TaskRun",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "CheckpointRestoreEvent", fields: ["runId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runId: {
@@ -4671,7 +4671,7 @@ export class SchemaType implements SchemaDef {
                 attempt: {
                     name: "attempt",
                     type: "TaskRunAttempt",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("attemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("attemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "CheckpointRestoreEvent", fields: ["attemptId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 attemptId: {
@@ -4684,7 +4684,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "CheckpointRestoreEvent", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -4697,7 +4697,7 @@ export class SchemaType implements SchemaDef {
                 runtimeEnvironment: {
                     name: "runtimeEnvironment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "CheckpointRestoreEvent", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runtimeEnvironmentId: {
@@ -4788,19 +4788,19 @@ export class SchemaType implements SchemaDef {
                 status: {
                     name: "status",
                     type: "WorkerDeploymentStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("WorkerDeploymentStatus", "PENDING") }] }] as readonly AttributeApplication[],
                     default: "PENDING" as FieldDefault
                 },
                 type: {
                     name: "type",
                     type: "WorkerDeploymentType",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("V1") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("WorkerDeploymentType", "V1") }] }] as readonly AttributeApplication[],
                     default: "V1" as FieldDefault
                 },
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "WorkerDeployment", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -4813,7 +4813,7 @@ export class SchemaType implements SchemaDef {
                 environment: {
                     name: "environment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "workerDeployments", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
@@ -4827,7 +4827,7 @@ export class SchemaType implements SchemaDef {
                     name: "worker",
                     type: "BackgroundWorker",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("workerId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("workerId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "deployment", fields: ["workerId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 workerId: {
@@ -4844,7 +4844,7 @@ export class SchemaType implements SchemaDef {
                     name: "triggeredBy",
                     type: "User",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("triggeredById")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("triggeredById")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "SetNull") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "deployments", fields: ["triggeredById"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 triggeredById: {
@@ -4941,7 +4941,7 @@ export class SchemaType implements SchemaDef {
                 deployment: {
                     name: "deployment",
                     type: "WorkerDeployment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("deploymentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("deploymentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "promotions", fields: ["deploymentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 deploymentId: {
@@ -4954,7 +4954,7 @@ export class SchemaType implements SchemaDef {
                 environment: {
                     name: "environment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "workerDeploymentPromotions", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
@@ -4987,7 +4987,7 @@ export class SchemaType implements SchemaDef {
                 type: {
                     name: "type",
                     type: "ScheduleType",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("IMPERATIVE") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("ScheduleType", "IMPERATIVE") }] }] as readonly AttributeApplication[],
                     default: "IMPERATIVE" as FieldDefault
                 },
                 friendlyId: {
@@ -5025,7 +5025,7 @@ export class SchemaType implements SchemaDef {
                 generatorType: {
                     name: "generatorType",
                     type: "ScheduleGeneratorType",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("CRON") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("ScheduleGeneratorType", "CRON") }] }] as readonly AttributeApplication[],
                     default: "CRON" as FieldDefault
                 },
                 timezone: {
@@ -5053,7 +5053,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "taskSchedules", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -5107,7 +5107,7 @@ export class SchemaType implements SchemaDef {
                 taskSchedule: {
                     name: "taskSchedule",
                     type: "TaskSchedule",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskScheduleId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskScheduleId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "instances", fields: ["taskScheduleId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 taskScheduleId: {
@@ -5120,7 +5120,7 @@ export class SchemaType implements SchemaDef {
                 environment: {
                     name: "environment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "taskScheduleInstances", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
@@ -5185,7 +5185,7 @@ export class SchemaType implements SchemaDef {
                 environment: {
                     name: "environment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "sessions", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
@@ -5257,7 +5257,7 @@ export class SchemaType implements SchemaDef {
                     name: "integration",
                     type: "OrganizationIntegration",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("integrationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("integrationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "SetNull") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "alertChannels", fields: ["integrationId"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 integrationId: {
@@ -5295,13 +5295,13 @@ export class SchemaType implements SchemaDef {
                     name: "environmentTypes",
                     type: "RuntimeEnvironmentType",
                     array: true,
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.array("RuntimeEnvironmentType", [ExpressionUtils.literal("STAGING"), ExpressionUtils.literal("PRODUCTION")]) }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.array("RuntimeEnvironmentType", [ExpressionUtils.enum("RuntimeEnvironmentType", "STAGING"), ExpressionUtils.enum("RuntimeEnvironmentType", "PRODUCTION")]) }] }] as readonly AttributeApplication[],
                     default: ["STAGING", "PRODUCTION"] as FieldDefault
                 },
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "alertChannels", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -5365,7 +5365,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "alerts", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -5378,7 +5378,7 @@ export class SchemaType implements SchemaDef {
                 environment: {
                     name: "environment",
                     type: "RuntimeEnvironment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "alerts", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
@@ -5391,7 +5391,7 @@ export class SchemaType implements SchemaDef {
                 channel: {
                     name: "channel",
                     type: "ProjectAlertChannel",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("channelId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("channelId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "alerts", fields: ["channelId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 channelId: {
@@ -5404,7 +5404,7 @@ export class SchemaType implements SchemaDef {
                 status: {
                     name: "status",
                     type: "ProjectAlertStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("ProjectAlertStatus", "PENDING") }] }] as readonly AttributeApplication[],
                     default: "PENDING" as FieldDefault
                 },
                 type: {
@@ -5415,7 +5415,7 @@ export class SchemaType implements SchemaDef {
                     name: "taskRunAttempt",
                     type: "TaskRunAttempt",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunAttemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunAttemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "alerts", fields: ["taskRunAttemptId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 taskRunAttemptId: {
@@ -5430,7 +5430,7 @@ export class SchemaType implements SchemaDef {
                     name: "taskRun",
                     type: "TaskRun",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "alerts", fields: ["taskRunId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 taskRunId: {
@@ -5445,7 +5445,7 @@ export class SchemaType implements SchemaDef {
                     name: "workerDeployment",
                     type: "WorkerDeployment",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("workerDeploymentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("workerDeploymentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "alerts", fields: ["workerDeploymentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 workerDeploymentId: {
@@ -5488,7 +5488,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "alertStorages", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -5501,7 +5501,7 @@ export class SchemaType implements SchemaDef {
                 alertChannel: {
                     name: "alertChannel",
                     type: "ProjectAlertChannel",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("alertChannelId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("alertChannelId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "alertStorages", fields: ["alertChannelId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 alertChannelId: {
@@ -5568,7 +5568,7 @@ export class SchemaType implements SchemaDef {
                 tokenReference: {
                     name: "tokenReference",
                     type: "SecretReference",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("tokenReferenceId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("tokenReferenceId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "OrganizationIntegration", fields: ["tokenReferenceId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 tokenReferenceId: {
@@ -5581,7 +5581,7 @@ export class SchemaType implements SchemaDef {
                 organization: {
                     name: "organization",
                     type: "Organization",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "organizationIntegrations", fields: ["organizationId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 organizationId: {
@@ -5635,7 +5635,7 @@ export class SchemaType implements SchemaDef {
                 project: {
                     name: "project",
                     type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "bulkActionGroups", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
@@ -5658,7 +5658,7 @@ export class SchemaType implements SchemaDef {
                 status: {
                     name: "status",
                     type: "BulkActionStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("BulkActionStatus", "PENDING") }] }] as readonly AttributeApplication[],
                     default: "PENDING" as FieldDefault
                 },
                 createdAt: {
@@ -5699,7 +5699,7 @@ export class SchemaType implements SchemaDef {
                 group: {
                     name: "group",
                     type: "BulkActionGroup",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("groupId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("groupId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "items", fields: ["groupId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 groupId: {
@@ -5716,13 +5716,13 @@ export class SchemaType implements SchemaDef {
                 status: {
                     name: "status",
                     type: "BulkActionItemStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("BulkActionItemStatus", "PENDING") }] }] as readonly AttributeApplication[],
                     default: "PENDING" as FieldDefault
                 },
                 sourceRun: {
                     name: "sourceRun",
                     type: "TaskRun",
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("SourceActionItemRun") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("sourceRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("SourceActionItemRun") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("sourceRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "sourceBulkActionItems", name: "SourceActionItemRun", fields: ["sourceRunId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 sourceRunId: {
@@ -5736,7 +5736,7 @@ export class SchemaType implements SchemaDef {
                     name: "destinationRun",
                     type: "TaskRun",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("DestinationActionItemRun") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("destinationRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("DestinationActionItemRun") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("destinationRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }, { name: "onUpdate", value: ExpressionUtils.enum("ReferentialAction", "Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "destinationBulkActionItems", name: "DestinationActionItemRun", fields: ["destinationRunId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 destinationRunId: {
@@ -5874,19 +5874,19 @@ export class SchemaType implements SchemaDef {
                 level: {
                     name: "level",
                     type: "TaskEventLevel",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("TRACE") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("TaskEventLevel", "TRACE") }] }] as readonly AttributeApplication[],
                     default: "TRACE" as FieldDefault
                 },
                 kind: {
                     name: "kind",
                     type: "TaskEventKind",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("INTERNAL") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("TaskEventKind", "INTERNAL") }] }] as readonly AttributeApplication[],
                     default: "INTERNAL" as FieldDefault
                 },
                 status: {
                     name: "status",
                     type: "TaskEventStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("UNSET") }] }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.enum("TaskEventStatus", "UNSET") }] }] as readonly AttributeApplication[],
                     default: "UNSET" as FieldDefault
                 },
                 links: {

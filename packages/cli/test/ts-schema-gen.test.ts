@@ -167,7 +167,8 @@ model Post {
                                     {
                                         name: 'onDelete',
                                         value: {
-                                            kind: 'literal',
+                                            kind: 'enum',
+                                            type: 'ReferentialAction',
                                             value: 'Cascade',
                                         },
                                     },
@@ -819,7 +820,8 @@ model Post {
                                         {
                                             name: 'onDelete',
                                             value: {
-                                                kind: 'literal',
+                                                kind: 'enum',
+                                                type: 'ReferentialAction',
                                                 value: 'Cascade',
                                             },
                                         },
@@ -890,15 +892,18 @@ model Post {
                                 type: 'PostStatus',
                                 items: [
                                     {
-                                        kind: 'literal',
+                                        kind: 'enum',
+                                        type: 'PostStatus',
                                         value: 'DRAFT',
                                     },
                                     {
-                                        kind: 'literal',
+                                        kind: 'enum',
+                                        type: 'PostStatus',
                                         value: 'ACTIVE',
                                     },
                                     {
-                                        kind: 'literal',
+                                        kind: 'enum',
+                                        type: 'PostStatus',
                                         value: 'CANCELLED',
                                     },
                                 ],
@@ -912,7 +917,7 @@ model Post {
     });
 
     it('emits enum names (not @map values) when converting enums to arrays', async () => {
-        // enum values are represented by their names at runtime (TS values, auth(), Zod);
+        // enum values are represented by their names (TS values, auth(), Zod), typed with their enum;
         // the ORM's name mapper translates them to `@map`-ed values at SQL execution time
         const { schema } = await generateTsSchema(`
 enum PostStatus {
@@ -951,15 +956,18 @@ model Post {
                                 type: 'PostStatus',
                                 items: [
                                     {
-                                        kind: 'literal',
+                                        kind: 'enum',
+                                        type: 'PostStatus',
                                         value: 'DRAFT',
                                     },
                                     {
-                                        kind: 'literal',
+                                        kind: 'enum',
+                                        type: 'PostStatus',
                                         value: 'ACTIVE',
                                     },
                                     {
-                                        kind: 'literal',
+                                        kind: 'enum',
+                                        type: 'PostStatus',
                                         value: 'CANCELLED',
                                     },
                                 ],
@@ -970,6 +978,70 @@ model Post {
                 ],
             },
         ]);
+    });
+
+    it('emits enum member references as typed enum values', async () => {
+        const { schema } = await generateTsSchema(
+            `
+enum PostStatus {
+    DRAFT @map('draft')
+    ACTIVE @map('active')
+}
+
+model Post {
+    id     String     @id
+    status PostStatus @default(DRAFT)
+    tags   PostStatus[] @default([DRAFT, ACTIVE])
+
+    @@allow('read', status == ACTIVE)
+}
+            `,
+            'postgresql',
+        );
+
+        const post = schema.models['Post']!;
+
+        // inside an expression: a typed enum value
+        expect(post.attributes).toMatchObject([
+            {
+                name: '@@allow',
+                args: [
+                    { name: 'operation', value: { kind: 'literal', value: 'read' } },
+                    {
+                        name: 'condition',
+                        value: {
+                            kind: 'binary',
+                            op: '==',
+                            left: { kind: 'field', field: 'status' },
+                            right: { kind: 'enum', type: 'PostStatus', value: 'ACTIVE' },
+                        },
+                    },
+                ],
+            },
+        ]);
+
+        // attribute arguments too
+        expect(post.fields['status']?.attributes).toMatchObject([
+            { name: '@default', args: [{ value: { kind: 'enum', type: 'PostStatus', value: 'DRAFT' } }] },
+        ]);
+        expect(post.fields['tags']?.attributes).toMatchObject([
+            {
+                name: '@default',
+                args: [
+                    {
+                        value: {
+                            kind: 'array',
+                            items: [
+                                { kind: 'enum', type: 'PostStatus', value: 'DRAFT' },
+                                { kind: 'enum', type: 'PostStatus', value: 'ACTIVE' },
+                            ],
+                        },
+                    },
+                ],
+            },
+        ]);
+        // the field's default value holds the member name
+        expect(post.fields['status']?.default).toBe('DRAFT');
     });
 
     it('supports @@strict for type defs', async () => {
