@@ -537,6 +537,15 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
         }
     }
 
+    @check('@@branded')
+    private _checkBranded(attr: AttributeApplication, accept: ValidationAcceptor) {
+        if (!isPrimitiveTypeDef(attr.$container)) {
+            accept('error', `attribute "@@branded" can only be used on primitive type definitions`, {
+                node: attr,
+            });
+        }
+    }
+
     private validatePolicyKinds(
         kind: string,
         candidates: string[],

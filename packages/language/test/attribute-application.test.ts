@@ -1184,4 +1184,58 @@ describe('Attribute application validation tests', () => {
             );
         });
     });
+
+    describe('@@branded attribute', () => {
+        it('accepts primitive type defs', async () => {
+            await loadSchema(`
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                type UserId with String {                    
+                    @@branded
+                }
+            `);
+        });
+
+        it('rejects non-primitive type defs', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id   String @id
+                    name String
+                    
+                    @@branded
+                }
+            `,
+                /attribute "@@branded" can only be used on primitive type definitions/,
+            );
+
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id   String @id
+                }
+                
+                enum Enum {
+                    TEST
+                    
+                    @@branded
+                }
+            `,
+                /attribute "@@branded" can only be used on primitive type definitions/,
+            );
+        });
+    });
 });
