@@ -119,8 +119,11 @@ export const now: ZModelFunction<any> = (_eb, _args, context) =>
         .with('mysql', () =>
             sql.raw("CONCAT(SUBSTRING(DATE_FORMAT(UTC_TIMESTAMP(3), '%Y-%m-%dT%H:%i:%s.%f'), 1, 23), '+00:00')"),
         )
-        // PostgreSQL has native timestamp type that compares correctly.
-        .with('postgresql', () => sql.raw('CURRENT_TIMESTAMP'))
+        // PostgreSQL stores DateTime as `timestamp` (without time zone) holding UTC wall-clock time.
+        // `CURRENT_TIMESTAMP` is a `timestamptz`, and comparing it with a `timestamp` interprets the
+        // latter in the session's time zone, so use the current UTC wall-clock time instead. The
+        // policy plugin converts it back to `timestamptz` when compared with `@db.Timestamptz` fields.
+        .with('postgresql', () => sql.raw(`(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`))
         .exhaustive();
 
 export const currentModel: ZModelFunction<any> = (_eb, args, { model }: ZModelFunctionContext<any>) => {

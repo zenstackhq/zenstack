@@ -45,6 +45,7 @@ import {
     ValueListNode,
     ValueNode,
     WhereNode,
+    sql,
     type OperandExpression,
     type OperationNode,
 } from 'kysely';
@@ -352,7 +353,13 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             const operand = (node: OperationNode) =>
                 asText ? this.dialect.castText(new ExpressionWrapper(node)) : new ExpressionWrapper(node);
             return this.dialect
-                .buildComparison(operand(left), leftFieldDef, sqlOp, operand(right), rightFieldDef)
+                .buildComparison(
+                    operand(this.adaptNowToField(normalizedLeft, left, rightFieldDef)),
+                    leftFieldDef,
+                    sqlOp,
+                    operand(this.adaptNowToField(normalizedRight, right, leftFieldDef)),
+                    rightFieldDef,
+                )
                 .toOperationNode();
         }
     }
@@ -1304,6 +1311,23 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     private hasMappedEnumValues(enumType: string) {
         const enumDef = QueryUtils.getEnum(this.schema, enumType);
         return Object.values(enumDef?.fields ?? {}).some((f) => f.attributes?.some((attr) => attr.name === '@map'));
+    }
+
+    /**
+     * On PostgreSQL, `now()` yields the current UTC wall-clock time as a `timestamp`, matching how
+     * DateTime fields are stored by default. Fields declared `@db.Timestamptz` hold absolute instants
+     * instead, so for comparisons with them `now()` is converted back to a `timestamptz`.
+     */
+    private adaptNowToField(expr: Expression, node: OperationNode, otherFieldDef: FieldDef | undefined) {
+        if (
+            this.dialect.provider === 'postgresql' &&
+            ExpressionUtils.isCall(expr) &&
+            expr.function === 'now' &&
+            otherFieldDef?.attributes?.some((attr) => attr.name === '@db.Timestamptz')
+        ) {
+            return sql`${new ExpressionWrapper(node)} AT TIME ZONE 'UTC'`.toOperationNode();
+        }
+        return node;
     }
 
     private getFieldDefFromFieldRef(expr: Expression, context: ExpressionTransformerContext): FieldDef | undefined {
