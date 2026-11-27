@@ -229,6 +229,28 @@ describe('Toplevel field validation tests', () => {
         await expect(db.foo.create({ data: { int1: '3.3', int2: new Decimal(3.9) } })).toResolveTruthy();
     });
 
+    it('works with bytes fields', async () => {
+        const db = await createTestClient(
+            `
+        model Foo {
+            id Int @id @default(autoincrement())
+            bytes1 Bytes? @length(3, 5)
+        }
+        `,
+        );
+
+        // violates @length min
+        await expect(db.foo.create({ data: { bytes1: new Uint8Array([1, 2]) } })).toBeRejectedByValidation();
+
+        // violates @length max
+        await expect(
+            db.foo.create({ data: { bytes1: new Uint8Array([1, 2, 3, 4, 5, 6]) } }),
+        ).toBeRejectedByValidation();
+
+        // satisfies all
+        await expect(db.foo.create({ data: { bytes1: new Uint8Array([1, 2, 3, 4]) } })).toResolveTruthy();
+    });
+
     it('works with list fields', async () => {
         const db = await createTestClient(
             `

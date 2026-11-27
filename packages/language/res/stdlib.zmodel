@@ -518,9 +518,9 @@ attribute @@schema(_ map: String) @@@prisma
 //////////////////////////////////////////////
 
 /**
- * Validates length of a string field or list field.
+ * Validates length of a string field, list field, or bytes field.
  */
-attribute @length(_ min: Int?, _ max: Int?, _ message: String?) @@@targetField([StringField, ListField]) @@@validation @@@lite
+attribute @length(_ min: Int?, _ max: Int?, _ message: String?) @@@targetField([StringField, ListField, BytesField]) @@@validation @@@lite
 
 /**
  * Validates a string field value starts with the given text.

@@ -436,6 +436,26 @@ describe.each([
             });
         });
 
+        describe('bytes validation attributes', () => {
+            it('rejects avatar too short for @length(3, 5)', () => {
+                const userSchema = factory.makeModelSchema('User');
+                const result = userSchema.safeParse({ ...validUser, avatar: new Uint8Array([1, 2]) });
+                expect(result.success).toBe(false);
+            });
+
+            it('rejects avatar too long for @length(3, 5)', () => {
+                const userSchema = factory.makeModelSchema('User');
+                const result = userSchema.safeParse({ ...validUser, avatar: new Uint8Array([1, 2, 3, 4, 5, 6]) });
+                expect(result.success).toBe(false);
+            });
+
+            it('accepts avatar within @length bounds', () => {
+                const userSchema = factory.makeModelSchema('User');
+                const result = userSchema.safeParse({ ...validUser, avatar: new Uint8Array([1, 2, 3, 4]) });
+                expect(result.success).toBe(true);
+            });
+        });
+
         describe('enum fields', () => {
             it('accepts valid enum values', () => {
                 const userSchema = factory.makeModelSchema('User');
@@ -1721,6 +1741,14 @@ describe.each([
             expect(postTagSchema.safeParse('abcdefghijklm').success).toBe(false);
         });
 
+        it('applies bytes `@length` on `this` field', () => {
+            const chunkSchema = factory.makeTypeSchema('Chunk');
+            expect(chunkSchema.safeParse(new Uint8Array([])).success).toBe(false);
+            expect(chunkSchema.safeParse(new Uint8Array([1])).success).toBe(true);
+            expect(chunkSchema.safeParse(new Uint8Array([1, 2, 3, 4])).success).toBe(true);
+            expect(chunkSchema.safeParse(new Uint8Array([1, 2, 3, 4, 5])).success).toBe(false);
+        });
+
         it('supports `@@validate` attributes', () => {
             const contactSchema = factory.makeTypeSchema('Contact');
             let result = contactSchema.safeParse('test@mail.com');
@@ -1804,6 +1832,56 @@ describe.each([
                     id: 0,
                     labels: ['a'],
                 });
+                expect(result.success).toBe(true);
+            });
+
+            it('applies field attributes to the bytes list', () => {
+                const uploadSchema = factory.makeModelSchema('Upload');
+                const chunk = new Uint8Array([1]);
+                let result = uploadSchema.safeParse({ id: 0, chunks: [chunk, chunk], blobs: [] });
+                expect(result.success).toBe(true);
+
+                result = uploadSchema.safeParse({ id: 0, chunks: [chunk, chunk, chunk], blobs: [] });
+                expect(result.success).toBe(true);
+
+                result = uploadSchema.safeParse({ id: 0, chunks: [chunk], blobs: [] });
+                expect(result.success).toBe(false);
+
+                result = uploadSchema.safeParse({ id: 0, chunks: [chunk, chunk, chunk, chunk], blobs: [] });
+                expect(result.success).toBe(false);
+            });
+
+            it('applies both the list length and the element bytes length', () => {
+                const uploadSchema = factory.makeModelSchema('Upload');
+                const chunk = new Uint8Array([1]);
+                let result = uploadSchema.safeParse({
+                    id: 0,
+                    chunks: [chunk, new Uint8Array([1, 2, 3, 4])],
+                    blobs: [],
+                });
+                expect(result.success).toBe(true);
+
+                result = uploadSchema.safeParse({ id: 0, chunks: [chunk, new Uint8Array([])], blobs: [] });
+                expect(result.success).toBe(false);
+
+                result = uploadSchema.safeParse({
+                    id: 0,
+                    chunks: [chunk, new Uint8Array([1, 2, 3, 4, 5])],
+                    blobs: [],
+                });
+                expect(result.success).toBe(false);
+            });
+
+            it('does not apply bytes lengths to lists', () => {
+                const uploadSchema = factory.makeModelSchema('Upload');
+                const chunks = [new Uint8Array([1]), new Uint8Array([1])];
+                let result = uploadSchema.safeParse({ id: 0, chunks, blobs: [] });
+                expect(result.success).toBe(true);
+
+                result = uploadSchema.safeParse({ id: 0, chunks, blobs: [new Uint8Array([])] });
+                expect(result.success).toBe(false);
+
+                result = uploadSchema.safeParse({ id: 0, chunks, blobs: [new Uint8Array([1])] });
                 expect(result.success).toBe(true);
             });
 

@@ -23,6 +23,7 @@ import type {
 } from './types';
 import {
     addBigIntValidation,
+    addBytesValidation,
     addCustomValidation,
     addDecimalValidation,
     addListValidation,
@@ -392,7 +393,7 @@ class SchemaFactory<Schema extends SchemaDef> {
                 schema = z.union([z.date(), z.iso.datetime()]);
                 break;
             case 'Bytes':
-                schema = z.instanceof(Uint8Array);
+                schema = addBytesValidation(z.instanceof(Uint8Array), attributes);
                 break;
             case 'Json':
                 schema = this.makeJsonSchema();
