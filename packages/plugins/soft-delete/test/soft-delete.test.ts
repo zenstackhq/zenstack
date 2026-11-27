@@ -164,6 +164,119 @@ describe('soft-delete plugin', () => {
         expect(reloaded.posts).toEqual([expect.objectContaining({ id: live.id, title: 'live' })]);
     });
 
+    it('hides rows whose required parent is soft-deleted (#2928)', async () => {
+        const { db } = await makeClient();
+        const gone = await db.user.create({ data: { email: 'gone@test.com' } });
+        const kept = await db.user.create({ data: { email: 'kept@test.com' } });
+        await db.post.create({ data: { title: 'orphan', authorId: gone.id } });
+        const live = await db.post.create({ data: { title: 'live', authorId: kept.id } });
+
+        await db.user.delete({ where: { id: gone.id } });
+
+        // the post isn't soft-deleted itself, but it can't exist without its author
+        await expect(db.post.findMany()).resolves.toEqual([expect.objectContaining({ id: live.id })]);
+        await expect(db.post.count()).resolves.toBe(1);
+
+        // so `author` is never null where it's typed as required
+        const posts = await db.post.findMany({ include: { author: true } });
+        expect(posts.map((post: { author: { email: string } }) => post.author.email)).toEqual(['kept@test.com']);
+    });
+
+    it('hides children of a soft-deleted parent even without their own @deletedAt (#2928)', async () => {
+        const raw = await createSoftDeleteTestClient(`
+model Category {
+    id        Int       @id @default(autoincrement())
+    name      String
+    items     Item[]
+    deletedAt DateTime? @map("deleted_at") @deletedAt
+
+    @@map("categories")
+}
+
+model Item {
+    id         Int      @id @default(autoincrement())
+    name       String
+    category   Category @relation(fields: [categoryId], references: [id])
+    categoryId Int      @map("category_id")
+    notes      Note[]
+
+    @@map("items")
+}
+
+model Note {
+    id     Int    @id @default(autoincrement())
+    item   Item   @relation(fields: [itemId], references: [id])
+    itemId Int
+}
+`);
+        const db = raw.$use(new SoftDeletePlugin());
+        const gone = await db.category.create({
+            data: { name: 'gone', items: { create: { name: 'a', notes: { create: {} } } } },
+        });
+        await db.category.create({ data: { name: 'kept', items: { create: { name: 'b' } } } });
+
+        await db.category.delete({ where: { id: gone.id } });
+
+        await expect(db.item.findMany()).resolves.toEqual([expect.objectContaining({ name: 'b' })]);
+        await expect(db.category.findMany({ include: { items: true } })).resolves.toEqual([
+            expect.objectContaining({ name: 'kept', items: [expect.objectContaining({ name: 'b' })] }),
+        ]);
+        // and so is anything further down that requires them
+        await expect(db.note.findMany({ include: { item: true } })).resolves.toEqual([]);
+        // only hidden on read, the rows are still there
+        await expect(raw.item.count()).resolves.toBe(2);
+        await expect(raw.note.count()).resolves.toBe(1);
+    });
+
+    it('hides a row whose required self-relation parent is soft-deleted (#2928)', async () => {
+        const raw = await createSoftDeleteTestClient(`
+model Node {
+    id        Int       @id @default(autoincrement())
+    parent    Node      @relation("tree", fields: [parentId], references: [id])
+    parentId  Int
+    children  Node[]    @relation("tree")
+    deletedAt DateTime? @deletedAt
+}
+`);
+        const db = raw.$use(new SoftDeletePlugin());
+        const root = await raw.node.create({ data: { id: 1, parentId: 1 } });
+        await raw.node.create({ data: { id: 2, parentId: root.id } });
+
+        await db.node.delete({ where: { id: root.id } });
+
+        await expect(db.node.findMany()).resolves.toEqual([]);
+    });
+
+    it('applies the live-parent check to $qb joins (#2928)', async () => {
+        const { db } = await makeClient();
+        const gone = await db.user.create({ data: { email: 'gone@test.com' } });
+        const kept = await db.user.create({ data: { email: 'kept@test.com' } });
+        await db.post.create({ data: { title: 'orphan', authorId: gone.id } });
+        await db.post.create({ data: { title: 'live', authorId: kept.id } });
+        const tag = await db.tag.create({ data: { name: 't' } });
+
+        await db.user.delete({ where: { id: gone.id } });
+
+        const rows = await db.$qb
+            .selectFrom('Tag')
+            .innerJoin('Post', (join: any) => join.onTrue())
+            .where('Tag.id', '=', tag.id)
+            .select('Post.title')
+            .execute();
+        expect(rows).toEqual([{ title: 'live' }]);
+    });
+
+    it('skips the live-parent check for ignored parents', async () => {
+        const raw = await createSoftDeleteTestClient(schema);
+        const db = raw.$use(new SoftDeletePlugin({ ignoreParents: ['User'] }));
+        const user = await db.user.create({ data: { email: 'gone@test.com' } });
+        const post = await db.post.create({ data: { title: 'hello', authorId: user.id } });
+
+        await db.user.delete({ where: { id: user.id } });
+
+        await expect(db.post.findMany()).resolves.toEqual([expect.objectContaining({ id: post.id })]);
+    });
+
     it('leaves models without @deletedAt untouched', async () => {
         const { db, raw } = await makeClient();
 

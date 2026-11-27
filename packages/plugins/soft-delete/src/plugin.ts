@@ -25,8 +25,10 @@ import {
     OrNode,
     ParensNode,
     ReferenceNode,
+    SelectionNode,
     SelectQueryNode,
     TableNode,
+    UnaryOperationNode,
     UpdateQueryNode,
     ValueNode,
     WhereNode,
@@ -36,7 +38,18 @@ import {
 
 const SOFT_DELETE_ATTRIBUTE = '@deletedAt';
 
+export type SoftDeletePluginOptions = {
+    /**
+     * Models to leave out of the "required parent must be live" check. Useful for a root model
+     * that nearly everything points at (e.g. a tenant), where the extra subqueries add up and
+     * the root is never soft-deleted while its rows are still read.
+     */
+    ignoreParents?: readonly string[];
+};
+
 export class SoftDeletePlugin implements RuntimePlugin<SchemaDef, {}, {}, {}> {
+    constructor(private readonly options: SoftDeletePluginOptions = {}) {}
+
     get id() {
         return 'soft-delete' as const;
     }
@@ -50,7 +63,7 @@ export class SoftDeletePlugin implements RuntimePlugin<SchemaDef, {}, {}, {}> {
     }
 
     onKyselyQuery({ query, client, proceed }: OnKyselyQueryArgs<SchemaDef>) {
-        const handler = new SoftDeleteHandler(client);
+        const handler = new SoftDeleteHandler(client, this.options);
         return handler.handle(query, proceed);
     }
 }
@@ -60,9 +73,15 @@ type TableInfo = { model: string; alias?: string };
 class SoftDeleteHandler<Schema extends SchemaDef> extends OperationNodeTransformer {
     private readonly dialect: BaseCrudDialect<Schema>;
 
-    constructor(private readonly client: ClientContract<Schema>) {
+    private readonly ignoredParents: ReadonlySet<string>;
+
+    constructor(
+        private readonly client: ClientContract<Schema>,
+        options: SoftDeletePluginOptions,
+    ) {
         super();
         this.dialect = getCrudDialect(client);
+        this.ignoredParents = new Set(options.ignoreParents);
     }
 
     async handle(node: RootOperationNode, proceed: ProceedKyselyQueryFunction) {
@@ -94,7 +113,7 @@ class SoftDeleteHandler<Schema extends SchemaDef> extends OperationNodeTransform
         };
     }
 
-    // Inject `<deletedAt> IS NULL` into ON clauses of joins against soft-delete tables.
+    // Inject `<deletedAt> IS NULL` (and the live-parent checks) into ON clauses of joins.
     protected override transformJoin(node: JoinNode): JoinNode {
         const result = super.transformJoin(node);
         const info = this.extractTableInfo(result.table);
@@ -112,10 +131,14 @@ class SoftDeleteHandler<Schema extends SchemaDef> extends OperationNodeTransform
             return result;
         }
         const deletedAt = this.getDeletedAtField(info.model);
-        if (!deletedAt) {
+        const filters = [
+            ...(deletedAt ? [this.buildIsNullPredicate(info.alias ?? info.model, deletedAt.name)] : []),
+            ...this.buildLiveParentPredicates(info),
+        ];
+        if (filters.length === 0) {
             return result;
         }
-        const filter = this.buildIsNullPredicate(info.alias ?? info.model, deletedAt.name);
+        const filter = filters.reduce((acc, f) => this.andNode(acc, f));
         return {
             ...result,
             on: result.on ? OnNode.create(this.andNode(result.on.on, filter)) : OnNode.create(filter),
@@ -197,11 +220,71 @@ class SoftDeleteHandler<Schema extends SchemaDef> extends OperationNodeTransform
             if (target) {
                 filters.push(this.buildIsNullPredicate(target.table, target.column));
             }
+            filters.push(...this.buildLiveParentPredicates(info));
         }
         if (filters.length === 0) {
             return undefined;
         }
         return filters.reduce((acc, f) => this.andNode(acc, f));
+    }
+
+    // A row can't outlive a parent it requires: for every required to-one relation, only keep rows
+    // whose parent is still live, meaning not soft-deleted and with live required parents of its
+    // own. Otherwise `post.author` is typed as `User` but comes back `null` once the author is
+    // soft-deleted. This applies whether or not the row's own model has a `@deletedAt` field.
+    private buildLiveParentPredicates(info: TableInfo, visited = new Set<string>()): OperationNode[] {
+        const modelDef = QueryUtils.getModel(this.client.$schema, info.model);
+        if (!modelDef || this.isInDelegateHierarchy(info.model)) {
+            return [];
+        }
+        const childAlias = info.alias ?? info.model;
+        const path = new Set(visited).add(info.model);
+        const predicates: OperationNode[] = [];
+        for (const field of Object.values(modelDef.fields)) {
+            const fks = field.relation?.fields;
+            const refs = field.relation?.references;
+            if (field.array || field.optional || !fks?.length || !refs || fks.length !== refs.length) {
+                continue;
+            }
+            if (this.ignoredParents.has(field.type) || this.isInDelegateHierarchy(field.type)) {
+                continue;
+            }
+            const parentAlias = `${QueryUtils.TEMP_ALIAS_PREFIX}live$${childAlias}$${field.name}`;
+            const deletedAt = this.getDeletedAtField(field.type);
+            const parentChecks = [
+                ...(deletedAt ? [this.buildIsNullPredicate(parentAlias, deletedAt.name)] : []),
+                // a model that's already on the path (self-relation or cycle) still gets its own
+                // marker checked above, we just don't walk further up from it
+                ...(path.has(field.type)
+                    ? []
+                    : this.buildLiveParentPredicates({ model: field.type, alias: parentAlias }, path)),
+            ];
+            if (parentChecks.length === 0) {
+                // nothing up this chain can be soft-deleted
+                continue;
+            }
+            const conditions: OperationNode[] = [
+                ...fks.map((fk, i) =>
+                    BinaryOperationNode.create(
+                        ReferenceNode.create(ColumnNode.create(refs[i]!), TableNode.create(parentAlias)),
+                        OperatorNode.create('='),
+                        ReferenceNode.create(ColumnNode.create(fk), TableNode.create(childAlias)),
+                    ),
+                ),
+                ...parentChecks,
+            ];
+            const parent: SelectQueryNode = {
+                ...SelectQueryNode.cloneWithSelections(
+                    SelectQueryNode.createFrom([
+                        AliasNode.create(TableNode.create(field.type), IdentifierNode.create(parentAlias)),
+                    ]),
+                    [SelectionNode.createSelectAll()],
+                ),
+                where: WhereNode.create(conditions.reduce((acc, c) => this.andNode(acc, c))),
+            };
+            predicates.push(UnaryOperationNode.create(OperatorNode.create('exists'), parent));
+        }
+        return predicates;
     }
 
     // Resolve the single `@deletedAt` column to filter when reading a table. `@@@onceInModel` allows
