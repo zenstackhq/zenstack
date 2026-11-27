@@ -140,7 +140,13 @@ export class QueryNameMapper extends OperationNodeTransformer {
                   }))
                 : undefined;
             const selections = this.processSelectQuerySelections(node);
-            const baseResult = super.transformSelectQuery(node, queryId);
+
+            // "from", "joins" and "selections" are already transformed above, don't transform
+            // them again, otherwise nested subqueries are processed exponentially many times
+            const baseResult = super.transformSelectQuery(
+                { ...node, from: undefined, joins: undefined, selections: undefined },
+                queryId,
+            );
 
             return {
                 ...baseResult,
