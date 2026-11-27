@@ -27,15 +27,17 @@ describe('Fastify adapter tests - rpc handler', () => {
             method: 'POST',
             url: '/api/user/create',
             payload: {
-                include: { posts: true },
                 data: {
-                    id: 'user1',
-                    email: 'user1@abc.com',
-                    posts: {
-                        create: [
-                            { title: 'post1', published: true, viewCount: 1 },
-                            { title: 'post2', published: false, viewCount: 2 },
-                        ],
+                    include: { posts: true },
+                    data: {
+                        id: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: [
+                                { title: 'post1', published: true, viewCount: 1 },
+                                { title: 'post2', published: false, viewCount: 2 },
+                            ],
+                        },
                     },
                 },
             },
@@ -69,7 +71,7 @@ describe('Fastify adapter tests - rpc handler', () => {
         r = await app.inject({
             method: 'PUT',
             url: '/api/user/update',
-            payload: { where: { id: 'user1' }, data: { email: 'user1@def.com' } },
+            payload: { data: { where: { id: 'user1' }, data: { email: 'user1@def.com' } } },
         });
         expect(r.statusCode).toBe(200);
         expect(r.json().data.email).toBe('user1@def.com');
@@ -132,7 +134,7 @@ describe('Fastify adapter tests - rpc handler', () => {
 
         r = await app.inject({
             method: 'GET',
-            url: '/api/post/findMany?q=abc',
+            url: '/api/post/findMany?data=abc',
         });
         expect(r.statusCode).toBe(400);
     });

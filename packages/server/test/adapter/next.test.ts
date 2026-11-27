@@ -10,14 +10,14 @@ import { RestApiHandler, RPCApiHandler } from '../../src/api';
 function makeTestClient(
     apiPath: string,
     options: PageRouteRequestHandlerOptions<SchemaDef>,
-    qArg?: unknown,
+    dataArg?: unknown,
     otherArgs?: any,
 ) {
     const pathParts = apiPath.split('/').filter((p) => p);
 
     const query = {
         path: pathParts,
-        ...(qArg ? { q: JSON.stringify(qArg) } : {}),
+        ...(dataArg ? { data: JSON.stringify(dataArg) } : {}),
         ...otherArgs,
     };
 
@@ -62,7 +62,7 @@ model M {
 
         await makeTestClient('/m/create', makeClientOptions)
             .post('/')
-            .send({ data: { id: '1', value: 1 } })
+            .send({ data: { data: { id: '1', value: 1 } } })
             .expect(201)
             .expect((resp) => {
                 expect(resp.body.data.value).toBe(1);
@@ -91,7 +91,7 @@ model M {
 
         await makeTestClient('/m/update', makeClientOptions)
             .put('/')
-            .send({ where: { id: '1' }, data: { value: 2 } })
+            .send({ data: { where: { id: '1' }, data: { value: 2 } } })
             .expect(200)
             .expect((resp) => {
                 expect(resp.body.data.value).toBe(2);
@@ -99,7 +99,7 @@ model M {
 
         await makeTestClient('/m/updateMany', makeClientOptions)
             .put('/')
-            .send({ data: { value: 4 } })
+            .send({ data: { data: { value: 4 } } })
             .expect(200)
             .expect((resp) => {
                 expect(resp.body.data.count).toBe(1);
@@ -107,7 +107,7 @@ model M {
 
         await makeTestClient('/m/upsert', makeClientOptions)
             .post('/')
-            .send({ where: { id: '2' }, create: { id: '2', value: 2 }, update: { value: 3 } })
+            .send({ data: { where: { id: '2' }, create: { id: '2', value: 2 }, update: { value: 3 } } })
             .expect(201)
             .expect((resp) => {
                 expect(resp.body.data.value).toBe(2);
@@ -115,7 +115,7 @@ model M {
 
         await makeTestClient('/m/upsert', makeClientOptions)
             .post('/')
-            .send({ where: { id: '2' }, create: { id: '2', value: 2 }, update: { value: 3 } })
+            .send({ data: { where: { id: '2' }, create: { id: '2', value: 2 }, update: { value: 3 } } })
             .expect(201)
             .expect((resp) => {
                 expect(resp.body.data.value).toBe(3);
@@ -189,7 +189,7 @@ model M {
 
         await makeTestClient('/m/create', makeClientOptions)
             .post('/')
-            .send({ data: { value: 0 } })
+            .send({ data: { data: { value: 0 } } })
             .expect(403)
             .expect((resp) => {
                 expect(resp.body.error.rejectReason).toBe('cannot-read-back');
@@ -197,7 +197,7 @@ model M {
 
         await makeTestClient('/m/create', makeClientOptions)
             .post('/')
-            .send({ data: { id: '1', value: 1 } })
+            .send({ data: { data: { id: '1', value: 1 } } })
             .expect(201);
 
         await makeTestClient('/m/findMany', makeClientOptions)
@@ -209,12 +209,12 @@ model M {
 
         await makeTestClient('/m/update', makeClientOptions)
             .put('/')
-            .send({ where: { id: '1' }, data: { value: 0 } })
+            .send({ data: { where: { id: '1' }, data: { value: 0 } } })
             .expect(403);
 
         await makeTestClient('/m/update', makeClientOptions)
             .put('/')
-            .send({ where: { id: '1' }, data: { value: 2 } })
+            .send({ data: { where: { id: '1' }, data: { value: 2 } } })
             .expect(200);
 
         await makeTestClient('/m/delete', makeClientOptions, { where: { id: '1' } })
@@ -223,7 +223,7 @@ model M {
 
         await makeTestClient('/m/update', makeClientOptions)
             .put('/')
-            .send({ where: { id: '1' }, data: { value: 3 } })
+            .send({ data: { where: { id: '1' }, data: { value: 3 } } })
             .expect(200);
 
         await makeTestClient('/m/delete', makeClientOptions, { where: { id: '1' } })
