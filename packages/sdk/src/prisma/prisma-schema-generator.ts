@@ -355,7 +355,9 @@ export class PrismaSchemaGenerator {
         }
         return new PrismaFieldAttribute(
             attrName,
-            attr.args.map((arg) => this.makeAttributeArg(arg)),
+            attr.args
+                .filter((arg) => !(attrName === '@updatedAt' && arg.$resolvedParam?.name === 'ignore'))
+                .map((arg) => this.makeAttributeArg(arg)),
         );
     }
 
