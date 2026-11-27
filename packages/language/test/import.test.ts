@@ -1,10 +1,14 @@
 import { invariant } from '@zenstackhq/common-helpers';
+import { Cancellation, DocumentState, URI } from 'langium';
+import { addFormattingHandler } from 'langium/lsp';
+import { NodeFileSystem } from 'langium/node';
 import fs from 'node:fs';
 import path from 'node:path';
 import tmp from 'tmp';
-import { describe, expect, it } from 'vitest';
-import { loadDocument } from '../src';
-import { DataModel, isDataModel } from '../src/ast';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
+import type { Connection } from 'vscode-languageserver';
+import { createZModelLanguageServices, loadDocument } from '../src';
+import { DataModel, isDataModel, isTypeDef, type Model } from '../src/ast';
 
 describe('Import tests', () => {
     it('merges declarations', async () => {
@@ -104,6 +108,184 @@ model B {
         expect((modelB.declarations[0] as DataModel).fields[1].type.reference?.ref?.name).toBe('A');
         const modelA = await expectLoaded(path.join(name, 'a.zmodel'));
         expect((modelA.declarations[1] as DataModel).fields[1].type.reference?.ref?.name).toBe('B');
+    });
+
+    describe('language server imports (#2923)', () => {
+        it.each([false, true])('indexes declarations under node_modules (preloaded: %s)', async (preloaded) => {
+            const { name, removeCallback } = tmp.dirSync({ unsafeCleanup: true });
+            onTestFinished(removeCallback);
+            const pluginPath = path.join(name, 'node_modules/policy/plugin.zmodel');
+            fs.mkdirSync(path.dirname(pluginPath), { recursive: true });
+            fs.copyFileSync(path.resolve(__dirname, '../../plugins/policy/plugin.zmodel'), pluginPath);
+            const schemaPath = path.join(name, 'schema.zmodel');
+            fs.writeFileSync(
+                schemaPath,
+                `
+import './node_modules/policy/plugin.zmodel'
+datasource db {
+  provider = 'postgresql'
+  url = env('DATABASE_URL')
+}
+model Post {
+  id String @id
+  title String
+  @@allow('read', true)
+}
+`,
+            );
+
+            const { shared } = createZModelLanguageServices(NodeFileSystem);
+            if (preloaded) {
+                await shared.workspace.LangiumDocuments.getOrCreateDocument(URI.file(pluginPath));
+            }
+            shared.workspace.WorkspaceManager.initialBuildOptions = { validation: true };
+            await shared.workspace.WorkspaceManager.initializeWorkspace([{ name, uri: URI.file(name).toString() }]);
+            const document = shared.workspace.LangiumDocuments.getDocument<Model>(URI.file(schemaPath))!;
+            expect(document.diagnostics).toEqual([]);
+            const post = document.parseResult.value.declarations.find(isDataModel)!;
+            expect(post.attributes[0].decl.ref?.name).toBe('@@allow');
+
+            await shared.workspace.DocumentBuilder.update([document.uri], []);
+            expect(document.diagnostics).toEqual([]);
+        });
+
+        it.each([false, true])('releases parsed-state requests during edits (import: %s)', async (withImport) => {
+            const { name, removeCallback } = tmp.dirSync({ unsafeCleanup: true });
+            onTestFinished(removeCallback);
+            const uri = URI.file(path.join(name, 'schema.zmodel'));
+            const schema = `
+${withImport ? "import './node_modules/shared/role'" : ''}
+datasource db { provider = 'postgresql' url = env('DATABASE_URL') }
+model Post { id Int @id title String ${withImport ? 'role Role' : ''} }
+`;
+            if (withImport) {
+                const importedPath = path.join(name, 'node_modules/shared/role.zmodel');
+                fs.mkdirSync(path.dirname(importedPath), { recursive: true });
+                fs.writeFileSync(importedPath, 'enum Role { Admin User }');
+            }
+            fs.writeFileSync(uri.fsPath, schema);
+            const { shared } = createZModelLanguageServices(NodeFileSystem);
+            const { DocumentBuilder, LangiumDocuments, WorkspaceManager } = shared.workspace;
+            WorkspaceManager.initialBuildOptions = { validation: true };
+            await WorkspaceManager.initializeWorkspace([{ name, uri: URI.file(name).toString() }]);
+            const document = LangiumDocuments.getDocument(uri)!;
+            expect(document.diagnostics).toEqual([]);
+
+            const connection = {
+                onDocumentFormatting: vi.fn<Connection['onDocumentFormatting']>(),
+                onDocumentRangeFormatting: vi.fn<Connection['onDocumentRangeFormatting']>(),
+                onDocumentOnTypeFormatting: vi.fn<Connection['onDocumentOnTypeFormatting']>(),
+            };
+            addFormattingHandler(connection as unknown as Connection, shared);
+            const format = connection.onDocumentFormatting.mock.calls[0]![0];
+            const params = { textDocument: { uri: uri.toString() }, options: { tabSize: 4, insertSpaces: true } };
+            const token = new Cancellation.CancellationTokenSource();
+            const parsed = vi.fn();
+            const phaseListener = DocumentBuilder.onDocumentPhase(DocumentState.Parsed, parsed);
+            let pending: Promise<unknown>[] = [];
+            const updateListener = DocumentBuilder.onUpdate(() => {
+                expect(document.state).toBe(DocumentState.Changed);
+                pending = [
+                    DocumentBuilder.waitUntil(DocumentState.Parsed, uri, token.token),
+                    Promise.resolve(format(params, token.token)),
+                ];
+            });
+            try {
+                for (let round = 0; round < 2; round++) {
+                    parsed.mockClear();
+                    fs.writeFileSync(uri.fsPath, schema.replace('title String', `title${round} String`));
+                    await DocumentBuilder.update([uri], []);
+                    expect(document.state).toBe(DocumentState.Validated);
+                    expect(document.diagnostics).toEqual([]);
+                    expect(parsed.mock.calls.map(([doc]) => doc.uri.toString())).toEqual([uri.toString()]);
+                    const [waitedUri, edits] = await Promise.all(pending);
+                    expect(waitedUri).toEqual(uri);
+                    expect(edits).toBeInstanceOf(Array);
+                    expect(edits).not.toHaveLength(0);
+                }
+            } finally {
+                token.cancel();
+                await Promise.allSettled(pending);
+                token.dispose();
+                phaseListener.dispose();
+                updateListener.dispose();
+            }
+        });
+
+        it('indexes transitive and cyclic imports without exposing transitive declarations', async () => {
+            const { name, removeCallback } = tmp.dirSync({ unsafeCleanup: true });
+            onTestFinished(removeCallback);
+            const packagePath = path.join(name, 'node_modules/shared');
+            fs.mkdirSync(packagePath, { recursive: true });
+            fs.writeFileSync(
+                path.join(packagePath, 'base.zmodel'),
+                `
+import './role'
+type Base {
+  id Int @id
+  role Role @default(Admin)
+}
+`,
+            );
+            fs.writeFileSync(
+                path.join(packagePath, 'role.zmodel'),
+                `
+import './base'
+enum Role {
+  Admin
+  User
+}
+`,
+            );
+            const unrelatedUri = URI.file(path.join(packagePath, 'unrelated.zmodel'));
+            fs.writeFileSync(unrelatedUri.fsPath, 'enum Unrelated { Value }');
+            const schemaPath = path.join(name, 'schema.zmodel');
+            const schema = `
+import './node_modules/shared/base'
+datasource db {
+  provider = 'postgresql'
+  url = env('DATABASE_URL')
+}
+model Post with Base {
+  title String
+}
+`;
+            fs.writeFileSync(schemaPath, schema);
+
+            const { shared } = createZModelLanguageServices(NodeFileSystem);
+            shared.workspace.WorkspaceManager.initialBuildOptions = { validation: true };
+            await shared.workspace.WorkspaceManager.initializeWorkspace([{ name, uri: URI.file(name).toString() }]);
+            const document = shared.workspace.LangiumDocuments.getDocument(URI.file(schemaPath))!;
+            expect(document.diagnostics).toEqual([]);
+            const base = shared.workspace.LangiumDocuments.getDocument<Model>(
+                URI.file(path.join(packagePath, 'base.zmodel')),
+            )!;
+            expect(base.diagnostics).toEqual([]);
+            const baseModel = base.parseResult.value.declarations.find(isTypeDef)!;
+            expect(baseModel.fields[1].type.reference?.ref?.name).toBe('Role');
+            expect(shared.workspace.LangiumDocuments.hasDocument(unrelatedUri)).toBe(false);
+
+            fs.writeFileSync(schemaPath, schema.replace('title String', 'role2 Role'));
+            await shared.workspace.DocumentBuilder.update([document.uri], []);
+            expect(document.diagnostics?.map((d) => d.message)).toContain(
+                "Could not resolve reference to TypeDeclaration named 'Role'.",
+            );
+            fs.writeFileSync(schemaPath, schema);
+            await shared.workspace.DocumentBuilder.update([document.uri], []);
+            expect(document.diagnostics).toEqual([]);
+
+            const roleUri = URI.file(path.join(packagePath, 'role.zmodel'));
+            const roleSchema = fs.readFileSync(roleUri.fsPath, 'utf-8');
+            fs.writeFileSync(roleUri.fsPath, roleSchema.replace('enum Role', 'enum OtherRole'));
+            await shared.workspace.DocumentBuilder.update([roleUri], []);
+            expect(base.diagnostics?.map((d) => d.message)).toContain(
+                "Could not resolve reference to TypeDeclaration named 'Role'.",
+            );
+            fs.writeFileSync(roleUri.fsPath, roleSchema);
+            await shared.workspace.DocumentBuilder.update([roleUri], []);
+            expect(base.diagnostics).toEqual([]);
+            expect(document.diagnostics).toEqual([]);
+        });
     });
 
     async function expectLoaded(file: string) {
