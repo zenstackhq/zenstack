@@ -42,7 +42,7 @@ export class SchemaType implements SchemaDef {
                 }
             },
             attributes: [
-                { name: "@@validate", args: [{ name: "value", value: ExpressionUtils.binary(ExpressionUtils.field("status"), "in", ExpressionUtils.array("PostStatus", [ExpressionUtils.literal("DRAFT"), ExpressionUtils.literal("ACTIVE"), ExpressionUtils.literal("CANCELLED")])) }] }
+                { name: "@@validate", args: [{ name: "value", value: ExpressionUtils.binary(ExpressionUtils.field("status"), "in", ExpressionUtils.array("PostStatus", [ExpressionUtils.enum("PostStatus", "DRAFT"), ExpressionUtils.enum("PostStatus", "ACTIVE"), ExpressionUtils.enum("PostStatus", "CANCELLED")])) }] }
             ] as readonly AttributeApplication[],
             idFields: ["id"],
             uniqueFields: {

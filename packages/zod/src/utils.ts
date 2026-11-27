@@ -333,7 +333,7 @@ export function collectFieldRefs(expr: Expression): Set<string> {
             case 'member':
                 walk(e.receiver);
                 break;
-            // literal / null / this / binding — no field refs
+            // literal / enum / null / this / binding — no field refs
         }
     }
     walk(expr);
@@ -410,6 +410,9 @@ function applyValidation(
 function evalExpression(data: any, expr: Expression): unknown {
     switch (expr.kind) {
         case 'literal':
+            return expr.value;
+        case 'enum':
+            // validation runs against input data, which carries enum member names
             return expr.value;
         case 'array':
             return expr.items.map((item) => evalExpression(data, item));

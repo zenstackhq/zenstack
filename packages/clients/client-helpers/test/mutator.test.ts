@@ -195,6 +195,45 @@ describe('applyMutation', () => {
             expect(result?.[0]).toHaveProperty('role', 'user');
         });
 
+        it('applies enum default values for fields', async () => {
+            const schema = createSchema({
+                User: {
+                    name: 'User',
+                    fields: {
+                        id: createField('id', 'String'),
+                        name: createField('name', 'String'),
+                        role: {
+                            name: 'role',
+                            type: 'Role',
+                            optional: false,
+                            attributes: [
+                                {
+                                    name: '@default',
+                                    args: [{ value: { kind: 'enum', type: 'Role', value: 'USER' } }],
+                                },
+                            ],
+                        },
+                    },
+                    uniqueFields: {},
+                    idFields: ['id'],
+                },
+            });
+
+            const result = await applyMutation(
+                'User',
+                'findMany',
+                [],
+                'User',
+                'create',
+                { data: { name: 'Bob' } },
+                schema,
+                undefined,
+            );
+
+            // enum defaults carry member names, like query results
+            expect(result?.[0]).toHaveProperty('role', 'USER');
+        });
+
         it('handles DateTime fields with @default', async () => {
             const schema = createSchema({
                 User: {

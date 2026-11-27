@@ -33,6 +33,8 @@ export class ExpressionEvaluator {
             .when(ExpressionUtils.isBinary, (expr) => this.evaluateBinary(expr, context))
             .when(ExpressionUtils.isField, (expr) => this.evaluateField(expr, context))
             .when(ExpressionUtils.isLiteral, (expr) => this.evaluateLiteral(expr))
+            // values (e.g. from `auth()`) carry enum member names
+            .when(ExpressionUtils.isEnum, (expr) => expr.value)
             .when(ExpressionUtils.isMember, (expr) => this.evaluateMember(expr, context))
             .when(ExpressionUtils.isUnary, (expr) => this.evaluateUnary(expr, context))
             .when(ExpressionUtils.isCall, (expr) => this.evaluateCall(expr, context))

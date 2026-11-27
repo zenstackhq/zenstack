@@ -23,6 +23,7 @@ import {
     ExpressionUtils,
     type ArrayExpression,
     type CallExpression,
+    type EnumValueExpression,
     type Expression,
     type FieldExpression,
     type SchemaDef,
@@ -45,6 +46,7 @@ import {
     ValueListNode,
     ValueNode,
     WhereNode,
+    sql,
     type OperandExpression,
     type OperationNode,
 } from 'kysely';
@@ -191,9 +193,22 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         );
     }
 
+    @expr('enum')
+    // @ts-expect-error
+    private _enum(expr: EnumValueExpression) {
+        return this.transformValue(expr.value, expr.type as BuiltinType);
+    }
+
     @expr('array')
     // @ts-expect-error
     private _array(expr: ArrayExpression, context: ExpressionTransformerContext) {
+        if (expr.items.length > 0 && expr.items.every(ExpressionUtils.isEnum)) {
+            // a list of enum members, passed as a plain value like other enum arrays (see `transformValue`)
+            return this.transformValue(
+                expr.items.map((item) => item.value),
+                expr.type as BuiltinType,
+            );
+        }
         return this.dialect
             .buildArrayValue(
                 expr.items.map((item) => new ExpressionWrapper(this.transform(item, context))),
@@ -273,6 +288,9 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             return this.transformCollectionPredicate(expr, context);
         }
 
+        // Enums are compared by member names, like in ORM filters and validation: values carry names, and
+        // enum fields read from tables are converted to names (see `buildFieldRef`). The ORM turns the
+        // common shapes back into comparisons of database values so that they stay index-friendly.
         const { normalizedLeft, normalizedRight } = this.normalizeBinaryOperationOperands(expr, context);
         const left = this.transform(normalizedLeft, context);
 
@@ -284,7 +302,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                     // `in` with a list of literal values, e.g. `field in [1, 2, 3]` or
                     // `field in [ENUM_A, ENUM_B]`: emit a plain SQL `IN (...)` list on every
                     // dialect (instead of a dialect-specific array value) so that it stays
-                    // index-friendly and the name mapper can translate `@map`-ed enum values
+                    // index-friendly
                     if (normalizedRight.items.length === 0) {
                         return this.transformValue(false, 'Boolean');
                     }
@@ -296,17 +314,26 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 }
 
                 const right = this.transform(normalizedRight, context);
-                if (ValueListNode.is(right)) {
+                if (ValueNode.is(right) && Array.isArray(right.value)) {
+                    // an array value (e.g. `field in auth().enumArray`), also as an `IN (...)` list
+                    if (right.value.length === 0) {
+                        return this.transformValue(false, 'Boolean');
+                    }
+                    return BinaryOperationNode.create(
+                        left,
+                        OperatorNode.create('in'),
+                        ValueListNode.create(right.value.map((v) => ValueNode.create(v))),
+                    );
+                } else if (ValueListNode.is(right)) {
                     // simple `in` operator with a list of values, e.g. `field in [auth().x, 2]`
                     return BinaryOperationNode.create(left, OperatorNode.create('in'), right);
                 } else {
-                    // array contains
-                    const leftFieldDef = this.getFieldDefFromFieldRef(normalizedLeft, context);
-                    const comparand =
-                        leftFieldDef && QueryUtils.isEnum(this.schema, leftFieldDef.type)
-                            ? // cast lhs otherwise dialect like pg can reject due to type mismatch
-                              this.dialect.castText(new ExpressionWrapper(left)).toOperationNode()
-                            : left;
+                    // array contains; an input enum field (text) is compared with the array as text
+                    const asText = this.readsInputEnumField(normalizedLeft, context);
+                    const comparand = asText
+                        ? this.dialect.castText(new ExpressionWrapper(left)).toOperationNode()
+                        : left;
+                    const array = asText ? this.castTextArray(right) : right;
                     if (SelectQueryNode.is(right)) {
                         // RHS is a correlated subquery selecting an array column (e.g.
                         // `this.relation.arrayField`). As a scalar subquery it yields the
@@ -316,7 +343,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                         const rightFieldDef = this.getFieldDefFromFieldRef(normalizedRight, context);
                         return this.dialect
                             .buildArrayContains(
-                                new ExpressionWrapper(right),
+                                new ExpressionWrapper(array),
                                 new ExpressionWrapper(comparand),
                                 rightFieldDef?.type,
                             )
@@ -327,7 +354,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                     return BinaryOperationNode.create(
                         comparand,
                         OperatorNode.create('='),
-                        FunctionNode.create('any', [right]),
+                        FunctionNode.create('any', [array]),
                     );
                 }
             }
@@ -343,12 +370,9 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             const rightFieldDef = this.getFieldDefFromFieldRef(normalizedRight, context);
             // Map ZModel operator to SQL operator string
             const sqlOp = op === '==' ? '=' : op;
-            // enums read from a VALUES table (`before()` rows, create input) are text, and pg can't
-            // compare text to a native enum
+            // input enum fields are typed as text, so both operands are compared as text
             const asText =
-                this.isBeforeEnumField(normalizedLeft, context) ||
-                this.isBeforeEnumField(normalizedRight, context) ||
-                this.isCreateInputEnumComparison(normalizedLeft, normalizedRight, context);
+                this.readsInputEnumField(normalizedLeft, context) || this.readsInputEnumField(normalizedRight, context);
             const operand = (node: OperationNode) =>
                 asText ? this.dialect.castText(new ExpressionWrapper(node)) : new ExpressionWrapper(node);
             return this.dialect
@@ -378,7 +402,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     }
 
     private isLiteralArray(expr: Expression): expr is ArrayExpression {
-        return expr.kind === 'array' && expr.items.every((item) => item.kind === 'literal');
+        return expr.kind === 'array' && expr.items.every((item) => item.kind === 'literal' || item.kind === 'enum');
     }
 
     private normalizeBinaryOperationOperands(expr: BinaryExpression, context: ExpressionTransformerContext) {
@@ -734,6 +758,11 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     }
 
     private transformValue(value: unknown, type: BuiltinType): OperationNode {
+        if (Array.isArray(value) && QueryUtils.isEnum(this.schema, type)) {
+            // enum arrays are passed as a single parameter, which is typed by the operand it's
+            // compared with (a dialect array value would be typed as a text array)
+            return ValueNode.create(value);
+        }
         if (value === true) {
             return trueNode(this.dialect);
         } else if (value === false) {
@@ -776,17 +805,28 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         if (!func) {
             throw createUnsupportedError(`Function not implemented: ${expr.function}`);
         }
-        return func(
-            this.eb,
-            (expr.args ?? []).map((arg) => this.transformCallArg(arg, context)),
-            {
-                client: this.client,
-                dialect: this.dialect,
-                model: context.modelOrType as GetModels<Schema>,
-                modelAlias: context.alias ?? context.modelOrType,
-                operation: context.operation,
-            },
+        // array functions compare an enum array field's elements by member names, like binary operations
+        const comparesArrayField = ['has', 'hasSome', 'hasEvery'].includes(expr.function);
+        let args = (expr.args ?? []).map((arg, i) =>
+            this.transformCallArg(arg, context, comparesArrayField && i === 0),
         );
+        if (comparesArrayField && expr.args?.[0] && !ExpressionUtils.isField(expr.args[0])) {
+            // without a field to type them, array values (see `transformValue`) are typed as text arrays
+            args = args.map((arg) => {
+                const node = arg.toOperationNode();
+                return ValueNode.is(node) && Array.isArray(node.value)
+                    ? new ExpressionWrapper(this.castTextArray(node))
+                    : arg;
+            });
+        }
+
+        return func(this.eb, args, {
+            client: this.client,
+            dialect: this.dialect,
+            model: context.modelOrType as GetModels<Schema>,
+            modelAlias: context.alias ?? context.modelOrType,
+            operation: context.operation,
+        });
     }
 
     private getFunctionImpl(functionName: string) {
@@ -804,10 +844,19 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         return func;
     }
 
-    private transformCallArg(arg: Expression, context: ExpressionTransformerContext): OperandExpression<any> {
+    private transformCallArg(
+        arg: Expression,
+        context: ExpressionTransformerContext,
+        compared = false,
+    ): OperandExpression<any> {
         if (ExpressionUtils.isField(arg)) {
             // field references are passed as-is, without translating to joins, etc.
-            return this.eb.ref(arg.field);
+            const ref = this.eb.ref(arg.field);
+            const fieldDef = QueryUtils.getField(this.schema, context.modelOrType, arg.field);
+            if (compared && fieldDef && !this.readsCreateInput(context)) {
+                return new ExpressionWrapper(this.asEnumName(fieldDef, ref.toOperationNode()));
+            }
+            return ref;
         } else {
             return new ExpressionWrapper(this.transform(arg, context));
         }
@@ -1122,10 +1171,10 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     }
 
     private createColumnRef(column: string, context: ExpressionTransformerContext) {
-        // if field comes from a delegate base model, we need to use the join alias
-        // of that base model
-
-        return this.buildFieldRef(context.modelOrType, column, context.alias ?? context.modelOrType);
+        return this.buildFieldRef(context.modelOrType, column, context.alias ?? context.modelOrType, {
+            // the create input carries enum member names already
+            storedValues: !this.readsCreateInput(context),
+        });
     }
 
     /**
@@ -1133,15 +1182,22 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
      * Handles regular columns, `@computed` fields (inlined via the dialect), and fields inherited
      * from a delegate base model (looked up from the base table with a correlated subquery).
      */
-    private buildFieldRef(model: string, field: string, modelAlias: string): OperationNode {
+    private buildFieldRef(
+        model: string,
+        field: string,
+        modelAlias: string,
+        { storedValues = true }: { storedValues?: boolean } = {},
+    ): OperationNode {
         const fieldDef = QueryUtils.requireField(this.schema, model, field);
 
         rejectParameterizedComputedField(fieldDef, model);
 
         if (!fieldDef.originModel || fieldDef.originModel === model) {
-            return fieldDef.computed
+            const ref = fieldDef.computed
                 ? this.dialect.fieldRef(model, field, modelAlias).toOperationNode()
                 : ReferenceNode.create(ColumnNode.create(field), TableNode.create(modelAlias));
+            // enums are compared by member names (see `_binary`)
+            return storedValues ? this.asEnumName(fieldDef, ref) : ref;
         }
 
         // For inherited fields in delegate sub-types, use a correlated subquery against the
@@ -1226,84 +1282,56 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         return !!fieldDef?.relation;
     }
 
-    private isBeforeEnumField(expr: Expression, context: ExpressionTransformerContext) {
-        if (!ExpressionUtils.isMember(expr) || !isBeforeInvocation(expr.receiver)) {
-            return false;
+    // converts stored values of an enum field to member names (a no-op for other fields)
+    private asEnumName(fieldDef: FieldDef, node: OperationNode) {
+        return QueryUtils.isEnum(this.schema, fieldDef.type)
+            ? QueryUtils.enumName(this.schema, fieldDef.type, node, !!fieldDef.array)
+            : node;
+    }
+
+    /**
+     * Whether fields resolve against the entity being created, i.e. the input `VALUES` table built by
+     * the policy handler (see `enforcePreCreatePolicyForOne`), which carries input values (enum member
+     * names) rather than stored ones. That's the case at the top level of a create rule, for bare
+     * fields and `this.field`; inside a collection predicate (incl. on self-relations, which are
+     * aliased differently) fields refer to stored rows.
+     */
+    private readsCreateInput(context: ExpressionTransformerContext) {
+        return (
+            context.operation === 'create' &&
+            context.modelOrType === context.thisType &&
+            context.alias === context.thisAlias
+        );
+    }
+
+    /**
+     * Whether the operand is an enum field read from a `VALUES` table built from input: `before()`
+     * rows, or the entity being created (see {@link readsCreateInput}). These tables carry member
+     * names typed as text, while stored columns may have a native enum type (PostgreSQL has no
+     * `text = "Enum"` operator), so comparisons with them are done on text.
+     */
+    private readsInputEnumField(expr: Expression, context: ExpressionTransformerContext) {
+        let fieldDef: FieldDef | undefined;
+        if (ExpressionUtils.isMember(expr) && expr.members.length === 1 && isBeforeInvocation(expr.receiver)) {
+            // `before()` always refers to the model being updated
+            fieldDef = QueryUtils.getField(this.schema, context.thisType, expr.members[0]!);
+        } else if (
+            ExpressionUtils.isMember(expr) &&
+            expr.members.length === 1 &&
+            ExpressionUtils.isThis(expr.receiver) &&
+            context.operation === 'create'
+        ) {
+            // `this.field` always refers to the entity the rule belongs to
+            fieldDef = QueryUtils.getField(this.schema, context.thisType, expr.members[0]!);
+        } else if (ExpressionUtils.isField(expr) && this.readsCreateInput(context)) {
+            fieldDef = QueryUtils.getField(this.schema, context.modelOrType, expr.field);
         }
-        // `before()` always refers to the model being updated (`thisType`), even inside
-        // collection predicates where `modelOrType` is the related model
-        const fieldDef = QueryUtils.getField(this.schema, context.thisType, expr.members[0]!);
         return !!fieldDef && QueryUtils.isEnum(this.schema, fieldDef.type);
     }
 
-    /**
-     * Whether a comparison in a create rule needs both operands compared as text.
-     *
-     * Create rules are evaluated before the insert, against a `VALUES` table built from the input
-     * (see `enforcePreCreatePolicyForOne`). That table carries enum fields as `text`, while stored
-     * columns have the native enum type, and PostgreSQL has no `text = "Enum"` operator (42883).
-     *
-     * Returns true only when one operand is an enum field of the entity being created and the
-     * other is a stored field of the same enum, e.g. for `model Grant { permission Permission }`:
-     * - `permission == anchor.defaultPermission` (bare top-level field vs. related row)
-     * - `anchor.approvals?[permission == this.permission]` (stored row vs. `this`)
-     *
-     * Not for literals (`permission == EDIT`): the name mapper still translates `@map`-ed literals.
-     * Not for enums with `@map`-ed values: the input holds names (`ACTIVE`) but stored columns
-     * hold mapped values (`active`), so a text comparison would be wrong (#2867).
-     */
-    private isCreateInputEnumComparison(left: Expression, right: Expression, context: ExpressionTransformerContext) {
-        // only create rules read from the input `VALUES` table
-        if (context.operation !== 'create') {
-            return false;
-        }
-        const leftInput = this.getCreateInputEnumField(left, context);
-        const rightInput = this.getCreateInputEnumField(right, context);
-        // exactly one operand must be create input: if both are, both are text; if neither is,
-        // both are stored native enums. Either way the types already match.
-        if (!leftInput === !rightInput) {
-            return false;
-        }
-        const inputDef = (leftInput ?? rightInput)!;
-        // the other operand must be a stored field of the same enum (a literal resolves to no field)
-        const storedDef = this.getFieldDefFromFieldRef(leftInput ? right : left, context);
-        return storedDef?.type === inputDef.type && !this.hasMappedEnumValues(inputDef.type);
-    }
-
-    /**
-     * If the expression reads an enum field of the entity being created (i.e. a column of the input
-     * `VALUES` table), returns that field's definition; otherwise `undefined`.
-     *
-     * - `this.field` always refers to the entity the rule belongs to. A longer path such as
-     *   `this.anchor.defaultPermission` goes through a relation and reads a stored row.
-     * - a bare `field` refers to the entity being created only at the top level of the rule. Inside
-     *   a collection predicate (`relation?[field == ...]`) it refers to the related stored row.
-     */
-    private getCreateInputEnumField(expr: Expression, context: ExpressionTransformerContext) {
-        let field: string | undefined;
-        if (ExpressionUtils.isMember(expr) && ExpressionUtils.isThis(expr.receiver) && expr.members.length === 1) {
-            // `this.field`
-            field = expr.members[0];
-        } else if (
-            ExpressionUtils.isField(expr) &&
-            // still on the model the rule belongs to ...
-            context.modelOrType === context.thisType &&
-            // ... and not inside a collection predicate: there (incl. self-relations, where the
-            // model is the same) a bare field is a stored row, aliased differently
-            context.alias === context.thisAlias
-        ) {
-            // bare top-level `field`
-            field = expr.field;
-        }
-        // `this` and top-level bare fields both resolve against the model being created
-        const fieldDef = field ? QueryUtils.getField(this.schema, context.thisType, field) : undefined;
-        return fieldDef && QueryUtils.isEnum(this.schema, fieldDef.type) ? fieldDef : undefined;
-    }
-
-    // whether any member of the enum carries `@map`, i.e. its stored values differ from its names
-    private hasMappedEnumValues(enumType: string) {
-        const enumDef = QueryUtils.getEnum(this.schema, enumType);
-        return Object.values(enumDef?.fields ?? {}).some((f) => f.attributes?.some((attr) => attr.name === '@map'));
+    // casts a (PostgreSQL) array to `text[]`
+    private castTextArray(node: OperationNode): OperationNode {
+        return this.eb.cast(new ExpressionWrapper(node), sql`text[]`).toOperationNode();
     }
 
     private getFieldDefFromFieldRef(expr: Expression, context: ExpressionTransformerContext): FieldDef | undefined {

@@ -375,7 +375,7 @@ export class SchemaType implements SchemaDef {
                 }
             },
             attributes: [
-                { name: "@@validate", args: [{ name: "value", value: ExpressionUtils.binary(ExpressionUtils.field("type"), "in", ExpressionUtils.array("AddressType", [ExpressionUtils.literal("RESIDENTIAL"), ExpressionUtils.literal("COMMERCIAL")])) }] },
+                { name: "@@validate", args: [{ name: "value", value: ExpressionUtils.binary(ExpressionUtils.field("type"), "in", ExpressionUtils.array("AddressType", [ExpressionUtils.enum("AddressType", "RESIDENTIAL"), ExpressionUtils.enum("AddressType", "COMMERCIAL")])) }] },
                 { name: "@@validate", args: [{ name: "value", value: ExpressionUtils.binary(ExpressionUtils.binary(ExpressionUtils.field("zip"), "==", ExpressionUtils._null()), "||", ExpressionUtils.binary(ExpressionUtils.call("length", [ExpressionUtils.field("zip")]), "==", ExpressionUtils.literal(5))) }, { name: "message", value: ExpressionUtils.literal("Zip code must be exactly 5 characters") }, { name: "path", value: ExpressionUtils.array("String", [ExpressionUtils.literal("zip")]) }] },
                 { name: "@@meta", args: [{ name: "name", value: ExpressionUtils.literal("description") }, { name: "value", value: ExpressionUtils.literal("A mailing address") }] }
             ] as readonly AttributeApplication[]

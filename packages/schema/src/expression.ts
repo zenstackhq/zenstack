@@ -1,5 +1,6 @@
 export type Expression =
     | LiteralExpression
+    | EnumValueExpression
     | ArrayExpression
     | FieldExpression
     | MemberExpression
@@ -13,6 +14,16 @@ export type Expression =
 export type LiteralExpression = {
     kind: 'literal';
     value: string | number | boolean;
+};
+
+/**
+ * A reference to a member of an enum, e.g. `ACTIVE` of `enum Status { ACTIVE }`. `value` is the
+ * member's name; how it's represented in the database (`@map`) is resolved by the ORM.
+ */
+export type EnumValueExpression = {
+    kind: 'enum';
+    type: string;
+    value: string;
 };
 
 export type ArrayExpression = {

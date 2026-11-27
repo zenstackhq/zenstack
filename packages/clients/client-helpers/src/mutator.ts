@@ -216,8 +216,8 @@ function createMutate(
             }
 
             const defaultArg = defaultAttr?.args?.[0]?.value;
-            if (defaultArg?.kind === 'literal') {
-                // other default value
+            if (defaultArg?.kind === 'literal' || defaultArg?.kind === 'enum') {
+                // other default value (enum defaults carry member names)
                 insert[name] = defaultArg.value;
             }
         }
