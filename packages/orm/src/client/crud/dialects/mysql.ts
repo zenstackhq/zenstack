@@ -96,7 +96,7 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
         } else {
             switch (type) {
                 case 'Boolean':
-                    return value ? 1 : 0;
+                    return value !== null ? (value ? 1 : 0) : value;
                 case 'DateTime':
                     // MySQL DATETIME format: 'YYYY-MM-DD HH:MM:SS.mmm'
                     if (value instanceof Date) {
