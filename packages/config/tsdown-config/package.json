@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/tsdown-config",
-    "version": "3.10.3",
+    "version": "3.10.4",
     "private": true,
     "type": "module",
     "license": "MIT",
