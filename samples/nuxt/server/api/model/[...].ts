@@ -1,5 +1,6 @@
 import { RPCApiHandler } from '@zenstackhq/server/api';
 import { createEventHandler } from '@zenstackhq/server/nuxt';
+import { defineEventHandler } from 'nuxt/server';
 import { db } from '~~/server/utils/db';
 import { schema } from '~~/zenstack/schema';
 
@@ -10,4 +11,4 @@ const handler = createEventHandler({
     getClient: () => db,
 });
 
-export default handler;
+export default defineEventHandler(handler);

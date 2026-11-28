@@ -2,7 +2,7 @@
     "name": "@zenstackhq/better-auth",
     "displayName": "ZenStack Better Auth Adapter",
     "description": "ZenStack Better Auth Adapter. This adapter is modified from better-auth's Prisma adapter.",
-    "version": "3.10.2",
+    "version": "3.10.4",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
@@ -70,6 +70,7 @@
         "@types/tmp": "catalog:",
         "@zenstackhq/cli": "workspace:*",
         "@zenstackhq/eslint-config": "workspace:*",
+        "@zenstackhq/testtools": "workspace:*",
         "@zenstackhq/tsdown-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*",

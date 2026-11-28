@@ -47,6 +47,27 @@ model User {
         expect(prismaSchemaText.includes('nanoid12_%s')).toBe(false);
     });
 
+    it('strips ignore from @updatedAt without changing other attributes (issue 2930)', async () => {
+        const model = await loadSchema(`
+model Post {
+    id        String   @id @default(cuid())
+    title     String
+    views     Int      @default(0)
+    updatedAt DateTime @default(now()) @updatedAt(ignore: [views]) @map('updated_at')
+    empty     DateTime @updatedAt(ignore: [])
+    plain     DateTime @updatedAt
+}
+        `);
+
+        const generator = new PrismaSchemaGenerator(model);
+        const prismaSchemaText = await generator.generate();
+
+        expect(prismaSchemaText).toContain('updatedAt DateTime @default(now()) @updatedAt() @map("updated_at")');
+        expect(prismaSchemaText).toContain('empty DateTime @updatedAt()');
+        expect(prismaSchemaText).toContain('plain DateTime @updatedAt()');
+        expect(prismaSchemaText).not.toContain('ignore:');
+    });
+
     it('renames native type mappings to match the datasource', async () => {
         const model = await loadSchema(`
 datasource ds {
